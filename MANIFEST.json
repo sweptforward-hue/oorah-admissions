@@ -1,0 +1,15 @@
+{
+  "source": "/mnt/data/Untitled document(1).md",
+  "master_spec": "SPEC.md",
+  "shared_instructions": "AGENTS.md",
+  "workstreams": [
+    "spec/01-database.md",
+    "spec/02-admin.md",
+    "spec/03-campers.md",
+    "spec/04-staff.md",
+    "spec/05-contracts.md",
+    "spec/06-vaad.md",
+    "spec/07-integration.md"
+  ],
+  "note": "SPEC.md is the exact uploaded specification. Focused task files are derived from the first complete copy of its 76 sections and add only the user-requested additions."
+}
