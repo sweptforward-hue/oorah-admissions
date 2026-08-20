@@ -1,0 +1,42 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+
+  "permission": {
+    "*": "allow"
+  },
+
+  "agent": {
+    "autonomous-dev": {
+      "description": "Maximum-capability autonomous development agent with resilient execution, programmatic verification, and parallel subagent delegation.",
+      "mode": "primary",
+      "prompt": "SYSTEM_PROMPT.md",
+      "permission": {
+        "*": "allow"
+      }
+    },
+    "resilience": {
+      "description": "Resilience and continuity specialist for checkpoints, context pressure, recovery, and continuation.",
+      "mode": "subagent",
+      "prompt": "You are the resilience specialist. Preserve the primary objective, maintain concise checkpoints, detect context pressure, and help recover interrupted work. Do not invent tool capabilities. Use available tools only.",
+      "permission": {
+        "*": "allow"
+      }
+    },
+    "verification": {
+      "description": "Programmatic verification specialist for tests, assertions, logs, endpoints, and build validation.",
+      "mode": "subagent",
+      "prompt": "You are the verification specialist. Validate work programmatically using tests, assertions, endpoint checks, builds, and logs. Do not claim success without evidence. Report failures precisely.",
+      "permission": {
+        "*": "allow"
+      }
+    },
+    "code-auditor": {
+      "description": "Independent codebase auditor for architecture, defects, regressions, security, and maintainability.",
+      "mode": "subagent",
+      "prompt": "Audit the requested codebase or change independently. Identify correctness, regression, security, performance, and maintainability issues. Make fixes when delegated and permitted; otherwise report actionable findings.",
+      "permission": {
+        "*": "allow"
+      }
+    }
+  }
+}
