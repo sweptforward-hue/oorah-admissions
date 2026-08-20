@@ -27,14 +27,14 @@ export default function NewCamperPage() {
   };
 
   return (
-    <div>
+    <div className="min-h-screen bg-slate-50">
       <Navbar />
       <div className="container mx-auto py-12 px-4 max-w-2xl">
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Create New Camper</CardTitle>
             <CardDescription>
-              Enter the details to start a new application. A dedicated application workspace will be created automatically.
+              Enter applicant information to open a dedicated admission workspace.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>

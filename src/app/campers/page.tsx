@@ -73,25 +73,34 @@ export default async function CampersDashboard() {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           last_activity: "Today",
+        },
+        {
+          id: "2",
+          application_number: "1043",
+          name: "Sarah Cohen",
+          status: "Accepted",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          last_activity: "Yesterday",
         }
       ];
     }
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-slate-50">
       <Navbar />
       <div className="container mx-auto py-8 px-4 max-w-6xl">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Admissions</h1>
-            <p className="text-slate-500 mt-1">Manage all camper applications</p>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Campers Roster & Admissions</h1>
+            <p className="text-slate-500 mt-1">Manage and evaluate all applicant profiles</p>
           </div>
           <div className="flex items-center gap-4 w-full md:w-auto">
             <Input
               type="search"
               placeholder="Search kids..."
-              className="max-w-xs"
+              className="max-w-xs bg-white"
             />
             <Button asChild>
               <Link href="/campers/new">+ New Kid</Link>
@@ -99,7 +108,7 @@ export default async function CampersDashboard() {
           </div>
         </div>
 
-        <div className="rounded-md border bg-white shadow-sm">
+        <div className="rounded-md border bg-white shadow-sm overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
@@ -118,7 +127,7 @@ export default async function CampersDashboard() {
                 </TableRow>
               ) : (
                 campers.map((camper) => (
-                  <TableRow key={camper.id} className="cursor-pointer group">
+                  <TableRow key={camper.id} className="cursor-pointer group hover:bg-slate-50">
                     <TableCell className="font-medium text-slate-900">
                       <Link href={`/campers/${camper.id}`} className="block">
                         {camper.name}
