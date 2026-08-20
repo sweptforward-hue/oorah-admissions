@@ -1,14 +1,15 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { VaadChoice, VaadMember, VaadVote } from '../../types/vaad';
 
 // We implement fetching in mockDb for tests to test business logic directly,
 // but real queries would hit Supabase normally.
-export let mockDb = {
+export const mockDb = {
   choices: [] as VaadChoice[],
   members: [] as VaadMember[],
   votes: [] as VaadVote[],
-  kids: [] as any[],
-  auditLogs: [] as any[],
-  statusHistory: [] as any[]
+  kids: [] as   any[],
+  auditLogs: [] as   any[],
+  statusHistory: [] as   any[]
 };
 
 export function resetMockDb() {
@@ -22,7 +23,7 @@ export function resetMockDb() {
 
 const isTest = process.env.NODE_ENV === 'test';
 
-export async function getVaadMembers(supabase: any): Promise<VaadMember[]> {
+export async function getVaadMembers(supabase:   any): Promise<VaadMember[]> {
   if (isTest) return mockDb.members;
   const { data, error } = await supabase
     .from('vaad_members')
@@ -34,7 +35,7 @@ export async function getVaadMembers(supabase: any): Promise<VaadMember[]> {
   return data;
 }
 
-export async function getVaadChoices(supabase: any): Promise<VaadChoice[]> {
+export async function getVaadChoices(supabase:   any): Promise<VaadChoice[]> {
   if (isTest) return mockDb.choices.sort((a, b) => a.display_order - b.display_order);
   const { data, error } = await supabase
     .from('vaad_choices')
@@ -44,7 +45,7 @@ export async function getVaadChoices(supabase: any): Promise<VaadChoice[]> {
   return data;
 }
 
-export async function getActiveVaadChoices(supabase: any): Promise<VaadChoice[]> {
+export async function getActiveVaadChoices(supabase:   any): Promise<VaadChoice[]> {
   if (isTest) return mockDb.choices.filter(c => c.is_active).sort((a, b) => a.display_order - b.display_order);
   const { data, error } = await supabase
     .from('vaad_choices')
@@ -55,7 +56,7 @@ export async function getActiveVaadChoices(supabase: any): Promise<VaadChoice[]>
   return data;
 }
 
-export async function getVaadVotesForKid(supabase: any, kidId: string): Promise<VaadVote[]> {
+export async function getVaadVotesForKid(supabase:   any, kidId: string): Promise<VaadVote[]> {
   if (isTest) {
     return mockDb.votes.filter(v => v.kid_id === kidId).map(v => ({
       ...v,

@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { submitVote } from '../src/lib/vaad/actions';
 
 describe('VAAD Voting Rules', () => {
-  let supabaseMock: any;
+  let supabaseMock:   any;
   const kidId = 'kid-1';
   const choiceId = 'c-accept';
 

@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { getActiveVaadChoices } from './queries';
 import { VaadChoice } from '../../types/vaad';
 
 export async function submitVote(
-  supabase: any,
+  supabase:   any,
   kidId: string,
   choiceId: string
 ) {
