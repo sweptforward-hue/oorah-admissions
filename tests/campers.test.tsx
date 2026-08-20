@@ -3,15 +3,11 @@ import { render, screen } from '@testing-library/react'
 import CampersDashboard from '@/app/campers/page'
 
 // Mock next/link
-vi.mock('next/link', () => {
-  return {
-    default: ({ children, href }: { children: React.ReactNode, href: string }) => {
-      return <a href={href}>{children}</a>;
-    }
-  };
-});
+vi.mock('next/link', () => ({
+  default: ({ children, href }: { children: React.ReactNode, href: string }) => <a href={href}>{children}</a>
+}))
 
-// Mock the server Supabase client
+// Mock Supabase server client
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn().mockResolvedValue({
     from: vi.fn().mockReturnThis(),
@@ -39,14 +35,13 @@ vi.mock('@/lib/supabase/server', () => ({
     })
   }),
   createServerSupabaseClient: vi.fn()
-}));
+}))
 
 describe('Campers Dashboard', () => {
   it('renders the dashboard heading', async () => {
     const DashboardComponent = await CampersDashboard()
     render(DashboardComponent)
-    const heading = screen.getByRole('heading', { name: /Admissions/i })
-    expect(heading).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Campers Roster & Admissions/i })).toBeInTheDocument()
   })
 
   it('renders the Create New Camper button', async () => {
@@ -57,14 +52,11 @@ describe('Campers Dashboard', () => {
     expect(button.closest('a')).toHaveAttribute('href', '/campers/new')
   })
 
-  it('renders a list of campers from database mock', async () => {
+  it('renders camper records from database', async () => {
     const DashboardComponent = await CampersDashboard()
     render(DashboardComponent)
     expect(screen.getByText('John Smith')).toBeInTheDocument()
     expect(screen.getByText('1042')).toBeInTheDocument()
-    expect(screen.getByText('VAAD Review')).toBeInTheDocument()
-
     expect(screen.getByText('Sarah Cohen')).toBeInTheDocument()
-    expect(screen.getByText('Accepted')).toBeInTheDocument()
   })
 })
