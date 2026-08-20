@@ -67,14 +67,18 @@ export default async function CamperDetailPage({ params }: PageProps) {
       notFound();
     }
   } else {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw = camperData as any;
+    const statusName = Array.isArray(raw.statuses) ? raw.statuses[0]?.name : raw.statuses?.name;
+
     camper = {
-      id: camperData.id,
-      application_number: camperData.application_number,
-      name: camperData.name,
-      status: (camperData.statuses?.name || 'New') as KidStatus,
-      voting_open: camperData.voting_open ?? true,
-      created_at: camperData.created_at,
-      updated_at: camperData.updated_at,
+      id: raw.id,
+      application_number: raw.application_number,
+      name: raw.name,
+      status: (statusName || 'New') as KidStatus,
+      voting_open: raw.voting_open ?? true,
+      created_at: raw.created_at,
+      updated_at: raw.updated_at,
     };
   }
 

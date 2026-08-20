@@ -53,15 +53,18 @@ export default async function CampersDashboard() {
 
   if (!error && campersData) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    campers = campersData.map((c: any) => ({
-      id: c.id,
-      application_number: c.application_number,
-      name: c.name,
-      status: (c.statuses?.name || 'New') as KidStatus,
-      created_at: c.created_at,
-      updated_at: c.updated_at,
-      last_activity: new Date(c.updated_at || c.created_at).toLocaleDateString(),
-    }));
+    campers = (campersData as any[]).map((c: any) => {
+      const statusName = Array.isArray(c.statuses) ? c.statuses[0]?.name : c.statuses?.name;
+      return {
+        id: c.id,
+        application_number: c.application_number,
+        name: c.name,
+        status: (statusName || 'New') as KidStatus,
+        created_at: c.created_at,
+        updated_at: c.updated_at,
+        last_activity: new Date(c.updated_at || c.created_at).toLocaleDateString(),
+      };
+    });
   } else {
     if (process.env.NODE_ENV !== 'production') {
       campers = [
