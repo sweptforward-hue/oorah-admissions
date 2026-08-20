@@ -1,0 +1,78 @@
+--- src/app/admin/layout.tsx
++++ src/app/admin/layout.tsx
+@@ -8,11 +8,18 @@
+         <h2 className="text-xl font-bold mb-4">Admin Navigation</h2>
+         <ul className="space-y-2">
+           <li>
+             <Link href="/admin" className="text-blue-600 hover:underline">
+               Dashboard
+             </Link>
+           </li>
++          <li>
++            <Link href="/admin/campers" className="text-blue-600 hover:underline">
++              Campers
++            </Link>
++          </li>
++          <li>
++            <Link href="/admin/staff" className="text-blue-600 hover:underline">
++              Staff
++            </Link>
++          </li>
++          <li>
++            <Link href="/admin/users" className="text-blue-600 hover:underline">
++              Users
++            </Link>
++          </li>
++          <li>
++            <Link href="/admin/years" className="text-blue-600 hover:underline">
++              Years
++            </Link>
++          </li>
++          <li>
++            <Link href="/admin/sessions" className="text-blue-600 hover:underline">
++              Sessions
++            </Link>
++          </li>
+           <li>
+             <Link href="/admin/statuses" className="text-blue-600 hover:underline">
+               Statuses
+             </Link>
+           </li>
+           <li>
+             <Link href="/admin/vaad-choices" className="text-blue-600 hover:underline">
+               VAAD Voting Choices
+             </Link>
+           </li>
+           <li>
+             <Link href="/admin/vaad-members" className="text-blue-600 hover:underline">
+               VAAD Members
+             </Link>
+           </li>
++          <li>
++            <Link href="/admin/custom-fields" className="text-blue-600 hover:underline">
++              Custom Fields
++            </Link>
++          </li>
++          <li>
++            <Link href="/admin/exports" className="text-blue-600 hover:underline">
++              Exports
++            </Link>
++          </li>
++          <li>
++            <Link href="/admin/storage" className="text-blue-600 hover:underline">
++              Storage
++            </Link>
++          </li>
++          <li>
++            <Link href="/admin/audit-log" className="text-blue-600 hover:underline">
++              Audit Log
++            </Link>
++          </li>
++          <li>
++            <Link href="/admin/help" className="text-blue-600 hover:underline">
++              Help
++            </Link>
++          </li>
+         </ul>
+       </nav>
+       <main className="flex-1 p-8">{children}</main>
