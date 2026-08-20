@@ -40,3 +40,23 @@
     }
   }
 }
+{
+  "providers": {
+    "freemodel": {
+      "display_name": "FreeModel",
+      "provider_api": "openai-compatible",
+      "base_url": "https://freemodel.dev",
+      "api_key": "YOUR_FREEMODEL_API_KEY",
+      "models": [
+        "gpt-4o", 
+        "claude-3-5-sonnet"
+      ]
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": "freemodel/claude-opus-5"
+    }
+  }
+}
+
