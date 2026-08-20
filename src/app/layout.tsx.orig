@@ -23,14 +23,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <div className="flex-1">
-          {children}
-        </div>
-        <footer className="w-full p-4 text-center text-sm text-gray-500 border-t">
-          &copy; {new Date().getFullYear()} Azriel Cohenca
-        </footer>
-      </body>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }
