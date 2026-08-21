@@ -1,7 +1,17 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { Navbar } from '@/components/layout/Navbar'
 
-export default function Home() {
+interface PageProps {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
+}
+
+export default async function Home({ searchParams }: PageProps) {
+  const params = searchParams ? await searchParams : undefined
+  if (params?.error || params?.error_code) {
+    redirect('/access-denied')
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Navbar />
