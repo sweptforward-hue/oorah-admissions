@@ -63,6 +63,21 @@ export default function HelpPage() {
               </p>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">5. Support & Issue Reporting</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-slate-700 space-y-2 leading-relaxed">
+              <p>
+                If you encounter any technical issues or need assistance, please send an email to{' '}
+                <a href="mailto:rachelli.cohenca@gmail.com" className="text-blue-600 underline font-medium">
+                  rachelli.cohenca@gmail.com
+                </a>{' '}
+                with a description of your issue.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
