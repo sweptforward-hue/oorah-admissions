@@ -35,7 +35,7 @@ export function Navbar() {
             </div>
             <div className="hidden md:ml-8 md:flex md:space-x-6 items-center">
               {navLinks.map((link) => {
-                const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href))
+                const isActive = Boolean(pathname && (pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href))))
                 return (
                   <Link
                     key={link.name}
