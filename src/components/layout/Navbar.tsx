@@ -2,16 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 export function Navbar() {
   const pathname = usePathname()
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  useEffect(() => {
-    // Simulated notification count for demonstration/active user
-    setUnreadCount(2)
-  }, [])
+  const [unreadCount] = useState(2)
 
   const navLinks = [
     { name: 'Dashboard', href: '/dashboard' },
