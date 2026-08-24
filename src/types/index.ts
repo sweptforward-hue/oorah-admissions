@@ -4,3 +4,4 @@ export * from './vaad';
 export * from './sessions';
 export * from './customFields';
 export * from './notifications';
+export * from './chat';
