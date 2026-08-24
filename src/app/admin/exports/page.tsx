@@ -2,18 +2,25 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Card, CardTitle } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 export default function AdminExportsPage() {
   const [exporting, setExporting] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
+  const [exportTarget, setExportTarget] = useState<string | null>(null)
 
-  const handleExport = (destination: string) => {
-    if (!window.confirm(`Confirm export to ${destination}? This action will be audited.`)) return
+  const handleTriggerExport = (destination: string) => {
+    setExportTarget(destination)
+  }
+
+  const handleConfirmExport = () => {
+    if (!exportTarget) return
     setExporting(true)
     setTimeout(() => {
       setExporting(false)
       setConfirmed(true)
+      setExportTarget(null)
     }, 800)
   }
 
@@ -28,19 +35,25 @@ export default function AdminExportsPage() {
         <Card className="p-6">
           <CardTitle className="text-lg font-bold mb-2">Google Sheets Sync</CardTitle>
           <p className="text-xs text-slate-500 mb-4">Export active roster to Google Drive Sheet spreadsheet.</p>
-          <Button onClick={() => handleExport('Google Sheets')} disabled={exporting}>Export to Sheets</Button>
+          <Button
+            className="bg-green-600 hover:bg-green-700 text-white"
+            onClick={() => handleTriggerExport('Google Sheets')}
+            disabled={exporting}
+          >
+            Export to Sheets
+          </Button>
         </Card>
 
         <Card className="p-6">
           <CardTitle className="text-lg font-bold mb-2">CSV Download</CardTitle>
           <p className="text-xs text-slate-500 mb-4">Generate raw CSV archive for local records.</p>
-          <Button variant="outline" onClick={() => handleExport('CSV')} disabled={exporting}>Download CSV</Button>
+          <Button variant="outline" onClick={() => handleTriggerExport('CSV')} disabled={exporting}>Download CSV</Button>
         </Card>
 
         <Card className="p-6">
           <CardTitle className="text-lg font-bold mb-2">Google Drive Folder</CardTitle>
           <p className="text-xs text-slate-500 mb-4">Archive all PDF contracts and media assets.</p>
-          <Button variant="outline" onClick={() => handleExport('Google Drive Folder')} disabled={exporting}>Archive Files</Button>
+          <Button variant="outline" onClick={() => handleTriggerExport('Google Drive Folder')} disabled={exporting}>Archive Files</Button>
         </Card>
       </div>
 
@@ -49,6 +62,15 @@ export default function AdminExportsPage() {
           Export completed successfully and logged to <code>public.audit_log</code>.
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={Boolean(exportTarget)}
+        onClose={() => setExportTarget(null)}
+        onConfirm={handleConfirmExport}
+        title="Confirm Data Export"
+        message={`Confirm export to ${exportTarget}? This action will be recorded in the audit log.`}
+        confirmText="Confirm Export"
+      />
     </div>
   )
 }

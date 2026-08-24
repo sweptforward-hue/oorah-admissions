@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface Status {
   id: string
@@ -18,6 +19,9 @@ export default function StatusesPage() {
   const [loading, setLoading] = useState(true)
   const [isAdding, setIsAdding] = useState(false)
   const [newStatusName, setNewStatusName] = useState('')
+
+  // Toggle active dialog state
+  const [toggleTarget, setToggleTarget] = useState<{ id: string; active: boolean } | null>(null)
 
   useEffect(() => {
     fetchStatuses()
@@ -36,18 +40,19 @@ export default function StatusesPage() {
     setLoading(false)
   }
 
-  async function toggleActive(id: string, currentStatus: boolean) {
-    if (!currentStatus && !window.confirm('Are you sure you want to reactivate this status?')) return;
-    if (currentStatus && !window.confirm('Are you sure you want to deactivate this status?')) return;
+  async function handleConfirmToggleActive() {
+    if (!toggleTarget) return
+    const { id, active } = toggleTarget
 
     const { error } = await supabase
       .from('statuses')
-      .update({ active: !currentStatus })
+      .update({ active: !active })
       .eq('id', id)
 
     if (!error) {
       fetchStatuses()
     }
+    setToggleTarget(null)
   }
 
   async function addStatus(e: React.FormEvent) {
@@ -80,7 +85,7 @@ export default function StatusesPage() {
         <h1 className="text-2xl font-bold">Application Statuses</h1>
         <button
           onClick={() => setIsAdding(!isAdding)}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded"
         >
           {isAdding ? 'Cancel' : '+ Add Status'}
         </button>
@@ -124,7 +129,7 @@ export default function StatusesPage() {
               </span>
               {!status.is_default && (
                 <button
-                  onClick={() => toggleActive(status.id, status.active)}
+                  onClick={() => setToggleTarget({ id: status.id, active: status.active })}
                   className="text-sm border px-3 py-1 rounded hover:bg-gray-50"
                 >
                   {status.active ? 'Deactivate' : 'Reactivate'}
@@ -134,6 +139,20 @@ export default function StatusesPage() {
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(toggleTarget)}
+        onClose={() => setToggleTarget(null)}
+        onConfirm={handleConfirmToggleActive}
+        title={toggleTarget?.active ? 'Confirm Deactivation' : 'Confirm Reactivation'}
+        message={
+          toggleTarget?.active
+            ? 'Are you sure you want to deactivate this status?'
+            : 'Are you sure you want to reactivate this status?'
+        }
+        confirmText={toggleTarget?.active ? 'Deactivate' : 'Reactivate'}
+        variant={toggleTarget?.active ? 'destructive' : 'default'}
+      />
     </div>
   )
 }

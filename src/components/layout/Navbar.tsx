@@ -2,16 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
 
 export function Navbar() {
   const pathname = usePathname()
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  useEffect(() => {
-    // Simulated notification count for demonstration/active user
-    setUnreadCount(2)
-  }, [])
+  const unreadCount = 2
 
   const navLinks = [
     { name: 'Dashboard', href: '/dashboard' },
@@ -35,7 +29,7 @@ export function Navbar() {
             </div>
             <div className="hidden md:ml-8 md:flex md:space-x-6 items-center">
               {navLinks.map((link) => {
-                const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href))
+                const isActive = pathname === link.href || (link.href !== '/' && Boolean(pathname?.startsWith(link.href)))
                 return (
                   <Link
                     key={link.name}

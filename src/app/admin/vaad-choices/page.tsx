@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface VaadChoice {
   id: string
@@ -21,6 +22,9 @@ export default function VaadChoicesPage() {
   const [editName, setEditName] = useState('')
   const [editOrder, setEditOrder] = useState<number>(0)
 
+  // Confirm dialog state for toggle active
+  const [toggleTarget, setToggleTarget] = useState<{ id: string; currentStatus: boolean } | null>(null)
+
   useEffect(() => {
     fetchChoices()
   }, [])
@@ -38,9 +42,9 @@ export default function VaadChoicesPage() {
     setLoading(false)
   }
 
-  async function toggleActive(id: string, currentStatus: boolean) {
-    if (!currentStatus && !window.confirm('Are you sure you want to reactivate this choice?')) return;
-    if (currentStatus && !window.confirm('Are you sure you want to deactivate this choice? Historical votes will remain, but this choice will no longer be available.')) return;
+  async function handleConfirmToggleActive() {
+    if (!toggleTarget) return
+    const { id, currentStatus } = toggleTarget
 
     const { error } = await supabase
       .from('vaad_voting_choices')
@@ -50,6 +54,7 @@ export default function VaadChoicesPage() {
     if (!error) {
       fetchChoices()
     }
+    setToggleTarget(null)
   }
 
   async function startEditing(choice: VaadChoice) {
@@ -104,7 +109,7 @@ export default function VaadChoicesPage() {
         <h1 className="text-2xl font-bold">VAAD Voting Choices</h1>
         <button
           onClick={() => setIsAdding(!isAdding)}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded"
         >
           {isAdding ? 'Cancel' : '+ Add Choice'}
         </button>
@@ -159,7 +164,7 @@ export default function VaadChoicesPage() {
             <div className="flex items-center gap-4">
               {editingId === choice.id ? (
                 <>
-                  <button onClick={() => saveEdit(choice.id)} className="text-sm bg-blue-600 text-white px-3 py-1 rounded">Save</button>
+                  <button onClick={() => saveEdit(choice.id)} className="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">Save</button>
                   <button onClick={() => setEditingId(null)} className="text-sm border px-3 py-1 rounded">Cancel</button>
                 </>
               ) : (
@@ -174,7 +179,7 @@ export default function VaadChoicesPage() {
                     Edit
                   </button>
                   <button
-                    onClick={() => toggleActive(choice.id, choice.is_active)}
+                    onClick={() => setToggleTarget({ id: choice.id, currentStatus: choice.is_active })}
                     className="text-sm border px-3 py-1 rounded hover:bg-gray-50"
                   >
                     {choice.is_active ? 'Deactivate' : 'Reactivate'}
@@ -185,6 +190,20 @@ export default function VaadChoicesPage() {
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(toggleTarget)}
+        onClose={() => setToggleTarget(null)}
+        onConfirm={handleConfirmToggleActive}
+        title={toggleTarget?.currentStatus ? 'Confirm Deactivation' : 'Confirm Reactivation'}
+        message={
+          toggleTarget?.currentStatus
+            ? 'Are you sure you want to deactivate this choice? Historical votes will remain, but this choice will no longer be available.'
+            : 'Are you sure you want to reactivate this choice?'
+        }
+        confirmText={toggleTarget?.currentStatus ? 'Deactivate' : 'Reactivate'}
+        variant={toggleTarget?.currentStatus ? 'destructive' : 'default'}
+      />
     </div>
   )
 }
