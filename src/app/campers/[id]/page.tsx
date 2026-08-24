@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "@/components/layout/Navbar";
 import { KidStatus, Kid } from "@/types";
 import { createClient } from "@/lib/supabase/server";
+import { VoiceNotesTab } from "@/components/kids/voice-notes-tab";
+import { PhotoGallery } from "@/components/kids/photo-gallery";
+import { DocumentManager } from "@/components/kids/document-manager";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -215,41 +218,17 @@ export default async function CamperDetailPage({ params }: PageProps) {
 
           {/* Documents / Google Drive */}
           <TabsContent value="documents">
-            <Card>
-              <CardHeader>
-                <CardTitle>Documents & Google Drive Storage</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="border-2 border-dashed border-slate-200 p-8 rounded-lg text-center bg-slate-50">
-                  <p className="text-slate-600 mb-2">Upload application documents directly to secure Google Drive</p>
-                  <Button variant="outline">Upload to Google Drive</Button>
-                </div>
-              </CardContent>
-            </Card>
+            <DocumentManager kidId={camper.id} />
           </TabsContent>
 
           {/* Photos */}
           <TabsContent value="photos">
-            <Card>
-              <CardHeader>
-                <CardTitle>Camper Photos</CardTitle>
-              </CardHeader>
-              <CardContent className="p-8 text-center text-slate-500">
-                Photo uploads will appear here.
-              </CardContent>
-            </Card>
+            <PhotoGallery kidId={camper.id} />
           </TabsContent>
 
           {/* Voice Notes */}
           <TabsContent value="voice-notes">
-            <Card>
-              <CardHeader>
-                <CardTitle>Staff Voice Notes</CardTitle>
-              </CardHeader>
-              <CardContent className="p-8 text-center text-slate-500">
-                Audio recordings and transcription logs will appear here.
-              </CardContent>
-            </Card>
+            <VoiceNotesTab kidId={camper.id} />
           </TabsContent>
 
           {/* Transcript */}
