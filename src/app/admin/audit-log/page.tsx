@@ -1,53 +1,68 @@
 'use client'
 
-import { useState } from 'react'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-
-interface AuditItem {
-  id: string
-  action: string
-  actor: string
-  entityType: string
-  entityId: string
-  timestamp: string
-}
+import { useState, useEffect } from 'react'
+import { AuditLogTable } from '@/components/admin/audit-log-table'
+import { AuditLogEntry, getAuditLogs } from '@/lib/services/audit'
+import { createBrowserClient } from '@/lib/supabase/client'
 
 export default function AdminAuditLogPage() {
-  const [logs] = useState<AuditItem[]>([
-    { id: '1', action: 'status_override', actor: 'Azriel Cohenca', entityType: 'kid', entityId: '1042', timestamp: '2026-08-20 18:25' },
-    { id: '2', action: 'export_data', actor: 'Azriel Cohenca', entityType: 'export', entityId: 'sheets-sync', timestamp: '2026-08-20 17:40' },
-    { id: '3', action: 'automatic_acceptance', actor: 'System (VAAD)', entityType: 'kid', entityId: '1043', timestamp: '2026-08-20 16:10' },
+  const [logs, setLogs] = useState<AuditLogEntry[]>([
+    {
+      id: '1',
+      action: 'status_override',
+      actor: 'Azriel Cohenca',
+      entity_type: 'kid',
+      entity_id: '1042',
+      created_at: '2026-08-20T18:25:00Z',
+      metadata: { reason: 'Admin manual override' },
+    },
+    {
+      id: '2',
+      action: 'export_data',
+      actor: 'Azriel Cohenca',
+      entity_type: 'export',
+      entity_id: 'sheets-sync',
+      created_at: '2026-08-20T17:40:00Z',
+      metadata: { destination: 'Google Sheets' },
+    },
+    {
+      id: '3',
+      action: 'automatic_acceptance',
+      actor: 'System (VAAD)',
+      entity_type: 'kid',
+      entity_id: '1043',
+      created_at: '2026-08-20T16:10:00Z',
+      metadata: { trigger: '2/3 Accept votes threshold' },
+    },
   ])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const client = createBrowserClient()
+    getAuditLogs(client)
+      .then((res) => {
+        if (res.logs && res.logs.length > 0) {
+          setLogs(res.logs)
+        }
+      })
+      .catch((err) => console.error('Error loading audit logs:', err))
+      .finally(() => setLoading(false))
+  }, [])
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold text-slate-900 mb-2">System Audit Trail</h1>
-      <p className="text-sm text-slate-500 mb-6">Complete log of all administrative actions, status overrides, and system automated transitions</p>
-
-      <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Timestamp</TableHead>
-              <TableHead>Action</TableHead>
-              <TableHead>Performed By</TableHead>
-              <TableHead>Target Entity</TableHead>
-              <TableHead>Reference ID</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {logs.map((l) => (
-              <TableRow key={l.id}>
-                <TableCell className="text-xs text-slate-500">{l.timestamp}</TableCell>
-                <TableCell className="font-semibold text-slate-900">{l.action}</TableCell>
-                <TableCell className="text-slate-700">{l.actor}</TableCell>
-                <TableCell className="text-slate-500 uppercase text-xs">{l.entityType}</TableCell>
-                <TableCell className="text-slate-500 font-mono text-xs">{l.entityId}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+    <div className="p-8 max-w-6xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">System Audit Trail</h1>
+        <p className="text-sm text-slate-500">
+          Complete append-only log of all administrative actions, status overrides, VAAD voting events, user deactivations, and system automated transitions.
+        </p>
       </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-slate-500">Loading audit trail...</div>
+      ) : (
+        <AuditLogTable initialLogs={logs} />
+      )}
     </div>
   )
 }

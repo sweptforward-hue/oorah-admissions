@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getActiveVaadChoices } from './queries';
 import { VaadChoice } from '../../types/vaad';
+import { logAuditEvent } from '../services/audit';
 
 export async function submitVote(
   supabase:   any,
@@ -29,4 +30,11 @@ export async function submitVote(
     }
     throw new Error(error.message);
   }
+
+  await logAuditEvent(supabase, {
+    action: 'vaad_vote',
+    entityType: 'vaad_vote',
+    entityId: kidId,
+    metadata: { kid_id: kidId, choice_id: choiceId },
+  });
 }

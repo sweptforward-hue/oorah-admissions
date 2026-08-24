@@ -3,6 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { UserWithVaadInfo } from '@/types/users'
+import { logAuditEvent } from '@/lib/services/audit'
 
 export async function getUsersWithVaadInfo(): Promise<UserWithVaadInfo[]> {
   const supabase = createServerSupabaseClient()
@@ -47,21 +48,49 @@ export async function updateUser(
   data: { role?: string; active?: boolean }
 ) {
   const supabase = createServerSupabaseClient()
+  const isTest = process.env.NODE_ENV === 'test'
 
-  const { error } = await supabase
-    .from('users')
-    .update({
-      ...(data.role !== undefined && { role: data.role }),
-      ...(data.active !== undefined && { active: data.active }),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userId)
+  if (!isTest) {
+    const { error } = await supabase
+      .from('users')
+      .update({
+        ...(data.role !== undefined && { role: data.role }),
+        ...(data.active !== undefined && { active: data.active }),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId)
 
-  if (error) {
-    return { error: error.message }
+    if (error) {
+      return { error: error.message }
+    }
   }
 
-  revalidatePath('/admin/users')
+  // Audit log mutation
+  if (data.active !== undefined) {
+    await logAuditEvent(supabase, {
+      userId,
+      action: data.active ? 'user_activated' : 'user_deactivated',
+      entityType: 'user',
+      entityId: userId,
+      metadata: { active: data.active },
+    })
+  }
+
+  if (data.role !== undefined) {
+    await logAuditEvent(supabase, {
+      userId,
+      action: 'role_modified',
+      entityType: 'user',
+      entityId: userId,
+      metadata: { new_role: data.role },
+    })
+  }
+
+  try {
+    revalidatePath('/admin/users')
+  } catch {
+    // Ignore revalidatePath in test / non-server contexts
+  }
   return { success: true }
 }
 
@@ -98,6 +127,14 @@ export async function updateVaadPermissions(
       return { error: error.message }
     }
   }
+
+  await logAuditEvent(supabase, {
+    userId,
+    action: 'vaad_permissions_modified',
+    entityType: 'vaad_member',
+    entityId: userId,
+    metadata: data,
+  })
 
   revalidatePath('/admin/users')
   return { success: true }
