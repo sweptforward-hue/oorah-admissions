@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "@/components/layout/Navbar";
 import { KidStatus, Kid } from "@/types";
 import { createClient } from "@/lib/supabase/server";
+import { ChatTab } from "@/components/kids/chat-tab";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -191,26 +192,9 @@ export default async function CamperDetailPage({ params }: PageProps) {
             </div>
           </TabsContent>
 
-          {/* Chat with @mentions */}
+          {/* Chat Tab */}
           <TabsContent value="chat">
-            <Card>
-              <CardHeader>
-                <CardTitle>Internal Team Chat & Notifications</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 bg-slate-100 rounded-lg text-sm text-slate-700">
-                  <strong>Rabbi Cohen</strong>: <em>@Azriel Cohenca</em> Please review the recommendation letter attached.
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Type a note (use @name to mention team members)..."
-                    className="flex-1 p-2 border rounded-md text-sm bg-white"
-                  />
-                  <Button>Send Note</Button>
-                </div>
-              </CardContent>
-            </Card>
+            <ChatTab kidId={camper.id} />
           </TabsContent>
 
           {/* Documents / Google Drive */}
