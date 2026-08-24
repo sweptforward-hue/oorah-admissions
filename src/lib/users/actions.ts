@@ -1,11 +1,11 @@
 'use server'
 
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { UserWithVaadInfo } from '@/types/users'
 
 export async function getUsersWithVaadInfo(): Promise<UserWithVaadInfo[]> {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createClient()
 
   // Left join to vaad_members
   const { data, error } = await supabase
@@ -46,7 +46,7 @@ export async function updateUser(
   userId: string,
   data: { role?: string; active?: boolean }
 ) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from('users')
@@ -69,7 +69,7 @@ export async function updateVaadPermissions(
   userId: string,
   data: { isVaadMember: boolean; canContribute: boolean; canVote: boolean }
 ) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createClient()
 
   if (!data.isVaadMember) {
     // If not a VAAD member, set is_active to false in vaad_members table if it exists
