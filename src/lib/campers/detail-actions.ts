@@ -57,6 +57,9 @@ startxref
 
 export async function sendChatMessage(kidId: string, content: string) {
   const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
   const supabase = createServerSupabaseClient()
 
   // Ensure content is provided
@@ -64,7 +67,7 @@ export async function sendChatMessage(kidId: string, content: string) {
     throw new Error('Message content is required')
   }
 
-  const actorId = actor?.id || null
+  const actorId = actor.id
 
   const { data, error } = await supabase
     .from('chat_messages')
@@ -99,11 +102,14 @@ export async function uploadDocumentToDrive(
   mimeType: string = 'application/pdf'
 ) {
   const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
   const supabase = createServerSupabaseClient()
 
   // Fetch kid details for folder naming
-  const { data: kid } = await supabase.from('kids').select('name').eq('id', kidId).single()
-  const kidName = kid?.name || `Kid_${kidId}`
+  const { data: kid } = await supabase.from('kids').select('name, first_name, last_name').eq('id', kidId).single()
+  const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
 
   let fileBuffer: Buffer
   if (Buffer.isBuffer(fileData)) {
@@ -114,7 +120,7 @@ export async function uploadDocumentToDrive(
     fileBuffer = Buffer.from(`Sample content for document: ${fileName}`, 'utf-8')
   }
 
-  const actorId = actor?.id || null
+  const actorId = actor.id
 
   const uploadResult = await uploadKidMediaAsset({
     kidId,
@@ -123,7 +129,7 @@ export async function uploadDocumentToDrive(
     fileBuffer,
     filename: fileName,
     mimeType,
-    uploadedBy: actorId || undefined,
+    uploadedBy: actorId,
     documentType: 'General Document'
   })
 
@@ -136,9 +142,13 @@ export async function uploadDocumentToDrive(
 }
 
 export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 'Reject' | 'Abstain' | 'Request Interview') {
+  const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
   const supabase = createServerSupabaseClient()
 
-  // Find or map choice_id from public.vaad_choices
+  // Find or map choice_id from canonical public.vaad_choices
   let { data: choice } = await supabase
     .from('vaad_choices')
     .select('id')
@@ -147,10 +157,9 @@ export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 
     .single()
 
   if (!choice) {
-    // Insert if choice does not exist yet
     const { data: newChoice } = await supabase
       .from('vaad_choices')
-      .insert({ label: choiceLabel, action: choiceLabel.toLowerCase() })
+      .insert({ label: choiceLabel, action: choiceLabel.toLowerCase().replace(/\s+/g, '_'), active: true })
       .select('id')
       .single()
     choice = newChoice
@@ -164,8 +173,7 @@ export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 
     }
   }
 
-  const actor = await getCurrentUser()
-  const actorId = actor?.id || null
+  const actorId = actor.id
   await supabase.from('audit_log').insert({
     actor_id: actorId,
     action: `VAAD_VOTE_${choiceLabel.toUpperCase().replace(/\s+/g, '_')}`,
@@ -180,14 +188,17 @@ export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 
 
 export async function generateContractPdf(kidId: string) {
   const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
   const supabase = createServerSupabaseClient()
 
   // Fetch kid information for contract generation
-  const { data: kid } = await supabase.from('kids').select('name, application_number').eq('id', kidId).single()
-  const kidName = kid?.name || 'Camper'
+  const { data: kid } = await supabase.from('kids').select('name, first_name, last_name, application_number').eq('id', kidId).single()
+  const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : 'Camper')
   const appNum = kid?.application_number || kidId
 
-  const actorId = actor?.id || null
+  const actorId = actor.id
   const pdfBuffer = buildContractPdfBuffer(kidName, appNum)
   const filename = `Contract_${kidName.replace(/\s+/g, '_')}_${appNum}.pdf`
 
@@ -198,7 +209,7 @@ export async function generateContractPdf(kidId: string) {
     fileBuffer: pdfBuffer,
     filename,
     mimeType: 'application/pdf',
-    uploadedBy: actorId || undefined,
+    uploadedBy: actorId,
     documentType: 'Generated Contract'
   })
 
@@ -222,10 +233,13 @@ export async function uploadSignedContract(
   mimeType: string = 'application/pdf'
 ) {
   const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
   const supabase = createServerSupabaseClient()
 
-  const { data: kid } = await supabase.from('kids').select('name').eq('id', kidId).single()
-  const kidName = kid?.name || `Kid_${kidId}`
+  const { data: kid } = await supabase.from('kids').select('name, first_name, last_name').eq('id', kidId).single()
+  const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
   const name = fileName || `Signed_Contract_${kidName.replace(/\s+/g, '_')}.pdf`
 
   let fileBuffer: Buffer
@@ -237,7 +251,7 @@ export async function uploadSignedContract(
     fileBuffer = Buffer.from(`Signed Contract Document for ${kidName}`, 'utf-8')
   }
 
-  const actorId = actor?.id || null
+  const actorId = actor.id
 
   const uploadResult = await uploadKidMediaAsset({
     kidId,
@@ -246,7 +260,7 @@ export async function uploadSignedContract(
     fileBuffer,
     filename: name,
     mimeType,
-    uploadedBy: actorId || undefined,
+    uploadedBy: actorId,
     documentType: 'Signed Contract'
   })
 
