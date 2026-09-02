@@ -1,115 +1,173 @@
-/**
- * Multi-Tab Google Sheets Export Engine.
- */
-
-import { google } from 'googleapis'
-
-function getSheetsClient() {
-  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n')
-
-  if (!clientEmail || !privateKey) {
-    return null
-  }
-
-  const auth = new google.auth.JWT({
-    email: clientEmail,
-    key: privateKey,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive'],
-  })
-
-  return google.sheets({ version: 'v4', auth })
-}
+import { getAccessToken } from './drive'
 
 export interface ExportData {
-  kids: any[]
-  users: any[]
-  documents: any[]
-  vaadVotes: any[]
-  auditLogs: any[]
+  kids?: Record<string, any>[]
+  users?: Record<string, any>[]
+  statusHistory?: Record<string, any>[]
+  vaadVotes?: Record<string, any>[]
+  chatTranscripts?: Record<string, any>[]
+  documents?: Record<string, any>[]
+  auditLogs?: Record<string, any>[]
 }
 
-export async function createGoogleSpreadsheet(
-  title: string,
-  data: ExportData
-): Promise<{ spreadsheetId: string; spreadsheetUrl: string }> {
-  const sheets = getSheetsClient()
+export const REQUIRED_TAB_NAMES = [
+  'Kids',
+  'Users',
+  'Status History',
+  'VAAD Votes',
+  'Chat Transcripts',
+  'Documents',
+  'Audit Logs',
+] as const
 
-  if (!sheets) {
-    const fakeId = `sheets_${Date.now()}`
+export type TabName = (typeof REQUIRED_TAB_NAMES)[number]
+
+export const TAB_HEADERS: Record<TabName, string[]> = {
+  Kids: ['ID', 'Application Number', 'Name', 'Status ID', 'Voting Open', 'Created At', 'Updated At'],
+  Users: ['ID', 'Email', 'Name', 'Role', 'Active', 'Created At', 'Updated At'],
+  'Status History': ['ID', 'Kid ID', 'Old Status ID', 'New Status ID', 'Changed By', 'Reason', 'Created At'],
+  'VAAD Votes': ['ID', 'Kid ID', 'VAAD Member ID', 'Vote', 'Notes', 'Created At', 'Updated At'],
+  'Chat Transcripts': ['ID', 'Kid ID', 'User ID', 'Body', 'Created At', 'Updated At'],
+  Documents: ['ID', 'Kid ID', 'Uploaded By', 'Document Type', 'Filename', 'MIME Type', 'Drive File ID', 'Created At'],
+  'Audit Logs': ['ID', 'User ID', 'Action', 'Entity Type', 'Entity ID', 'Metadata', 'Created At'],
+}
+
+export function buildSheetPayload(title: string, data: ExportData = {}) {
+  const sheets = REQUIRED_TAB_NAMES.map((tabName, index) => {
+    const headers = TAB_HEADERS[tabName]
+    const rowsData = getRowsDataForTab(tabName, data)
+
     return {
-      spreadsheetId: fakeId,
-      spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${fakeId}/edit`
+      properties: {
+        sheetId: index,
+        title: tabName,
+      },
+      data: [
+        {
+          startRow: 0,
+          startColumn: 0,
+          rowData: [
+            // Header Row
+            {
+              values: headers.map((h) => ({
+                userEnteredValue: { stringValue: h },
+                userEnteredFormat: { textFormat: { bold: true } },
+              })),
+            },
+            // Data Rows
+            ...rowsData.map((row) => ({
+              values: headers.map((h) => {
+                const val = row[h] ?? row[headerToKey(h)] ?? ''
+                return {
+                  userEnteredValue:
+                    typeof val === 'number'
+                      ? { numberValue: val }
+                      : typeof val === 'boolean'
+                      ? { boolValue: val }
+                      : { stringValue: typeof val === 'object' ? JSON.stringify(val) : String(val) },
+                }
+              }),
+            })),
+          ],
+        },
+      ],
     }
-  }
+  })
 
-  const resource = {
+  return {
     properties: {
       title,
     },
-    sheets: [
-      { properties: { title: 'Campers' } },
-      { properties: { title: 'Staff & Users' } },
-      { properties: { title: 'Documents' } },
-      { properties: { title: 'VAAD Votes' } },
-      { properties: { title: 'Audit Trail' } },
-    ],
+    sheets,
+  }
+}
+
+function getRowsDataForTab(tabName: TabName, data: ExportData): Record<string, any>[] {
+  switch (tabName) {
+    case 'Kids':
+      return data.kids || []
+    case 'Users':
+      return data.users || []
+    case 'Status History':
+      return data.statusHistory || []
+    case 'VAAD Votes':
+      return data.vaadVotes || []
+    case 'Chat Transcripts':
+      return data.chatTranscripts || []
+    case 'Documents':
+      return data.documents || []
+    case 'Audit Logs':
+      return data.auditLogs || []
+    default:
+      return []
+  }
+}
+
+function headerToKey(header: string): string {
+  const map: Record<string, string> = {
+    ID: 'id',
+    'Application Number': 'application_number',
+    Name: 'name',
+    'Status ID': 'status_id',
+    'Voting Open': 'voting_open',
+    'Created At': 'created_at',
+    'Updated At': 'updated_at',
+    Email: 'email',
+    Role: 'role',
+    Active: 'active',
+    'Kid ID': 'kid_id',
+    'Old Status ID': 'old_status_id',
+    'New Status ID': 'new_status_id',
+    'Changed By': 'changed_by',
+    Reason: 'reason',
+    'VAAD Member ID': 'vaad_member_id',
+    Vote: 'vote',
+    Notes: 'notes',
+    'User ID': 'user_id',
+    Body: 'body',
+    'Uploaded By': 'uploaded_by',
+    'Document Type': 'document_type',
+    Filename: 'filename',
+    'MIME Type': 'mime_type',
+    'Drive File ID': 'drive_file_id',
+    Action: 'action',
+    'Entity Type': 'entity_type',
+    'Entity ID': 'entity_id',
+    Metadata: 'metadata',
+  }
+  return map[header] || header.toLowerCase().replace(/ /g, '_')
+}
+
+export async function createGoogleSpreadsheet(title: string, data: ExportData): Promise<{ spreadsheetId: string; spreadsheetUrl: string }> {
+  const token = await getAccessToken()
+
+  if (token === 'mock-access-token') {
+    const mockId = `sheet_${Date.now()}`
+    return {
+      spreadsheetId: mockId,
+      spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${mockId}/edit`,
+    }
   }
 
-  const spreadsheet = await sheets.spreadsheets.create({
-    requestBody: resource,
-    fields: 'spreadsheetId,spreadsheetUrl',
+  const payload = buildSheetPayload(title, data)
+
+  const res = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
   })
 
-  const spreadsheetId = spreadsheet.data.spreadsheetId!
-  const spreadsheetUrl = spreadsheet.data.spreadsheetUrl!
+  if (!res.ok) {
+    const errText = await res.text()
+    throw new Error(`Google Sheets export failed: ${res.status} ${errText}`)
+  }
 
-  // Populate data in batch
-  const valueUpdates = [
-    {
-      range: 'Campers!A1',
-      values: [
-        ['ID', 'Application #', 'Name', 'Status ID', 'Voting Open', 'Created At'],
-        ...data.kids.map((k) => [k.id, k.application_number, k.name, k.status_id, k.voting_open, k.created_at]),
-      ],
-    },
-    {
-      range: 'Staff & Users!A1',
-      values: [
-        ['ID', 'Email', 'Full Name', 'Role', 'Active'],
-        ...data.users.map((u) => [u.id, u.email, u.name || u.full_name, u.role, u.active]),
-      ],
-    },
-    {
-      range: 'Documents!A1',
-      values: [
-        ['ID', 'Kid ID', 'Filename', 'File Type', 'Drive File ID'],
-        ...data.documents.map((d) => [d.id, d.kid_id, d.name || d.filename, d.file_type, d.drive_file_id]),
-      ],
-    },
-    {
-      range: 'VAAD Votes!A1',
-      values: [
-        ['ID', 'Kid ID', 'Choice ID', 'Comments', 'Created At'],
-        ...data.vaadVotes.map((v) => [v.id, v.kid_id, v.choice_id, v.comments, v.created_at]),
-      ],
-    },
-    {
-      range: 'Audit Trail!A1',
-      values: [
-        ['ID', 'Actor ID', 'Action', 'Entity Type', 'Entity ID', 'Created At'],
-        ...data.auditLogs.map((a) => [a.id, a.actor_id, a.action, a.entity_type, a.entity_id, a.created_at]),
-      ],
-    },
-  ]
-
-  await sheets.spreadsheets.values.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      valueInputOption: 'USER_ENTERED',
-      data: valueUpdates,
-    },
-  })
-
-  return { spreadsheetId, spreadsheetUrl }
+  const result = await res.json()
+  return {
+    spreadsheetId: result.spreadsheetId,
+    spreadsheetUrl: result.spreadsheetUrl || `https://docs.google.com/spreadsheets/d/${result.spreadsheetId}/edit`,
+  }
 }
