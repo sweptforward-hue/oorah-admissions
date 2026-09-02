@@ -5,8 +5,8 @@ import VaadChoicesPage from '../app/admin/vaad-choices/page'
 vi.mock('@/lib/supabase/client', () => {
   const mockOrder = vi.fn().mockResolvedValue({
     data: [
-      { id: '1', name: 'Accept', is_active: true, display_order: 10 },
-      { id: '2', name: 'Reject', is_active: true, display_order: 20 },
+      { id: '1', label: 'Accept', active: true, sort_order: 10 },
+      { id: '2', label: 'Reject', active: true, sort_order: 20 },
     ],
     error: null
   })

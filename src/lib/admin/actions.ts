@@ -21,7 +21,6 @@ export async function toggleVaadMemberPermission(
 
   if (field === 'is_active') {
     updateData.active = value
-    updateData.is_active = value
   } else {
     updateData[field] = value
   }

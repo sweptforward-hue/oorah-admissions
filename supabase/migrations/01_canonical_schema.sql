@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS public.kids (
     session VARCHAR(50),
     year INT NOT NULL DEFAULT EXTRACT(YEAR FROM CURRENT_DATE),
     notes TEXT,
+    voting_open BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -63,6 +64,7 @@ CREATE TABLE IF NOT EXISTS public.vaad_members (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL UNIQUE REFERENCES public.users(id) ON DELETE CASCADE,
     can_vote BOOLEAN NOT NULL DEFAULT true,
+    can_contribute BOOLEAN NOT NULL DEFAULT false,
     active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
