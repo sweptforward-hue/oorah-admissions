@@ -3,6 +3,9 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requireAdminRole } from '@/lib/auth/authorization'
 import { revalidatePath } from 'next/cache'
+import { verifyDriveConnection, uploadFileToDrive } from '@/lib/google/drive'
+import { generateCSVString } from '@/lib/exports/csv'
+import { createGoogleSpreadsheet, ExportData } from '@/lib/google/sheets'
 
 // VAAD Members
 export async function toggleVaadMemberPermission(
@@ -14,7 +17,6 @@ export async function toggleVaadMemberPermission(
   const supabase = createServerSupabaseClient()
 
   // Determine actual column name in vaad_members table
-  // Table schema has active, can_vote. Some models use is_active.
   const updateData: Record<string, boolean | string> = {
     updated_at: new Date().toISOString()
   }
@@ -132,26 +134,64 @@ export async function updateSessionSchedule(id: string, start_date: string, end_
 // Data Exports
 export async function triggerExport(exportType: 'Sheets' | 'CSV' | 'Drive Archive') {
   const actor = await requireAdminRole()
+  const actorId = actor.id
   const supabase = createServerSupabaseClient()
+
+  // 1. Fetch real application records from database
+  const [{ data: kids }, { data: users }, { data: docs }, { data: votes }, { data: auditLogs }] = await Promise.all([
+    supabase.from('kids').select('*').limit(100),
+    supabase.from('users').select('*').limit(100),
+    supabase.from('documents').select('*').limit(100),
+    supabase.from('vaad_votes').select('*').limit(100),
+    supabase.from('audit_log').select('*').limit(100)
+  ])
+
+  let generatedFileUrl = ''
+
+  if (exportType === 'CSV') {
+    const headers = ['ID', 'Application Number', 'Name', 'Status ID', 'Voting Open', 'Created At', 'Updated At']
+    const csvContent = await generateCSVString(headers, kids || [])
+    generatedFileUrl = `data:text/csv;charset=utf-8,${encodeURIComponent(csvContent)}`
+  } else if (exportType === 'Sheets') {
+    const exportData: ExportData = {
+      kids: kids || [],
+      users: users || [],
+      documents: docs || [],
+      vaadVotes: votes || [],
+      auditLogs: auditLogs || []
+    }
+    const sheetResult = await createGoogleSpreadsheet(`Oorah Admissions Export ${new Date().toISOString().substring(0, 10)}`, exportData)
+    generatedFileUrl = sheetResult.spreadsheetUrl
+  } else if (exportType === 'Drive Archive') {
+    const headers = ['ID', 'Application Number', 'Name', 'Status ID', 'Voting Open', 'Created At', 'Updated At']
+    const csvContent = await generateCSVString(headers, kids || [])
+    const fileBuffer = Buffer.from(csvContent, 'utf-8')
+    const driveFile = await uploadFileToDrive({
+      fileBuffer,
+      filename: `Admissions_Export_${Date.now()}.csv`,
+      mimeType: 'text/csv'
+    })
+    generatedFileUrl = driveFile.webViewLink || `https://drive.google.com/file/d/${driveFile.id}/view`
+  }
 
   const { data, error } = await supabase
     .from('exports')
     .insert({
       type: exportType,
       status: 'completed',
-      format: exportType === 'CSV' ? 'csv' : 'json',
-      file_url: `/exports/generated-${Date.now()}.${exportType === 'CSV' ? 'csv' : 'zip'}`,
-      requested_by: actor.id
+      format: exportType === 'CSV' ? 'csv' : 'sheets',
+      file_url: generatedFileUrl,
+      requested_by: actorId
     })
     .select()
     .single()
 
   await supabase.from('audit_log').insert({
-    actor_id: actor.id,
+    actor_id: actorId,
     action: 'DATA_EXPORT',
     entity_type: 'export_job',
     entity_id: data?.id || String(Date.now()),
-    details: { destination: exportType }
+    details: { destination: exportType, file_url: generatedFileUrl }
   })
 
   if (error) {
@@ -159,16 +199,17 @@ export async function triggerExport(exportType: 'Sheets' | 'CSV' | 'Drive Archiv
   }
 
   revalidatePath('/admin/exports')
-  return { success: true, fileUrl: data?.file_url }
+  return { success: true, fileUrl: generatedFileUrl }
 }
 
 // Document Storage / Google Drive
 export async function updateDriveFolder(folderId: string) {
   const actor = await requireAdminRole()
+  const actorId = actor.id
   const supabase = createServerSupabaseClient()
 
   await supabase.from('audit_log').insert({
-    actor_id: actor.id,
+    actor_id: actorId,
     action: 'UPDATE_STORAGE_FOLDER',
     entity_type: 'system_settings',
     details: { drive_folder_id: folderId }
@@ -180,6 +221,5 @@ export async function updateDriveFolder(folderId: string) {
 
 export async function testDriveConnection() {
   await requireAdminRole()
-  // Connection validation simulation against Google APIs / Supabase state
-  return { success: true, message: 'Google Cloud Platform OAuth connection verified successfully.' }
+  return await verifyDriveConnection()
 }
