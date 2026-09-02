@@ -7,8 +7,8 @@ vi.mock('@/lib/supabase/client', () => {
   const mockSelect = vi.fn().mockReturnValue({
     order: vi.fn().mockResolvedValue({
       data: [
-        { id: '1', name: 'Accept', is_active: true, display_order: 10 },
-        { id: '2', name: 'Reject', is_active: true, display_order: 20 },
+        { id: '1', label: 'Accept', active: true, sort_order: 10 },
+        { id: '2', label: 'Reject', active: true, sort_order: 20 },
       ],
       error: null
     })
@@ -39,9 +39,6 @@ describe('VAAD Choices Admin Edit', () => {
     fireEvent.click(editButtons[0])
 
     const inputs = screen.getAllByRole('textbox')
-    // newChoiceName is inputs[0], editName is inputs[1] because we render the edit fields inside the map
-    // but actually, we render the "Add Choice" inputs only conditionally if isAdding is true.
-    // So if isAdding is false, the edit input is the only one.
     expect(inputs[0]).toHaveValue('Accept')
 
     const numberInputs = screen.getAllByRole('spinbutton')

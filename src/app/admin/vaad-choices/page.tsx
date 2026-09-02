@@ -5,11 +5,11 @@ import { supabase } from '@/lib/supabase/client'
 
 interface VaadChoice {
   id: string
-  name: string
-  description: string | null
-  color_hex: string | null
-  is_active: boolean
-  display_order: number
+  label: string
+  color: string | null
+  action: string | null
+  active: boolean
+  sort_order: number
 }
 
 export default function VaadChoicesPage() {
@@ -28,12 +28,20 @@ export default function VaadChoicesPage() {
   async function fetchChoices() {
     setLoading(true)
     const { data } = await supabase
-      .from('vaad_voting_choices')
+      .from('vaad_choices')
       .select('*')
-      .order('display_order', { ascending: true })
+      .order('sort_order', { ascending: true })
 
     if (data) {
-      setChoices(data)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setChoices(data.map((c: any) => ({
+        id: c.id,
+        label: c.label || c.name || '',
+        color: c.color || c.color_hex || null,
+        action: c.action || 'none',
+        active: c.active ?? c.is_active ?? true,
+        sort_order: c.sort_order ?? c.display_order ?? 0,
+      })))
     }
     setLoading(false)
   }
@@ -43,8 +51,8 @@ export default function VaadChoicesPage() {
     if (currentStatus && !window.confirm('Are you sure you want to deactivate this choice? Historical votes will remain, but this choice will no longer be available.')) return;
 
     const { error } = await supabase
-      .from('vaad_voting_choices')
-      .update({ is_active: !currentStatus })
+      .from('vaad_choices')
+      .update({ active: !currentStatus })
       .eq('id', id)
 
     if (!error) {
@@ -54,18 +62,18 @@ export default function VaadChoicesPage() {
 
   async function startEditing(choice: VaadChoice) {
     setEditingId(choice.id)
-    setEditName(choice.name)
-    setEditOrder(choice.display_order)
+    setEditName(choice.label)
+    setEditOrder(choice.sort_order)
   }
 
   async function saveEdit(id: string) {
     if (!editName.trim()) return
 
     const { error } = await supabase
-      .from('vaad_voting_choices')
+      .from('vaad_choices')
       .update({
-        name: editName.trim(),
-        display_order: editOrder
+        label: editName.trim(),
+        sort_order: editOrder
       })
       .eq('id', id)
 
@@ -79,14 +87,15 @@ export default function VaadChoicesPage() {
     e.preventDefault()
     if (!newChoiceName.trim()) return
 
-    const maxOrder = choices.reduce((max, c) => Math.max(max, c.display_order), 0)
+    const maxOrder = choices.reduce((max, c) => Math.max(max, c.sort_order), 0)
 
     const { error } = await supabase
-      .from('vaad_voting_choices')
+      .from('vaad_choices')
       .insert({
-        name: newChoiceName.trim(),
-        display_order: maxOrder + 10,
-        is_active: true
+        label: newChoiceName.trim(),
+        sort_order: maxOrder + 10,
+        active: true,
+        action: newChoiceName.trim().toLowerCase().replace(/\s+/g, '_')
       })
 
     if (!error) {
@@ -130,7 +139,7 @@ export default function VaadChoicesPage() {
 
       <div className="space-y-4">
         {choices.map(choice => (
-          <div key={choice.id} className={`p-4 border rounded flex justify-between items-center ${!choice.is_active ? 'opacity-60 bg-gray-50' : 'bg-white'}`}>
+          <div key={choice.id} className={`p-4 border rounded flex justify-between items-center ${!choice.active ? 'opacity-60 bg-gray-50' : 'bg-white'}`}>
             <div>
               {editingId === choice.id ? (
                 <div className="flex flex-col gap-2">
@@ -149,9 +158,9 @@ export default function VaadChoicesPage() {
                 </div>
               ) : (
                 <>
-                  <h3 className="font-semibold">{choice.name}</h3>
+                  <h3 className="font-semibold">{choice.label}</h3>
                   <p className="text-sm text-gray-500">
-                    Order: {choice.display_order} {choice.color_hex && `• Color: ${choice.color_hex}`}
+                    Order: {choice.sort_order} {choice.color && `• Color: ${choice.color}`}
                   </p>
                 </>
               )}
@@ -164,8 +173,8 @@ export default function VaadChoicesPage() {
                 </>
               ) : (
                 <>
-                  <span className={`px-2 py-1 text-xs rounded ${choice.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
-                    {choice.is_active ? 'Active' : 'Inactive'}
+                  <span className={`px-2 py-1 text-xs rounded ${choice.active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
+                    {choice.active ? 'Active' : 'Inactive'}
                   </span>
                   <button
                     onClick={() => startEditing(choice)}
@@ -174,10 +183,10 @@ export default function VaadChoicesPage() {
                     Edit
                   </button>
                   <button
-                    onClick={() => toggleActive(choice.id, choice.is_active)}
+                    onClick={() => toggleActive(choice.id, choice.active)}
                     className="text-sm border px-3 py-1 rounded hover:bg-gray-50"
                   >
-                    {choice.is_active ? 'Deactivate' : 'Reactivate'}
+                    {choice.active ? 'Deactivate' : 'Reactivate'}
                   </button>
                 </>
               )}
