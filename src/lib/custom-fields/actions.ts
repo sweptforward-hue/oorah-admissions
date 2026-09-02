@@ -40,7 +40,7 @@ export async function createCustomField(fieldData: {
   entity_type?: string
   options?: any
 }) {
-  await getCurrentUser()
+  await requireAdminRole()
   const supabase = createServerSupabaseClient()
 
   const opts = {
@@ -77,7 +77,7 @@ export async function updateCustomField(
     options?: any
   }
 ) {
-  await getCurrentUser()
+  await requireAdminRole()
   const supabase = createServerSupabaseClient()
 
   const { data, error } = await supabase

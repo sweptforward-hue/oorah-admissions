@@ -34,6 +34,9 @@ export async function deleteCamper(camperId: string) {
 
 export async function updateCamperStatus(camperId: string, newStatusName: string, reason: string) {
   const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
   const supabase = createServerSupabaseClient()
 
   // Find status_id from public.statuses
@@ -86,6 +89,9 @@ export async function updateCamperStatus(camperId: string, newStatusName: string
 
 export async function toggleCamperVoting(camperId: string, votingOpen: boolean) {
   const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
   const supabase = createServerSupabaseClient()
 
   const { error } = await supabase.from('kids').update({
