@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { toggleVaadMemberPermission } from '@/lib/admin/actions'
 
 interface User {
   id: string
@@ -21,20 +22,24 @@ interface VaadMember {
 export default function VaadMembersPage() {
   const [members, setMembers] = useState<VaadMember[]>([])
   const [loading, setLoading] = useState(true)
+  const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
     async function fetchMembers() {
       setLoading(true)
-      // In a real app we'd join with users table
-      // For now we'll mock the users data since we don't have auth setup
       const { data } = await supabase
         .from('vaad_members')
         .select('*, user:user_id(id, name, email)')
 
-      if (data) {
-        setMembers(data as unknown as VaadMember[])
+      if (data && data.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setMembers(data.map((d: any) => ({
+          ...d,
+          is_active: d.is_active ?? d.active ?? true,
+          can_contribute: d.can_contribute ?? true,
+          can_vote: d.can_vote ?? true,
+        })))
       } else {
-        // Mock data for display purposes
         setMembers([
           {
             id: '1',
@@ -69,11 +74,18 @@ export default function VaadMembersPage() {
   }, [])
 
   async function updatePermission(id: string, field: keyof VaadMember, value: boolean) {
-    // In a real app we'd update DB
-    // For now we update local state
-    setMembers(members.map(m =>
-      m.id === id ? { ...m, [field]: value } : m
-    ))
+    startTransition(async () => {
+      try {
+        if (field === 'is_active' || field === 'can_contribute' || field === 'can_vote') {
+          await toggleVaadMemberPermission(id, field, value)
+        }
+      } catch (err) {
+        console.error(err)
+      }
+      setMembers(members.map(m =>
+        m.id === id ? { ...m, [field]: value } : m
+      ))
+    })
   }
 
   if (loading) return <div className="p-8">Loading...</div>
@@ -92,8 +104,9 @@ export default function VaadMembersPage() {
               <div className="flex justify-between items-center max-w-sm">
                 <span>VAAD Member</span>
                 <button
+                  disabled={isPending}
                   onClick={() => updatePermission(member.id, 'is_active', !member.is_active)}
-                  className="font-mono bg-gray-100 px-3 py-1 border border-gray-300 min-w-[60px] text-center"
+                  className="font-mono bg-gray-100 px-3 py-1 border border-gray-300 min-w-[60px] text-center hover:bg-gray-200"
                 >
                   [{member.is_active ? 'ON' : 'OFF'}]
                 </button>
@@ -101,8 +114,9 @@ export default function VaadMembersPage() {
               <div className="flex justify-between items-center max-w-sm">
                 <span>Can Contribute</span>
                 <button
+                  disabled={isPending}
                   onClick={() => updatePermission(member.id, 'can_contribute', !member.can_contribute)}
-                  className="font-mono bg-gray-100 px-3 py-1 border border-gray-300 min-w-[60px] text-center"
+                  className="font-mono bg-gray-100 px-3 py-1 border border-gray-300 min-w-[60px] text-center hover:bg-gray-200"
                 >
                   [{member.can_contribute ? 'ON' : 'OFF'}]
                 </button>
@@ -110,8 +124,9 @@ export default function VaadMembersPage() {
               <div className="flex justify-between items-center max-w-sm">
                 <span>Can Vote</span>
                 <button
+                  disabled={isPending}
                   onClick={() => updatePermission(member.id, 'can_vote', !member.can_vote)}
-                  className="font-mono bg-gray-100 px-3 py-1 border border-gray-300 min-w-[60px] text-center"
+                  className="font-mono bg-gray-100 px-3 py-1 border border-gray-300 min-w-[60px] text-center hover:bg-gray-200"
                 >
                   [{member.can_vote ? 'ON' : 'OFF'}]
                 </button>
