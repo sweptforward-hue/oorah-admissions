@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Navbar } from '@/components/layout/Navbar'
+import { Modal } from '@/components/ui/modal'
+import { Input } from '@/components/ui/input'
 import { Kid } from '@/types'
 import { updateCamperStatus, toggleCamperVoting } from '@/lib/campers/actions'
 import {
@@ -50,20 +52,48 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
   const [contractStatus, setContractStatus] = useState<string>('Pending Generation')
   const [isPending, startTransition] = useTransition()
 
-  // Header Actions
-  const handleStatusChange = async () => {
-    const newStatus = prompt('Enter new status (e.g. Accepted, Rejected, Interview):')
-    if (!newStatus) return
-    const reason = prompt('Enter reason for manual override:')
-    if (!reason) return
+  // Modal States
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false)
+  const [newStatusInput, setNewStatusInput] = useState('')
+  const [statusReasonInput, setStatusReasonInput] = useState('')
 
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [docNameInput, setDocNameInput] = useState('')
+
+  const [notification, setNotification] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+  })
+
+  const showNotification = (title: string, message: string) => {
+    setNotification({ isOpen: true, title, message })
+  }
+
+  // Header Actions
+  const handleOpenStatusModal = () => {
+    setNewStatusInput(camper.status || 'Accepted')
+    setStatusReasonInput('')
+    setIsStatusModalOpen(true)
+  }
+
+  const handleConfirmStatusChange = async () => {
+    if (!newStatusInput.trim()) return
+    const statusVal = newStatusInput.trim()
+    const reasonVal = statusReasonInput.trim() || 'Manual override'
+
+    setIsStatusModalOpen(false)
     startTransition(async () => {
       try {
-        await updateCamperStatus(camper.id, newStatus, reason)
-        setCamper({ ...camper, status: newStatus as any })
-        alert(`Status updated to ${newStatus}`)
+        await updateCamperStatus(camper.id, statusVal, reasonVal)
+        setCamper({ ...camper, status: statusVal as any })
+        showNotification('Status Updated', `Camper status successfully changed to "${statusVal}".`)
       } catch (err: unknown) {
-        alert((err as Error).message || 'Failed to update status')
+        showNotification('Error', (err as Error).message || 'Failed to update status')
       }
     })
   }
@@ -72,9 +102,9 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
     startTransition(async () => {
       try {
         await triggerExport('CSV')
-        alert(`Data for ${camper.name} exported successfully.`)
+        showNotification('Export Triggered', `Data for ${camper.name} exported successfully.`)
       } catch (err: unknown) {
-        alert((err as Error).message || 'Failed to export data')
+        showNotification('Export Error', (err as Error).message || 'Failed to export data')
       }
     })
   }
@@ -89,23 +119,29 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
         setMessages(prev => [...prev, `You: ${textToSend}`])
         setNoteText('')
       } catch (err: unknown) {
-        alert((err as Error).message || 'Failed to send note')
+        showNotification('Chat Error', (err as Error).message || 'Failed to send note')
       }
     })
   }
 
   // Documents Tab
-  const handleUploadDrive = async () => {
-    const fileName = prompt('Enter document name to upload to Google Drive:', `${camper.name}_Transcript.pdf`)
-    if (!fileName) return
+  const handleOpenUploadModal = () => {
+    setDocNameInput(`${camper.name}_Transcript.pdf`)
+    setIsUploadModalOpen(true)
+  }
+
+  const handleConfirmUploadDrive = async () => {
+    if (!docNameInput.trim()) return
+    const fileName = docNameInput.trim()
+    setIsUploadModalOpen(false)
 
     startTransition(async () => {
       try {
         await uploadDocumentToDrive(camper.id, fileName)
         setDocs(prev => [...prev, fileName])
-        alert(`Document "${fileName}" uploaded to Google Drive.`)
+        showNotification('Document Uploaded', `Document "${fileName}" successfully saved to Google Drive.`)
       } catch (err: unknown) {
-        alert((err as Error).message || 'Failed to upload document')
+        showNotification('Upload Error', (err as Error).message || 'Failed to upload document')
       }
     })
   }
@@ -118,7 +154,7 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
         await toggleCamperVoting(camper.id, newVotingState)
         setCamper({ ...camper, voting_open: newVotingState })
       } catch (err: unknown) {
-        alert((err as Error).message || 'Failed to toggle voting state')
+        showNotification('VAAD Error', (err as Error).message || 'Failed to toggle voting state')
       }
     })
   }
@@ -127,9 +163,9 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
     startTransition(async () => {
       try {
         await castVaadVoteAction(camper.id, choiceLabel)
-        alert(`Recorded vote "${choiceLabel}" for ${camper.name}.`)
+        showNotification('Vote Cast', `Recorded vote "${choiceLabel}" for ${camper.name}.`)
       } catch (err: unknown) {
-        alert((err as Error).message || 'Failed to submit vote')
+        showNotification('Vote Error', (err as Error).message || 'Failed to submit vote')
       }
     })
   }
@@ -140,9 +176,9 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
       try {
         await generateContractPdf(camper.id)
         setContractStatus('Contract PDF Generated')
-        alert('Contract PDF generated successfully.')
+        showNotification('Contract PDF Generated', 'Official enrollment contract PDF generated and stored in Google Drive.')
       } catch (err: unknown) {
-        alert((err as Error).message || 'Failed to generate contract PDF')
+        showNotification('Contract Error', (err as Error).message || 'Failed to generate contract PDF')
       }
     })
   }
@@ -152,9 +188,9 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
       try {
         await uploadSignedContract(camper.id)
         setContractStatus('Signed Contract Uploaded')
-        alert('Signed contract uploaded and verified.')
+        showNotification('Signed Contract Uploaded', 'Signed contract uploaded and verified in Google Drive.')
       } catch (err: unknown) {
-        alert((err as Error).message || 'Failed to upload signed contract')
+        showNotification('Upload Error', (err as Error).message || 'Failed to upload signed contract')
       }
     })
   }
@@ -184,7 +220,7 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
               <p className="text-slate-500 mt-1">Application #{camper.application_number}</p>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="outline" disabled={isPending} onClick={handleStatusChange}>
+              <Button variant="outline" disabled={isPending} onClick={handleOpenStatusModal}>
                 Change Status
               </Button>
               <Button variant="outline" disabled={isPending} onClick={handleExportData}>
@@ -320,7 +356,7 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
                 )}
                 <div className="border-2 border-dashed border-slate-200 p-8 rounded-lg text-center bg-slate-50">
                   <p className="text-slate-600 mb-2">Upload application documents directly to secure Google Drive</p>
-                  <Button variant="outline" disabled={isPending} onClick={handleUploadDrive}>
+                  <Button variant="outline" disabled={isPending} onClick={handleOpenUploadModal}>
                     Upload to Google Drive
                   </Button>
                 </div>
@@ -455,6 +491,82 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Accessible Change Status Modal */}
+      <Modal
+        isOpen={isStatusModalOpen}
+        onClose={() => setIsStatusModalOpen(false)}
+        title="Change Camper Status"
+        description="Select a new status and enter a reason for audit tracking."
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">New Status</label>
+            <Input
+              value={newStatusInput}
+              onChange={(e) => setNewStatusInput(e.target.value)}
+              placeholder="e.g. Accepted, Rejected, Interview, VAAD Review"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Reason for Override</label>
+            <Input
+              value={statusReasonInput}
+              onChange={(e) => setStatusReasonInput(e.target.value)}
+              placeholder="e.g. Approved by admissions committee"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setIsStatusModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button disabled={isPending} onClick={handleConfirmStatusChange} className="bg-green-600 hover:bg-green-700 text-white">
+              Update Status
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Accessible Upload Document Modal */}
+      <Modal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        title="Upload Document to Google Drive"
+        description="Specify document name for Google Drive cloud storage."
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Document Name</label>
+            <Input
+              value={docNameInput}
+              onChange={(e) => setDocNameInput(e.target.value)}
+              placeholder="e.g. Camper_Transcript.pdf"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setIsUploadModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button disabled={isPending} onClick={handleConfirmUploadDrive} className="bg-green-600 hover:bg-green-700 text-white">
+              Upload Document
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Accessible Notification Modal */}
+      <Modal
+        isOpen={notification.isOpen}
+        onClose={() => setNotification({ ...notification, isOpen: false })}
+        title={notification.title}
+        description={notification.message}
+      >
+        <div className="flex justify-end pt-2">
+          <Button onClick={() => setNotification({ ...notification, isOpen: false })}>
+            OK
+          </Button>
+        </div>
+      </Modal>
     </div>
   )
 }

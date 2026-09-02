@@ -3,7 +3,57 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/authorization'
 import { submitVote } from '@/lib/vaad/actions'
+import { uploadKidMediaAsset } from '@/lib/google/drive'
 import { revalidatePath } from 'next/cache'
+
+function buildContractPdfBuffer(kidName: string, appNum: string): Buffer {
+  const text = `%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 280 >>
+stream
+BT
+/F1 18 Tf
+50 700 Td
+(Oorah Admissions Official Enrollment Contract) Tj
+0 -30 Td
+/F1 12 Tf
+(Camper Name: ${kidName}) Tj
+0 -20 Td
+(Application #: ${appNum}) Tj
+0 -20 Td
+(Date Generated: ${new Date().toLocaleDateString()}) Tj
+0 -30 Td
+(Terms: Enrollment is binding upon signed document receipt and VAAD approval.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f
+0000000009 00000 n
+0000000058 00000 n
+0000000115 00000 n
+0000000248 00000 n
+0000000580 00000 n
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+650
+%%EOF`
+  return Buffer.from(text, 'utf-8')
+}
 
 export async function sendChatMessage(kidId: string, content: string) {
   const actor = await getCurrentUser()
@@ -14,11 +64,13 @@ export async function sendChatMessage(kidId: string, content: string) {
     throw new Error('Message content is required')
   }
 
+  const actorId = actor?.id || null
+
   const { data, error } = await supabase
     .from('chat_messages')
     .insert({
       kid_id: kidId,
-      author_id: actor.id,
+      author_id: actorId,
       content: content.trim()
     })
     .select()
@@ -28,7 +80,7 @@ export async function sendChatMessage(kidId: string, content: string) {
     console.error('Error sending chat message:', error)
     // Fall back to message insert if chat_messages fails or schema alias exists
     await supabase.from('audit_log').insert({
-      actor_id: actor.id,
+      actor_id: actorId,
       action: 'SEND_CHAT_NOTE',
       entity_type: 'kid',
       entity_id: kidId,
@@ -40,38 +92,47 @@ export async function sendChatMessage(kidId: string, content: string) {
   return { success: true, message: data }
 }
 
-export async function uploadDocumentToDrive(kidId: string, fileName: string) {
+export async function uploadDocumentToDrive(
+  kidId: string,
+  fileName: string,
+  fileData?: string | Buffer,
+  mimeType: string = 'application/pdf'
+) {
   const actor = await getCurrentUser()
   const supabase = createServerSupabaseClient()
 
-  const driveFileId = `drive_${Date.now()}`
-  const { data, error } = await supabase
-    .from('documents')
-    .insert({
-      kid_id: kidId,
-      name: fileName,
-      file_type: 'application/pdf',
-      file_size: 1024 * 50,
-      drive_file_id: driveFileId,
-      uploader_id: actor.id
-    })
-    .select()
-    .single()
+  // Fetch kid details for folder naming
+  const { data: kid } = await supabase.from('kids').select('name').eq('id', kidId).single()
+  const kidName = kid?.name || `Kid_${kidId}`
 
-  if (error) {
-    console.error('Error inserting document record:', error)
+  let fileBuffer: Buffer
+  if (Buffer.isBuffer(fileData)) {
+    fileBuffer = fileData
+  } else if (typeof fileData === 'string') {
+    fileBuffer = Buffer.from(fileData, 'base64')
+  } else {
+    fileBuffer = Buffer.from(`Sample content for document: ${fileName}`, 'utf-8')
   }
 
-  await supabase.from('audit_log').insert({
-    actor_id: actor.id,
-    action: 'UPLOAD_DOCUMENT',
-    entity_type: 'kid',
-    entity_id: kidId,
-    details: { file_name: fileName, drive_file_id: driveFileId }
+  const actorId = actor?.id || null
+
+  const uploadResult = await uploadKidMediaAsset({
+    kidId,
+    kidName,
+    category: 'Documents',
+    fileBuffer,
+    filename: fileName,
+    mimeType,
+    uploadedBy: actorId || undefined,
+    documentType: 'General Document'
   })
 
   revalidatePath(`/campers/${kidId}`)
-  return { success: true, document: data }
+  return {
+    success: true,
+    document: uploadResult.data?.dbRecord,
+    driveFile: uploadResult.data?.driveFile
+  }
 }
 
 export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 'Reject' | 'Abstain' | 'Request Interview') {
@@ -104,8 +165,9 @@ export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 
   }
 
   const actor = await getCurrentUser()
+  const actorId = actor?.id || null
   await supabase.from('audit_log').insert({
-    actor_id: actor.id,
+    actor_id: actorId,
     action: `VAAD_VOTE_${choiceLabel.toUpperCase().replace(/\s+/g, '_')}`,
     entity_type: 'kid',
     entity_id: kidId,
@@ -120,28 +182,82 @@ export async function generateContractPdf(kidId: string) {
   const actor = await getCurrentUser()
   const supabase = createServerSupabaseClient()
 
+  // Fetch kid information for contract generation
+  const { data: kid } = await supabase.from('kids').select('name, application_number').eq('id', kidId).single()
+  const kidName = kid?.name || 'Camper'
+  const appNum = kid?.application_number || kidId
+
+  const actorId = actor?.id || null
+  const pdfBuffer = buildContractPdfBuffer(kidName, appNum)
+  const filename = `Contract_${kidName.replace(/\s+/g, '_')}_${appNum}.pdf`
+
+  const uploadResult = await uploadKidMediaAsset({
+    kidId,
+    kidName,
+    category: 'Documents',
+    fileBuffer: pdfBuffer,
+    filename,
+    mimeType: 'application/pdf',
+    uploadedBy: actorId || undefined,
+    documentType: 'Generated Contract'
+  })
+
   await supabase.from('audit_log').insert({
-    actor_id: actor.id,
+    actor_id: actorId,
     action: 'GENERATE_CONTRACT_PDF',
     entity_type: 'kid',
-    entity_id: kidId
+    entity_id: kidId,
+    details: { drive_file_id: uploadResult.data?.driveFile?.id, filename }
   })
 
   revalidatePath(`/campers/${kidId}`)
-  return { success: true, pdfUrl: `/contracts/generated_${kidId}.pdf` }
+  const pdfUrl = uploadResult.data?.driveFile?.webViewLink || `/api/media/proxy/${uploadResult.data?.driveFile?.id}`
+  return { success: true, pdfUrl, driveFile: uploadResult.data?.driveFile }
 }
 
-export async function uploadSignedContract(kidId: string) {
+export async function uploadSignedContract(
+  kidId: string,
+  fileName?: string,
+  fileData?: string | Buffer,
+  mimeType: string = 'application/pdf'
+) {
   const actor = await getCurrentUser()
   const supabase = createServerSupabaseClient()
 
+  const { data: kid } = await supabase.from('kids').select('name').eq('id', kidId).single()
+  const kidName = kid?.name || `Kid_${kidId}`
+  const name = fileName || `Signed_Contract_${kidName.replace(/\s+/g, '_')}.pdf`
+
+  let fileBuffer: Buffer
+  if (Buffer.isBuffer(fileData)) {
+    fileBuffer = fileData
+  } else if (typeof fileData === 'string') {
+    fileBuffer = Buffer.from(fileData, 'base64')
+  } else {
+    fileBuffer = Buffer.from(`Signed Contract Document for ${kidName}`, 'utf-8')
+  }
+
+  const actorId = actor?.id || null
+
+  const uploadResult = await uploadKidMediaAsset({
+    kidId,
+    kidName,
+    category: 'Documents',
+    fileBuffer,
+    filename: name,
+    mimeType,
+    uploadedBy: actorId || undefined,
+    documentType: 'Signed Contract'
+  })
+
   await supabase.from('audit_log').insert({
-    actor_id: actor.id,
+    actor_id: actorId,
     action: 'UPLOAD_SIGNED_CONTRACT',
     entity_type: 'kid',
-    entity_id: kidId
+    entity_id: kidId,
+    details: { drive_file_id: uploadResult.data?.driveFile?.id, filename: name }
   })
 
   revalidatePath(`/campers/${kidId}`)
-  return { success: true }
+  return { success: true, document: uploadResult.data?.dbRecord, driveFile: uploadResult.data?.driveFile }
 }
