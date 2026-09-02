@@ -1,7 +1,7 @@
 'use server'
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { getCurrentUser } from '@/lib/auth/authorization'
+import { requireAdminRole } from '@/lib/auth/authorization'
 import { revalidatePath } from 'next/cache'
 import { verifyDriveConnection, uploadFileToDrive } from '@/lib/google/drive'
 import { generateCSVString } from '@/lib/exports/csv'
@@ -13,18 +13,16 @@ export async function toggleVaadMemberPermission(
   field: 'is_active' | 'can_contribute' | 'can_vote',
   value: boolean
 ) {
-  await getCurrentUser()
+  await requireAdminRole()
   const supabase = createServerSupabaseClient()
 
   // Determine actual column name in vaad_members table
-  // Table schema has active, can_vote. Some models use is_active.
   const updateData: Record<string, boolean | string> = {
     updated_at: new Date().toISOString()
   }
 
   if (field === 'is_active') {
     updateData.active = value
-    updateData.is_active = value
   } else {
     updateData[field] = value
   }
@@ -44,7 +42,7 @@ export async function toggleVaadMemberPermission(
 
 // Operational Years
 export async function createYear(yearName: string) {
-  await getCurrentUser()
+  await requireAdminRole()
   const supabase = createServerSupabaseClient()
 
   const yearNum = parseInt(yearName.replace(/\D/g, ''), 10) || new Date().getFullYear() + 1
@@ -67,7 +65,7 @@ export async function createYear(yearName: string) {
 }
 
 export async function updateYear(id: string, data: { year?: number; is_active?: boolean }) {
-  await getCurrentUser()
+  await requireAdminRole()
   const supabase = createServerSupabaseClient()
 
   const { error } = await supabase
@@ -91,7 +89,7 @@ export async function createSession(sessionData: {
   start_date: string
   end_date: string
 }) {
-  await getCurrentUser()
+  await requireAdminRole()
   const supabase = createServerSupabaseClient()
 
   const { data, error } = await supabase
@@ -114,7 +112,7 @@ export async function createSession(sessionData: {
 }
 
 export async function updateSessionSchedule(id: string, start_date: string, end_date: string) {
-  await getCurrentUser()
+  await requireAdminRole()
   const supabase = createServerSupabaseClient()
 
   const { error } = await supabase
@@ -135,8 +133,8 @@ export async function updateSessionSchedule(id: string, start_date: string, end_
 
 // Data Exports
 export async function triggerExport(exportType: 'Sheets' | 'CSV' | 'Drive Archive') {
-  const actor = await getCurrentUser()
-  const actorId = actor?.id || null
+  const actor = await requireAdminRole()
+  const actorId = actor.id
   const supabase = createServerSupabaseClient()
 
   // 1. Fetch real application records from database
@@ -206,8 +204,8 @@ export async function triggerExport(exportType: 'Sheets' | 'CSV' | 'Drive Archiv
 
 // Document Storage / Google Drive
 export async function updateDriveFolder(folderId: string) {
-  const actor = await getCurrentUser()
-  const actorId = actor?.id || null
+  const actor = await requireAdminRole()
+  const actorId = actor.id
   const supabase = createServerSupabaseClient()
 
   await supabase.from('audit_log').insert({
@@ -222,6 +220,6 @@ export async function updateDriveFolder(folderId: string) {
 }
 
 export async function testDriveConnection() {
-  await getCurrentUser()
+  await requireAdminRole()
   return await verifyDriveConnection()
 }
