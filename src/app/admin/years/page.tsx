@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
+import { createYear, updateYear } from '@/lib/admin/actions'
 
 interface YearItem {
   id: string
@@ -17,12 +18,51 @@ export default function AdminYearsPage() {
     { id: '2', name: 'Summer 2024', is_active: false, is_default: false },
   ])
   const [newYear, setNewYear] = useState('')
+  const [isPending, startTransition] = useTransition()
 
-  const handleAddYear = (e: React.FormEvent) => {
+  const handleAddYear = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newYear.trim()) return
-    setYears([...years, { id: String(Date.now()), name: newYear.trim(), is_active: true, is_default: false }])
-    setNewYear('')
+
+    const yearName = newYear.trim()
+    startTransition(async () => {
+      try {
+        await createYear(yearName)
+        setYears(prev => [...prev, { id: String(Date.now()), name: yearName, is_active: true, is_default: false }])
+        setNewYear('')
+      } catch (err: unknown) {
+        alert((err as Error).message || 'Failed to create year')
+      }
+    })
+  }
+
+  const handleEditYear = async (id: string, currentName: string) => {
+    const updatedName = prompt('Enter updated Year name:', currentName)
+    if (!updatedName || updatedName.trim() === currentName) return
+
+    const yearNum = parseInt(updatedName.replace(/\D/g, ''), 10)
+    startTransition(async () => {
+      try {
+        if (!isNaN(yearNum)) {
+          await updateYear(id, { year: yearNum })
+        }
+        setYears(years.map(y => y.id === id ? { ...y, name: updatedName.trim() } : y))
+      } catch (err: unknown) {
+        alert((err as Error).message || 'Failed to update year')
+      }
+    })
+  }
+
+  const handleToggleStatus = async (id: string, currentActive: boolean) => {
+    const newActive = !currentActive
+    startTransition(async () => {
+      try {
+        await updateYear(id, { is_active: newActive })
+        setYears(years.map(y => y.id === id ? { ...y, is_active: newActive } : y))
+      } catch (err: unknown) {
+        alert((err as Error).message || 'Failed to update status')
+      }
+    })
   }
 
   return (
@@ -37,7 +77,7 @@ export default function AdminYearsPage() {
           placeholder="New Year Name (e.g. Summer 2026)"
           className="flex-1 p-2 border rounded-md text-sm"
         />
-        <Button type="submit">+ Create Year</Button>
+        <Button type="submit" disabled={isPending}>+ Create Year</Button>
       </form>
 
       <div className="space-y-4">
@@ -51,8 +91,12 @@ export default function AdminYearsPage() {
               <p className="text-xs text-slate-500">Status: {y.is_active ? 'Active' : 'Archived'}</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">Edit</Button>
-              <Button variant="outline" size="sm">{y.is_active ? 'Archive' : 'Activate'}</Button>
+              <Button variant="outline" size="sm" disabled={isPending} onClick={() => handleEditYear(y.id, y.name)}>
+                Edit
+              </Button>
+              <Button variant="outline" size="sm" disabled={isPending} onClick={() => handleToggleStatus(y.id, y.is_active)}>
+                {y.is_active ? 'Archive' : 'Activate'}
+              </Button>
             </div>
           </Card>
         ))}
