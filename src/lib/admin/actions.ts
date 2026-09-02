@@ -1,7 +1,7 @@
 'use server'
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { getCurrentUser } from '@/lib/auth/authorization'
+import { requireAdminRole } from '@/lib/auth/authorization'
 import { revalidatePath } from 'next/cache'
 
 // VAAD Members
@@ -10,7 +10,7 @@ export async function toggleVaadMemberPermission(
   field: 'is_active' | 'can_contribute' | 'can_vote',
   value: boolean
 ) {
-  await getCurrentUser()
+  await requireAdminRole()
   const supabase = createServerSupabaseClient()
 
   // Determine actual column name in vaad_members table
@@ -41,7 +41,7 @@ export async function toggleVaadMemberPermission(
 
 // Operational Years
 export async function createYear(yearName: string) {
-  await getCurrentUser()
+  await requireAdminRole()
   const supabase = createServerSupabaseClient()
 
   const yearNum = parseInt(yearName.replace(/\D/g, ''), 10) || new Date().getFullYear() + 1
@@ -64,7 +64,7 @@ export async function createYear(yearName: string) {
 }
 
 export async function updateYear(id: string, data: { year?: number; is_active?: boolean }) {
-  await getCurrentUser()
+  await requireAdminRole()
   const supabase = createServerSupabaseClient()
 
   const { error } = await supabase
@@ -88,7 +88,7 @@ export async function createSession(sessionData: {
   start_date: string
   end_date: string
 }) {
-  await getCurrentUser()
+  await requireAdminRole()
   const supabase = createServerSupabaseClient()
 
   const { data, error } = await supabase
@@ -111,7 +111,7 @@ export async function createSession(sessionData: {
 }
 
 export async function updateSessionSchedule(id: string, start_date: string, end_date: string) {
-  await getCurrentUser()
+  await requireAdminRole()
   const supabase = createServerSupabaseClient()
 
   const { error } = await supabase
@@ -132,7 +132,7 @@ export async function updateSessionSchedule(id: string, start_date: string, end_
 
 // Data Exports
 export async function triggerExport(exportType: 'Sheets' | 'CSV' | 'Drive Archive') {
-  const actor = await getCurrentUser()
+  const actor = await requireAdminRole()
   const supabase = createServerSupabaseClient()
 
   const { data, error } = await supabase
@@ -165,7 +165,7 @@ export async function triggerExport(exportType: 'Sheets' | 'CSV' | 'Drive Archiv
 
 // Document Storage / Google Drive
 export async function updateDriveFolder(folderId: string) {
-  const actor = await getCurrentUser()
+  const actor = await requireAdminRole()
   const supabase = createServerSupabaseClient()
 
   await supabase.from('audit_log').insert({
@@ -180,7 +180,7 @@ export async function updateDriveFolder(folderId: string) {
 }
 
 export async function testDriveConnection() {
-  await getCurrentUser()
+  await requireAdminRole()
   // Connection validation simulation against Google APIs / Supabase state
   return { success: true, message: 'Google Cloud Platform OAuth connection verified successfully.' }
 }

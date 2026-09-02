@@ -7,6 +7,9 @@ import { revalidatePath } from 'next/cache'
 
 export async function sendChatMessage(kidId: string, content: string) {
   const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
   const supabase = createServerSupabaseClient()
 
   // Ensure content is provided
@@ -42,6 +45,9 @@ export async function sendChatMessage(kidId: string, content: string) {
 
 export async function uploadDocumentToDrive(kidId: string, fileName: string) {
   const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
   const supabase = createServerSupabaseClient()
 
   const driveFileId = `drive_${Date.now()}`
@@ -75,6 +81,10 @@ export async function uploadDocumentToDrive(kidId: string, fileName: string) {
 }
 
 export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 'Reject' | 'Abstain' | 'Request Interview') {
+  const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
   const supabase = createServerSupabaseClient()
 
   // Find or map choice_id from public.vaad_choices
@@ -103,7 +113,6 @@ export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 
     }
   }
 
-  const actor = await getCurrentUser()
   await supabase.from('audit_log').insert({
     actor_id: actor.id,
     action: `VAAD_VOTE_${choiceLabel.toUpperCase().replace(/\s+/g, '_')}`,
@@ -118,6 +127,9 @@ export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 
 
 export async function generateContractPdf(kidId: string) {
   const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
   const supabase = createServerSupabaseClient()
 
   await supabase.from('audit_log').insert({
@@ -133,6 +145,9 @@ export async function generateContractPdf(kidId: string) {
 
 export async function uploadSignedContract(kidId: string) {
   const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
   const supabase = createServerSupabaseClient()
 
   await supabase.from('audit_log').insert({
