@@ -275,3 +275,253 @@ export async function uploadSignedContract(
   revalidatePath(`/campers/${kidId}`)
   return { success: true, document: uploadResult.data?.dbRecord, driveFile: uploadResult.data?.driveFile }
 }
+
+// Media Retrieval Actions
+export async function getKidPhotos(kidId: string) {
+  const supabase = createServerSupabaseClient()
+  const { data, error } = await supabase
+    .from('photos')
+    .select('*')
+    .eq('kid_id', kidId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching kid photos:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function getKidVoiceNotes(kidId: string) {
+  const supabase = createServerSupabaseClient()
+  const { data, error } = await supabase
+    .from('voice_notes')
+    .select('*')
+    .eq('kid_id', kidId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching kid voice notes:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function getKidTranscripts(kidId: string) {
+  const supabase = createServerSupabaseClient()
+  const { data, error } = await supabase
+    .from('transcripts')
+    .select('*')
+    .eq('kid_id', kidId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching kid transcripts:', error)
+    return []
+  }
+  return data || []
+}
+
+// Media Upload Actions
+export async function uploadPhotoAction(
+  kidId: string,
+  fileName: string,
+  fileData?: string | Buffer,
+  mimeType: string = 'image/jpeg',
+  caption?: string
+) {
+  const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
+  const supabase = createServerSupabaseClient()
+
+  const { data: kid } = await supabase.from('kids').select('name, first_name, last_name').eq('id', kidId).single()
+  const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
+
+  let fileBuffer: Buffer
+  if (Buffer.isBuffer(fileData)) {
+    fileBuffer = fileData
+  } else if (typeof fileData === 'string' && fileData.length > 0) {
+    fileBuffer = Buffer.from(fileData, 'base64')
+  } else {
+    fileBuffer = Buffer.from('Fake photo binary data', 'utf-8')
+  }
+
+  const uploadResult = await uploadKidMediaAsset({
+    kidId,
+    kidName,
+    category: 'Photos',
+    fileBuffer,
+    filename: fileName,
+    mimeType,
+    uploadedBy: actor.id,
+    caption,
+  })
+
+  revalidatePath(`/campers/${kidId}`)
+  return {
+    success: true,
+    photo: uploadResult.data?.dbRecord,
+    driveFile: uploadResult.data?.driveFile,
+  }
+}
+
+export async function uploadVoiceNoteAction(
+  kidId: string,
+  fileName: string,
+  fileData?: string | Buffer,
+  mimeType: string = 'audio/webm',
+  durationSeconds: number = 0
+) {
+  const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
+  const supabase = createServerSupabaseClient()
+
+  const { data: kid } = await supabase.from('kids').select('name, first_name, last_name').eq('id', kidId).single()
+  const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
+
+  let fileBuffer: Buffer
+  if (Buffer.isBuffer(fileData)) {
+    fileBuffer = fileData
+  } else if (typeof fileData === 'string' && fileData.length > 0) {
+    fileBuffer = Buffer.from(fileData, 'base64')
+  } else {
+    fileBuffer = Buffer.from('Fake audio binary content', 'utf-8')
+  }
+
+  const uploadResult = await uploadKidMediaAsset({
+    kidId,
+    kidName,
+    category: 'Voice Notes',
+    fileBuffer,
+    filename: fileName,
+    mimeType,
+    uploadedBy: actor.id,
+    duration: durationSeconds,
+  })
+
+  revalidatePath(`/campers/${kidId}`)
+  return {
+    success: true,
+    voiceNote: uploadResult.data?.dbRecord,
+    driveFile: uploadResult.data?.driveFile,
+  }
+}
+
+export async function uploadTranscriptAction(
+  kidId: string,
+  fileName: string,
+  fileData?: string | Buffer,
+  mimeType: string = 'application/pdf'
+) {
+  const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
+  const supabase = createServerSupabaseClient()
+
+  const { data: kid } = await supabase.from('kids').select('name, first_name, last_name').eq('id', kidId).single()
+  const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
+
+  let fileBuffer: Buffer
+  if (Buffer.isBuffer(fileData)) {
+    fileBuffer = fileData
+  } else if (typeof fileData === 'string' && fileData.length > 0) {
+    fileBuffer = Buffer.from(fileData, 'base64')
+  } else {
+    fileBuffer = Buffer.from('Sample transcript content', 'utf-8')
+  }
+
+  const uploadResult = await uploadKidMediaAsset({
+    kidId,
+    kidName,
+    category: 'Transcripts',
+    fileBuffer,
+    filename: fileName,
+    mimeType,
+    uploadedBy: actor.id,
+  })
+
+  revalidatePath(`/campers/${kidId}`)
+  return {
+    success: true,
+    transcript: uploadResult.data?.dbRecord,
+    driveFile: uploadResult.data?.driveFile,
+  }
+}
+
+// Media Delete Actions
+export async function deletePhotoAction(photoId: string, kidId: string) {
+  const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
+  const supabase = createServerSupabaseClient()
+
+  const { error } = await supabase.from('photos').delete().eq('id', photoId)
+  if (error) {
+    throw new Error(`Failed to delete photo: ${error.message}`)
+  }
+
+  await supabase.from('audit_log').insert({
+    actor_id: actor.id,
+    action: 'DELETE_PHOTO',
+    entity_type: 'kid',
+    entity_id: kidId,
+    details: { photo_id: photoId },
+  })
+
+  revalidatePath(`/campers/${kidId}`)
+  return { success: true }
+}
+
+export async function deleteVoiceNoteAction(voiceNoteId: string, kidId: string) {
+  const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
+  const supabase = createServerSupabaseClient()
+
+  const { error } = await supabase.from('voice_notes').delete().eq('id', voiceNoteId)
+  if (error) {
+    throw new Error(`Failed to delete voice note: ${error.message}`)
+  }
+
+  await supabase.from('audit_log').insert({
+    actor_id: actor.id,
+    action: 'DELETE_VOICE_NOTE',
+    entity_type: 'kid',
+    entity_id: kidId,
+    details: { voice_note_id: voiceNoteId },
+  })
+
+  revalidatePath(`/campers/${kidId}`)
+  return { success: true }
+}
+
+export async function deleteTranscriptAction(transcriptId: string, kidId: string) {
+  const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
+  const supabase = createServerSupabaseClient()
+
+  const { error } = await supabase.from('transcripts').delete().eq('id', transcriptId)
+  if (error) {
+    throw new Error(`Failed to delete transcript: ${error.message}`)
+  }
+
+  await supabase.from('audit_log').insert({
+    actor_id: actor.id,
+    action: 'DELETE_TRANSCRIPT',
+    entity_type: 'kid',
+    entity_id: kidId,
+    details: { transcript_id: transcriptId },
+  })
+
+  revalidatePath(`/campers/${kidId}`)
+  return { success: true }
+}

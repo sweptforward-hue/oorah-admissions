@@ -354,24 +354,32 @@ export async function uploadKidMediaAsset(params: UploadKidMediaAssetParams) {
   const supabase = createServerSupabaseClient()
   let dbRecord: DbMediaRecord | null = null
 
-  if (category === 'Documents' || category === 'Transcripts') {
-    const tableName = category === 'Transcripts' ? 'transcripts' : 'documents'
-    const insertPayload: any = {
-      kid_id: kidId,
-      name: filename,
-      file_type: mimeType,
-      file_size: fileBuffer.length,
-      drive_file_id: driveFile.id,
-      uploader_id: uploadedBy || null,
-    }
-    if (category === 'Transcripts') {
-      insertPayload.title = filename
-      insertPayload.content = `Stored in Google Drive: ${driveFile.name}`
-    } else {
-      insertPayload.document_type = documentType || 'General'
-    }
-
-    const { data } = await supabase.from(tableName).insert(insertPayload).select().single()
+  if (category === 'Transcripts') {
+    const { data } = await supabase
+      .from('transcripts')
+      .insert({
+        kid_id: kidId,
+        title: filename,
+        content: `Stored in Google Drive: ${driveFile.name} (${driveFile.id})`,
+        uploader_id: uploadedBy || null,
+      })
+      .select()
+      .single()
+    dbRecord = data
+  } else if (category === 'Documents') {
+    const { data } = await supabase
+      .from('documents')
+      .insert({
+        kid_id: kidId,
+        name: filename,
+        file_type: mimeType,
+        file_size: fileBuffer.length,
+        drive_file_id: driveFile.id,
+        uploader_id: uploadedBy || null,
+        document_type: documentType || 'General',
+      })
+      .select()
+      .single()
     dbRecord = data
   } else if (category === 'Photos') {
     const { data } = await supabase
