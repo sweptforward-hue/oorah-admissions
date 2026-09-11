@@ -275,3 +275,26 @@ export async function uploadSignedContract(
   revalidatePath(`/campers/${kidId}`)
   return { success: true, document: uploadResult.data?.dbRecord, driveFile: uploadResult.data?.driveFile }
 }
+
+export async function voidAndRegenerateContract(kidId: string, reason: string = 'Contract voided and regenerated') {
+  const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
+  const supabase = createServerSupabaseClient()
+
+  const actorId = actor.id
+
+  await supabase.from('audit_log').insert({
+    actor_id: actorId,
+    action: 'VOID_CONTRACT',
+    entity_type: 'kid',
+    entity_id: kidId,
+    details: { reason }
+  })
+
+  const newContract = await generateContractPdf(kidId)
+
+  revalidatePath(`/campers/${kidId}`)
+  return { success: true, pdfUrl: newContract.pdfUrl, driveFile: newContract.driveFile }
+}

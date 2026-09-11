@@ -87,6 +87,82 @@ export async function updateCamperStatus(camperId: string, newStatusName: string
   return { success: true }
 }
 
+export async function updateCamperProfile(
+  camperId: string,
+  profileData: {
+    grade?: string
+    school?: string
+    city?: string
+    state?: string
+    gender?: string
+    notes?: string
+    name?: string
+  }
+) {
+  const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
+  const supabase = createServerSupabaseClient()
+
+  const updatePayload: Record<string, any> = {
+    ...profileData,
+    updated_at: new Date().toISOString()
+  }
+
+  const { error } = await supabase.from('kids').update(updatePayload).eq('id', camperId)
+
+  if (error) {
+    console.error('Error updating camper profile:', error)
+  }
+
+  await supabase.from('audit_log').insert({
+    actor_id: actor.id,
+    action: 'UPDATE_CAMPER_PROFILE',
+    entity_type: 'kid',
+    entity_id: camperId,
+    details: profileData
+  })
+
+  revalidatePath(`/campers/${camperId}`)
+  revalidatePath('/campers')
+  return { success: true }
+}
+
+export async function assignCamperCohortBunk(
+  camperId: string,
+  sessionName: string,
+  bunk: string
+) {
+  const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
+  const supabase = createServerSupabaseClient()
+
+  const { error } = await supabase.from('kids').update({
+    session_name: sessionName,
+    bunk: bunk,
+    updated_at: new Date().toISOString()
+  }).eq('id', camperId)
+
+  if (error) {
+    console.error('Error assigning cohort/bunk:', error)
+  }
+
+  await supabase.from('audit_log').insert({
+    actor_id: actor.id,
+    action: 'ASSIGN_COHORT_BUNK',
+    entity_type: 'kid',
+    entity_id: camperId,
+    details: { sessionName, bunk }
+  })
+
+  revalidatePath(`/campers/${camperId}`)
+  revalidatePath('/campers')
+  return { success: true }
+}
+
 export async function toggleCamperVoting(camperId: string, votingOpen: boolean) {
   const actor = await getCurrentUser()
   if (!actor) {
