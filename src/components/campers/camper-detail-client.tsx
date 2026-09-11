@@ -8,20 +8,35 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Navbar } from '@/components/layout/Navbar'
 import { Modal } from '@/components/ui/modal'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
-import { Kid } from '@/types'
+import { Kid, KidStatus } from '@/types'
 import { updateCamperStatus, toggleCamperVoting } from '@/lib/campers/actions'
 import {
   sendChatMessage,
   uploadDocumentToDrive,
+  deleteDocumentAction,
   castVaadVoteAction,
   generateContractPdf,
   uploadSignedContract,
 } from '@/lib/campers/detail-actions'
 import { triggerExport } from '@/lib/admin/actions'
 
+export interface CamperDocument {
+  id: string
+  kid_id: string
+  name: string
+  file_type: string
+  file_size: number
+  drive_file_id?: string
+  uploader_id?: string
+  document_type?: string
+  created_at: string
+}
+
 interface CamperDetailClientProps {
   initialCamper: Kid
+  initialDocuments?: CamperDocument[]
 }
 
 const getStatusVariant = (status: string) => {
@@ -42,13 +57,14 @@ const getStatusVariant = (status: string) => {
   }
 }
 
-export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
+export function CamperDetailClient({ initialCamper, initialDocuments = [] }: CamperDetailClientProps) {
   const [camper, setCamper] = useState<Kid>(initialCamper)
   const [noteText, setNoteText] = useState('')
   const [messages, setMessages] = useState<string[]>([
     'Rabbi Cohen: @Azriel Cohenca Please review the recommendation letter attached.',
   ])
-  const [docs, setDocs] = useState<string[]>([])
+  const [documents, setDocuments] = useState<CamperDocument[]>(initialDocuments)
+  const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const [contractStatus, setContractStatus] = useState<string>('Pending Generation')
   const [isPending, startTransition] = useTransition()
 
@@ -59,6 +75,10 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [docNameInput, setDocNameInput] = useState('')
+  const [docCategoryInput, setDocCategoryInput] = useState('Application Forms')
+
+  // Delete Confirm Dialog State
+  const [docToDelete, setDocToDelete] = useState<CamperDocument | null>(null)
 
   const [notification, setNotification] = useState<{
     isOpen: boolean
@@ -90,7 +110,7 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
     startTransition(async () => {
       try {
         await updateCamperStatus(camper.id, statusVal, reasonVal)
-        setCamper({ ...camper, status: statusVal as any })
+        setCamper({ ...camper, status: statusVal as KidStatus })
         showNotification('Status Updated', `Camper status successfully changed to "${statusVal}".`)
       } catch (err: unknown) {
         showNotification('Error', (err as Error).message || 'Failed to update status')
@@ -125,26 +145,75 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
   }
 
   // Documents Tab
+  const categories = ['All', 'Application Forms', 'Parent Questionnaire', 'Medical Forms', 'Transcripts']
+
   const handleOpenUploadModal = () => {
-    setDocNameInput(`${camper.name}_Transcript.pdf`)
+    setDocNameInput(`${camper.name}_Document.pdf`)
+    setDocCategoryInput('Application Forms')
     setIsUploadModalOpen(true)
   }
 
   const handleConfirmUploadDrive = async () => {
     if (!docNameInput.trim()) return
     const fileName = docNameInput.trim()
+    const categoryName = docCategoryInput
     setIsUploadModalOpen(false)
 
     startTransition(async () => {
       try {
-        await uploadDocumentToDrive(camper.id, fileName)
-        setDocs((prev) => [...prev, fileName])
-        showNotification('Document Uploaded', `Document "${fileName}" successfully saved to Google Drive.`)
+        const result = await uploadDocumentToDrive(
+          camper.id,
+          fileName,
+          undefined,
+          'application/pdf',
+          categoryName
+        )
+        if (result.document) {
+          setDocuments((prev) => [result.document as unknown as CamperDocument, ...prev])
+        } else {
+          setDocuments((prev) => [
+            {
+              id: `temp_${Date.now()}`,
+              kid_id: camper.id,
+              name: fileName,
+              file_type: 'application/pdf',
+              file_size: 1024,
+              drive_file_id: result.driveFile?.id,
+              document_type: categoryName,
+              created_at: new Date().toISOString(),
+            },
+            ...prev,
+          ])
+        }
+        showNotification('Document Uploaded', `Document "${fileName}" successfully saved to Google Drive under category "${categoryName}".`)
       } catch (err: unknown) {
         showNotification('Upload Error', (err as Error).message || 'Failed to upload document')
       }
     })
   }
+
+  const handleConfirmDeleteDocument = async () => {
+    if (!docToDelete) return
+    const doc = docToDelete
+    setDocToDelete(null)
+
+    startTransition(async () => {
+      try {
+        await deleteDocumentAction(doc.id, camper.id, doc.drive_file_id)
+        setDocuments((prev) => prev.filter((d) => d.id !== doc.id))
+        showNotification('Document Deleted', `Document "${doc.name}" was permanently removed and recorded in the audit log.`)
+      } catch (err: unknown) {
+        showNotification('Delete Error', (err as Error).message || 'Failed to delete document')
+      }
+    })
+  }
+
+  const filteredDocuments = selectedCategory === 'All'
+    ? documents
+    : documents.filter((doc) => {
+        const type = doc.document_type || 'General Document'
+        return type.toLowerCase() === selectedCategory.toLowerCase()
+      })
 
   // VAAD Tab
   const handleToggleVoting = async () => {
@@ -339,26 +408,104 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
           {/* Documents / Google Drive */}
           <TabsContent value="documents">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <CardTitle>Documents & Google Drive Storage</CardTitle>
+                <Button variant="outline" disabled={isPending} onClick={handleOpenUploadModal}>
+                  Upload to Google Drive
+                </Button>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {docs.length > 0 && (
-                  <div className="space-y-2 mb-4">
-                    {docs.map((d, i) => (
-                      <div key={i} className="p-3 bg-slate-100 rounded border text-sm flex justify-between items-center">
-                        <span>📄 {d}</span>
-                        <span className="text-xs text-green-700 font-semibold">Saved to Google Drive</span>
-                      </div>
-                    ))}
+              <CardContent className="space-y-6">
+                {/* Category Filter Pills */}
+                <div className="flex flex-wrap gap-2 pb-2 border-b">
+                  {categories.map((cat) => {
+                    const isActive = selectedCategory === cat
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                          isActive
+                            ? 'bg-slate-900 text-white shadow-sm'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Documents List */}
+                {filteredDocuments.length > 0 ? (
+                  <div className="divide-y rounded-lg border bg-white overflow-hidden shadow-sm">
+                    {filteredDocuments.map((doc) => {
+                      const fileId = doc.drive_file_id || 'preview'
+                      const viewUrl = `/api/media/proxy/${fileId}`
+                      const downloadUrl = `/api/media/proxy/${fileId}?download=true`
+
+                      return (
+                        <div key={doc.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
+                          <div className="flex items-start gap-3">
+                            <span className="text-2xl">📄</span>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-slate-900 text-sm">{doc.name}</span>
+                                <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-700">
+                                  {doc.document_type || 'General Document'}
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-slate-500 mt-1 flex items-center gap-3">
+                                <span>Saved to Google Drive</span>
+                                <span>•</span>
+                                <span>{new Date(doc.created_at).toLocaleDateString()}</span>
+                                {doc.file_size > 0 && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{(doc.file_size / 1024).toFixed(1)} KB</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2 self-end sm:self-center">
+                            <a
+                              href={viewUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white hover:bg-slate-100 h-8 px-3 transition-colors text-slate-700"
+                            >
+                              View / Open
+                            </a>
+                            <a
+                              href={downloadUrl}
+                              download={doc.name}
+                              className="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white hover:bg-slate-100 h-8 px-3 transition-colors text-slate-700"
+                            >
+                              Download
+                            </a>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="h-8 text-xs"
+                              disabled={isPending}
+                              onClick={() => setDocToDelete(doc)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-slate-200 p-8 rounded-lg text-center bg-slate-50">
+                    <p className="text-slate-600 text-sm mb-1">No documents found for category &quot;{selectedCategory}&quot;.</p>
+                    <p className="text-xs text-slate-400">Upload application documents directly to secure Google Drive.</p>
                   </div>
                 )}
-                <div className="border-2 border-dashed border-slate-200 p-8 rounded-lg text-center bg-slate-50">
-                  <p className="text-slate-600 mb-2">Upload application documents directly to secure Google Drive</p>
-                  <Button variant="outline" disabled={isPending} onClick={handleOpenUploadModal}>
-                    Upload to Google Drive
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -531,9 +678,24 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         title="Upload Document to Google Drive"
-        description="Specify document name for Google Drive cloud storage."
+        description="Specify document name and category for Google Drive cloud storage."
       >
         <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Document Category / Type</label>
+            <select
+              value={docCategoryInput}
+              onChange={(e) => setDocCategoryInput(e.target.value)}
+              className="w-full p-2 border rounded-md text-sm bg-white text-slate-900 border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400"
+            >
+              {categories.filter((c) => c !== 'All').map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+              <option value="General Document">General Document</option>
+            </select>
+          </div>
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Document Name</label>
             <Input
@@ -552,6 +714,18 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
           </div>
         </div>
       </Modal>
+
+      {/* Accessible Confirm Delete Document Dialog */}
+      <ConfirmDialog
+        isOpen={!!docToDelete}
+        onClose={() => setDocToDelete(null)}
+        onConfirm={handleConfirmDeleteDocument}
+        title="Delete Document"
+        message={`Are you sure you want to delete "${docToDelete?.name}"? This will permanently remove the record from Supabase, trash the file in Google Drive, and log the deletion in audit logs.`}
+        confirmText="Delete Document"
+        cancelText="Cancel"
+        variant="destructive"
+      />
 
       {/* Accessible Notification Modal */}
       <Modal

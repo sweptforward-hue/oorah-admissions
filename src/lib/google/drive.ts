@@ -130,6 +130,40 @@ export async function getAccessToken(): Promise<string | null> {
 /**
  * Verifies connectivity to Google Drive API.
  */
+/**
+ * Deletes or trashes a file in Google Drive by file ID.
+ */
+export async function deleteDriveFile(fileId: string): Promise<boolean> {
+  if (!fileId || fileId.startsWith('drive_') || fileId.startsWith('mock_')) {
+    return true
+  }
+
+  const token = await getAccessToken()
+  if (!token) {
+    return true
+  }
+
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    if (!res.ok && res.status !== 404) {
+      const errText = await res.text()
+      console.error(`Google Drive delete file failed for ${fileId}:`, errText)
+      return false
+    }
+
+    return true
+  } catch (err) {
+    console.error(`Error deleting Google Drive file ${fileId}:`, err)
+    return false
+  }
+}
+
 export async function verifyDriveConnection(): Promise<{ success: boolean; message: string }> {
   const token = await getAccessToken()
   if (!token) {

@@ -59,5 +59,36 @@ export default async function CamperDetailPage({ params }: PageProps) {
 
   if (!camper) return notFound();
 
-  return <CamperDetailClient initialCamper={camper} />;
+  const { data: docsData } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('kid_id', id)
+    .order('created_at', { ascending: false });
+
+  const fallbackDocs = [
+    {
+      id: 'doc-demo-1',
+      kid_id: id,
+      name: `${camper.name}_Application_Form.pdf`,
+      file_type: 'application/pdf',
+      file_size: 154200,
+      drive_file_id: 'drive_demo_app_1',
+      document_type: 'Application Forms',
+      created_at: camper.created_at,
+    },
+    {
+      id: 'doc-demo-2',
+      kid_id: id,
+      name: `${camper.name}_Parent_Questionnaire.pdf`,
+      file_type: 'application/pdf',
+      file_size: 84300,
+      drive_file_id: 'drive_demo_parent_2',
+      document_type: 'Parent Questionnaire',
+      created_at: camper.created_at,
+    },
+  ];
+
+  const initialDocuments = docsData && docsData.length > 0 ? docsData : fallbackDocs;
+
+  return <CamperDetailClient initialCamper={camper} initialDocuments={initialDocuments} />;
 }

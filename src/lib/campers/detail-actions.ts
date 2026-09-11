@@ -3,7 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/authorization'
 import { submitVote } from '@/lib/vaad/actions'
-import { uploadKidMediaAsset } from '@/lib/google/drive'
+import { uploadKidMediaAsset, deleteDriveFile } from '@/lib/google/drive'
 import { revalidatePath } from 'next/cache'
 
 function buildContractPdfBuffer(kidName: string, appNum: string): Buffer {
@@ -99,7 +99,8 @@ export async function uploadDocumentToDrive(
   kidId: string,
   fileName: string,
   fileData?: string | Buffer,
-  mimeType: string = 'application/pdf'
+  mimeType: string = 'application/pdf',
+  documentType: string = 'General Document'
 ) {
   const actor = await getCurrentUser()
   if (!actor) {
@@ -130,7 +131,7 @@ export async function uploadDocumentToDrive(
     filename: fileName,
     mimeType,
     uploadedBy: actorId,
-    documentType: 'General Document'
+    documentType,
   })
 
   revalidatePath(`/campers/${kidId}`)
@@ -139,6 +140,82 @@ export async function uploadDocumentToDrive(
     document: uploadResult.data?.dbRecord,
     driveFile: uploadResult.data?.driveFile
   }
+}
+
+export async function getCamperDocuments(kidId: string) {
+  const supabase = createServerSupabaseClient()
+  const { data, error } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('kid_id', kidId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching camper documents:', error)
+    return []
+  }
+
+  return data || []
+}
+
+export async function deleteDocumentAction(
+  documentId: string,
+  kidId: string,
+  driveFileId?: string
+) {
+  const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
+  const supabase = createServerSupabaseClient()
+  const actorId = actor.id
+
+  // Fetch document record to ensure drive_file_id and name if not provided
+  let targetDriveId = driveFileId
+  let docName = 'document'
+  if (!targetDriveId) {
+    const { data: docRecord } = await supabase
+      .from('documents')
+      .select('drive_file_id, name')
+      .eq('id', documentId)
+      .single()
+    if (docRecord) {
+      targetDriveId = docRecord.drive_file_id
+      docName = docRecord.name || docName
+    }
+  }
+
+  // Delete DB record from public.documents
+  const { error: dbError } = await supabase
+    .from('documents')
+    .delete()
+    .eq('id', documentId)
+
+  if (dbError) {
+    console.error('Error deleting document record from DB:', dbError)
+    throw new Error('Failed to delete document record from database')
+  }
+
+  // Remove/trash from Google Drive if driveFileId exists
+  if (targetDriveId) {
+    await deleteDriveFile(targetDriveId)
+  }
+
+  // Record audit log entry in public.audit_log
+  await supabase.from('audit_log').insert({
+    actor_id: actorId,
+    action: 'DELETE_DOCUMENT',
+    entity_type: 'kid',
+    entity_id: kidId,
+    details: {
+      document_id: documentId,
+      drive_file_id: targetDriveId,
+      filename: docName,
+    },
+  })
+
+  revalidatePath(`/campers/${kidId}`)
+  return { success: true }
 }
 
 export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 'Reject' | 'Abstain' | 'Request Interview') {
