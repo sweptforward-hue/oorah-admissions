@@ -3,7 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/authorization'
 import { submitVote } from '@/lib/vaad/actions'
-import { uploadKidMediaAsset } from '@/lib/google/drive'
+import { uploadKidMediaAsset, deleteDriveFile } from '@/lib/google/drive'
 import { revalidatePath } from 'next/cache'
 
 function buildContractPdfBuffer(kidName: string, appNum: string): Buffer {
@@ -99,7 +99,8 @@ export async function uploadDocumentToDrive(
   kidId: string,
   fileName: string,
   fileData?: string | Buffer,
-  mimeType: string = 'application/pdf'
+  mimeType: string = 'application/pdf',
+  documentType: string = 'General Document'
 ) {
   const actor = await getCurrentUser()
   if (!actor) {
@@ -130,7 +131,7 @@ export async function uploadDocumentToDrive(
     filename: fileName,
     mimeType,
     uploadedBy: actorId,
-    documentType: 'General Document'
+    documentType,
   })
 
   revalidatePath(`/campers/${kidId}`)
@@ -139,6 +140,82 @@ export async function uploadDocumentToDrive(
     document: uploadResult.data?.dbRecord,
     driveFile: uploadResult.data?.driveFile
   }
+}
+
+export async function getCamperDocuments(kidId: string) {
+  const supabase = createServerSupabaseClient()
+  const { data, error } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('kid_id', kidId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching camper documents:', error)
+    return []
+  }
+
+  return data || []
+}
+
+export async function deleteDocumentAction(
+  documentId: string,
+  kidId: string,
+  driveFileId?: string
+) {
+  const actor = await getCurrentUser()
+  if (!actor) {
+    throw new Error('Unauthorized: Authentication required')
+  }
+  const supabase = createServerSupabaseClient()
+  const actorId = actor.id
+
+  // Fetch document record to ensure drive_file_id and name if not provided
+  let targetDriveId = driveFileId
+  let docName = 'document'
+  if (!targetDriveId) {
+    const { data: docRecord } = await supabase
+      .from('documents')
+      .select('drive_file_id, name')
+      .eq('id', documentId)
+      .single()
+    if (docRecord) {
+      targetDriveId = docRecord.drive_file_id
+      docName = docRecord.name || docName
+    }
+  }
+
+  // Delete DB record from public.documents
+  const { error: dbError } = await supabase
+    .from('documents')
+    .delete()
+    .eq('id', documentId)
+
+  if (dbError) {
+    console.error('Error deleting document record from DB:', dbError)
+    throw new Error('Failed to delete document record from database')
+  }
+
+  // Remove/trash from Google Drive if driveFileId exists
+  if (targetDriveId) {
+    await deleteDriveFile(targetDriveId)
+  }
+
+  // Record audit log entry in public.audit_log
+  await supabase.from('audit_log').insert({
+    actor_id: actorId,
+    action: 'DELETE_DOCUMENT',
+    entity_type: 'kid',
+    entity_id: kidId,
+    details: {
+      document_id: documentId,
+      drive_file_id: targetDriveId,
+      filename: docName,
+    },
+  })
+
+  revalidatePath(`/campers/${kidId}`)
+  return { success: true }
 }
 
 export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 'Reject' | 'Abstain' | 'Request Interview') {
@@ -276,7 +353,6 @@ export async function uploadSignedContract(
   return { success: true, document: uploadResult.data?.dbRecord, driveFile: uploadResult.data?.driveFile }
 }
 
-// Media Retrieval Actions
 export async function getKidPhotos(kidId: string) {
   const supabase = createServerSupabaseClient()
   const { data, error } = await supabase
@@ -286,7 +362,7 @@ export async function getKidPhotos(kidId: string) {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching kid photos:', error)
+    console.error('Error fetching photos:', error)
     return []
   }
   return data || []
@@ -301,7 +377,7 @@ export async function getKidVoiceNotes(kidId: string) {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching kid voice notes:', error)
+    console.error('Error fetching voice notes:', error)
     return []
   }
   return data || []
@@ -316,17 +392,16 @@ export async function getKidTranscripts(kidId: string) {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching kid transcripts:', error)
+    console.error('Error fetching transcripts:', error)
     return []
   }
   return data || []
 }
 
-// Media Upload Actions
 export async function uploadPhotoAction(
   kidId: string,
-  fileName: string,
-  fileData?: string | Buffer,
+  filename: string,
+  fileBase64: string,
   mimeType: string = 'image/jpeg',
   caption?: string
 ) {
@@ -334,43 +409,35 @@ export async function uploadPhotoAction(
   if (!actor) {
     throw new Error('Unauthorized: Authentication required')
   }
-  const supabase = createServerSupabaseClient()
 
-  const { data: kid } = await supabase.from('kids').select('name, first_name, last_name').eq('id', kidId).single()
+  const { data: kid } = await createServerSupabaseClient()
+    .from('kids')
+    .select('name, first_name, last_name')
+    .eq('id', kidId)
+    .single()
   const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
 
-  let fileBuffer: Buffer
-  if (Buffer.isBuffer(fileData)) {
-    fileBuffer = fileData
-  } else if (typeof fileData === 'string' && fileData.length > 0) {
-    fileBuffer = Buffer.from(fileData, 'base64')
-  } else {
-    fileBuffer = Buffer.from('Fake photo binary data', 'utf-8')
-  }
+  const fileBuffer = fileBase64 ? Buffer.from(fileBase64, 'base64') : Buffer.from('Mock image payload', 'utf-8')
 
-  const uploadResult = await uploadKidMediaAsset({
+  const res = await uploadKidMediaAsset({
     kidId,
     kidName,
     category: 'Photos',
     fileBuffer,
-    filename: fileName,
+    filename,
     mimeType,
     uploadedBy: actor.id,
     caption,
   })
 
   revalidatePath(`/campers/${kidId}`)
-  return {
-    success: true,
-    photo: uploadResult.data?.dbRecord,
-    driveFile: uploadResult.data?.driveFile,
-  }
+  return { success: true, photo: res.data?.dbRecord, driveFile: res.data?.driveFile }
 }
 
 export async function uploadVoiceNoteAction(
   kidId: string,
-  fileName: string,
-  fileData?: string | Buffer,
+  filename: string,
+  fileBase64: string,
   mimeType: string = 'audio/webm',
   durationSeconds: number = 0
 ) {
@@ -378,82 +445,65 @@ export async function uploadVoiceNoteAction(
   if (!actor) {
     throw new Error('Unauthorized: Authentication required')
   }
-  const supabase = createServerSupabaseClient()
 
-  const { data: kid } = await supabase.from('kids').select('name, first_name, last_name').eq('id', kidId).single()
+  const { data: kid } = await createServerSupabaseClient()
+    .from('kids')
+    .select('name, first_name, last_name')
+    .eq('id', kidId)
+    .single()
   const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
 
-  let fileBuffer: Buffer
-  if (Buffer.isBuffer(fileData)) {
-    fileBuffer = fileData
-  } else if (typeof fileData === 'string' && fileData.length > 0) {
-    fileBuffer = Buffer.from(fileData, 'base64')
-  } else {
-    fileBuffer = Buffer.from('Fake audio binary content', 'utf-8')
-  }
+  const fileBuffer = fileBase64 ? Buffer.from(fileBase64, 'base64') : Buffer.from('Mock audio payload', 'utf-8')
 
-  const uploadResult = await uploadKidMediaAsset({
+  const res = await uploadKidMediaAsset({
     kidId,
     kidName,
     category: 'Voice Notes',
     fileBuffer,
-    filename: fileName,
+    filename,
     mimeType,
     uploadedBy: actor.id,
     duration: durationSeconds,
   })
 
   revalidatePath(`/campers/${kidId}`)
-  return {
-    success: true,
-    voiceNote: uploadResult.data?.dbRecord,
-    driveFile: uploadResult.data?.driveFile,
-  }
+  return { success: true, voiceNote: res.data?.dbRecord, driveFile: res.data?.driveFile }
 }
 
 export async function uploadTranscriptAction(
   kidId: string,
-  fileName: string,
-  fileData?: string | Buffer,
+  filename: string,
+  fileBase64: string,
   mimeType: string = 'application/pdf'
 ) {
   const actor = await getCurrentUser()
   if (!actor) {
     throw new Error('Unauthorized: Authentication required')
   }
-  const supabase = createServerSupabaseClient()
 
-  const { data: kid } = await supabase.from('kids').select('name, first_name, last_name').eq('id', kidId).single()
+  const { data: kid } = await createServerSupabaseClient()
+    .from('kids')
+    .select('name, first_name, last_name')
+    .eq('id', kidId)
+    .single()
   const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
 
-  let fileBuffer: Buffer
-  if (Buffer.isBuffer(fileData)) {
-    fileBuffer = fileData
-  } else if (typeof fileData === 'string' && fileData.length > 0) {
-    fileBuffer = Buffer.from(fileData, 'base64')
-  } else {
-    fileBuffer = Buffer.from('Sample transcript content', 'utf-8')
-  }
+  const fileBuffer = fileBase64 ? Buffer.from(fileBase64, 'base64') : Buffer.from('Mock transcript content', 'utf-8')
 
-  const uploadResult = await uploadKidMediaAsset({
+  const res = await uploadKidMediaAsset({
     kidId,
     kidName,
     category: 'Transcripts',
     fileBuffer,
-    filename: fileName,
+    filename,
     mimeType,
     uploadedBy: actor.id,
   })
 
   revalidatePath(`/campers/${kidId}`)
-  return {
-    success: true,
-    transcript: uploadResult.data?.dbRecord,
-    driveFile: uploadResult.data?.driveFile,
-  }
+  return { success: true, transcript: res.data?.dbRecord, driveFile: res.data?.driveFile }
 }
 
-// Media Delete Actions
 export async function deletePhotoAction(photoId: string, kidId: string) {
   const actor = await getCurrentUser()
   if (!actor) {
