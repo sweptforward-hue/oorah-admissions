@@ -8,8 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Navbar } from '@/components/layout/Navbar'
 import { Modal } from '@/components/ui/modal'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
-import { Kid } from '@/types'
+import { Kid, KidStatus } from '@/types'
 import { updateCamperStatus, toggleCamperVoting } from '@/lib/campers/actions'
 import {
   sendChatMessage,
@@ -17,6 +18,7 @@ import {
   castVaadVoteAction,
   generateContractPdf,
   uploadSignedContract,
+  deleteDocumentAction,
   getKidPhotos,
   getKidVoiceNotes,
   getKidTranscripts,
@@ -29,8 +31,21 @@ import {
 } from '@/lib/campers/detail-actions'
 import { triggerExport } from '@/lib/admin/actions'
 
+export interface CamperDocument {
+  id: string
+  kid_id: string
+  name: string
+  file_type: string
+  file_size: number
+  drive_file_id?: string
+  uploader_id?: string
+  document_type?: string
+  created_at: string
+}
+
 interface CamperDetailClientProps {
   initialCamper: Kid
+  initialDocuments?: CamperDocument[]
 }
 
 interface PhotoItem {
@@ -95,13 +110,16 @@ function readFileAsBase64(file: File): Promise<string> {
   })
 }
 
-export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
+export function CamperDetailClient({ initialCamper, initialDocuments = [] }: CamperDetailClientProps) {
   const [camper, setCamper] = useState<Kid>(initialCamper)
   const [noteText, setNoteText] = useState('')
   const [messages, setMessages] = useState<string[]>([
     'Rabbi Cohen: @Azriel Cohenca Please review the recommendation letter attached.',
   ])
-  const [docs, setDocs] = useState<string[]>([])
+  const [documents, setDocuments] = useState<CamperDocument[]>(initialDocuments)
+  const [selectedCategory, setSelectedCategory] = useState<string>('All')
+  const [docCategoryInput, setDocCategoryInput] = useState('Application Forms')
+  const [docToDelete, setDocToDelete] = useState<CamperDocument | null>(null)
   const [contractStatus, setContractStatus] = useState<string>('Pending Generation')
   const [isPending, startTransition] = useTransition()
 
@@ -218,7 +236,7 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
     startTransition(async () => {
       try {
         await updateCamperStatus(camper.id, statusVal, reasonVal)
-        setCamper({ ...camper, status: statusVal as any })
+        setCamper({ ...camper, status: statusVal as KidStatus })
         showNotification('Status Updated', `Camper status successfully changed to "${statusVal}".`)
       } catch (err: unknown) {
         showNotification('Error', (err as Error).message || 'Failed to update status')
@@ -253,26 +271,75 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
   }
 
   // Documents Tab
+  const categories = ['All', 'Application Forms', 'Parent Questionnaire', 'Medical Forms', 'Transcripts']
+
   const handleOpenUploadModal = () => {
-    setDocNameInput(`${camper.name}_Transcript.pdf`)
+    setDocNameInput(`${camper.name}_Document.pdf`)
+    setDocCategoryInput('Application Forms')
     setIsUploadModalOpen(true)
   }
 
   const handleConfirmUploadDrive = async () => {
     if (!docNameInput.trim()) return
     const fileName = docNameInput.trim()
+    const categoryName = docCategoryInput
     setIsUploadModalOpen(false)
 
     startTransition(async () => {
       try {
-        await uploadDocumentToDrive(camper.id, fileName)
-        setDocs((prev) => [...prev, fileName])
-        showNotification('Document Uploaded', `Document "${fileName}" successfully saved to Google Drive.`)
+        const result = await uploadDocumentToDrive(
+          camper.id,
+          fileName,
+          undefined,
+          'application/pdf',
+          categoryName
+        )
+        if (result.document) {
+          setDocuments((prev) => [result.document as unknown as CamperDocument, ...prev])
+        } else {
+          setDocuments((prev) => [
+            {
+              id: `temp_${Date.now()}`,
+              kid_id: camper.id,
+              name: fileName,
+              file_type: 'application/pdf',
+              file_size: 1024,
+              drive_file_id: result.driveFile?.id,
+              document_type: categoryName,
+              created_at: new Date().toISOString(),
+            },
+            ...prev,
+          ])
+        }
+        showNotification('Document Uploaded', `Document "${fileName}" successfully saved to Google Drive under category "${categoryName}".`)
       } catch (err: unknown) {
         showNotification('Upload Error', (err as Error).message || 'Failed to upload document')
       }
     })
   }
+
+  const handleConfirmDeleteDocument = async () => {
+    if (!docToDelete) return
+    const doc = docToDelete
+    setDocToDelete(null)
+
+    startTransition(async () => {
+      try {
+        await deleteDocumentAction(doc.id, camper.id, doc.drive_file_id)
+        setDocuments((prev) => prev.filter((d) => d.id !== doc.id))
+        showNotification('Document Deleted', `Document "${doc.name}" was permanently removed and recorded in the audit log.`)
+      } catch (err: unknown) {
+        showNotification('Delete Error', (err as Error).message || 'Failed to delete document')
+      }
+    })
+  }
+
+  const filteredDocuments = selectedCategory === 'All'
+    ? documents
+    : documents.filter((doc) => {
+        const type = doc.document_type || 'General Document'
+        return type.toLowerCase() === selectedCategory.toLowerCase()
+      })
 
   // ================= PHOTOS ACTIONS =================
   const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -771,6 +838,7 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
                     type="text"
                     value={noteText}
                     onChange={(e) => setNoteText(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSendNote()}
                     placeholder="Type a note (use @name to mention team members)..."
                     className="flex-1 p-2 border rounded-md text-sm bg-white"
                   />
@@ -785,26 +853,104 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
           {/* Documents / Google Drive */}
           <TabsContent value="documents">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <CardTitle>Documents & Google Drive Storage</CardTitle>
+                <Button variant="outline" disabled={isPending} onClick={handleOpenUploadModal}>
+                  Upload to Google Drive
+                </Button>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {docs.length > 0 && (
-                  <div className="space-y-2 mb-4">
-                    {docs.map((d, i) => (
-                      <div key={i} className="p-3 bg-slate-100 rounded border text-sm flex justify-between items-center">
-                        <span>📄 {d}</span>
-                        <span className="text-xs text-green-700 font-semibold">Saved to Google Drive</span>
-                      </div>
-                    ))}
+              <CardContent className="space-y-6">
+                {/* Category Filter Pills */}
+                <div className="flex flex-wrap gap-2 pb-2 border-b">
+                  {categories.map((cat) => {
+                    const isActive = selectedCategory === cat
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                          isActive
+                            ? 'bg-slate-900 text-white shadow-sm'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Documents List */}
+                {filteredDocuments.length > 0 ? (
+                  <div className="divide-y rounded-lg border bg-white overflow-hidden shadow-sm">
+                    {filteredDocuments.map((doc) => {
+                      const fileId = doc.drive_file_id || 'preview'
+                      const viewUrl = `/api/media/proxy/${fileId}`
+                      const downloadUrl = `/api/media/proxy/${fileId}?download=true`
+
+                      return (
+                        <div key={doc.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
+                          <div className="flex items-start gap-3">
+                            <span className="text-2xl">📄</span>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-slate-900 text-sm">{doc.name}</span>
+                                <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-700">
+                                  {doc.document_type || 'General Document'}
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-slate-500 mt-1 flex items-center gap-3">
+                                <span>Saved to Google Drive</span>
+                                <span>•</span>
+                                <span>{new Date(doc.created_at).toLocaleDateString()}</span>
+                                {doc.file_size > 0 && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{(doc.file_size / 1024).toFixed(1)} KB</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2 self-end sm:self-center">
+                            <a
+                              href={viewUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white hover:bg-slate-100 h-8 px-3 transition-colors text-slate-700"
+                            >
+                              View / Open
+                            </a>
+                            <a
+                              href={downloadUrl}
+                              download={doc.name}
+                              className="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white hover:bg-slate-100 h-8 px-3 transition-colors text-slate-700"
+                            >
+                              Download
+                            </a>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="h-8 text-xs"
+                              disabled={isPending}
+                              onClick={() => setDocToDelete(doc)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-slate-200 p-8 rounded-lg text-center bg-slate-50">
+                    <p className="text-slate-600 text-sm mb-1">No documents found for category &quot;{selectedCategory}&quot;.</p>
+                    <p className="text-xs text-slate-400">Upload application documents directly to secure Google Drive.</p>
                   </div>
                 )}
-                <div className="border-2 border-dashed border-slate-200 p-8 rounded-lg text-center bg-slate-50">
-                  <p className="text-slate-600 mb-2">Upload application documents directly to secure Google Drive</p>
-                  <Button variant="outline" disabled={isPending} onClick={handleOpenUploadModal}>
-                    Upload to Google Drive
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1036,7 +1182,7 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
                             className="text-xs"
                             onClick={() => handleDownloadDriveFile(t.drive_file_id, t.title)}
                           >
-                            View Transcript
+                            View in Drive
                           </Button>
                           <Button
                             variant="outline"
@@ -1205,9 +1351,24 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         title="Upload Document to Google Drive"
-        description="Specify document name for Google Drive cloud storage."
+        description="Specify document name and category for Google Drive cloud storage."
       >
         <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Document Category / Type</label>
+            <select
+              value={docCategoryInput}
+              onChange={(e) => setDocCategoryInput(e.target.value)}
+              className="w-full p-2 border rounded-md text-sm bg-white text-slate-900 border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400"
+            >
+              {categories.filter((c) => c !== 'All').map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+              <option value="General Document">General Document</option>
+            </select>
+          </div>
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Document Name</label>
             <Input
@@ -1227,44 +1388,54 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
         </div>
       </Modal>
 
-      {/* Photo Upload Modal */}
+      {/* Accessible Confirm Delete Document Dialog */}
+      <ConfirmDialog
+        isOpen={!!docToDelete}
+        onClose={() => setDocToDelete(null)}
+        onConfirm={handleConfirmDeleteDocument}
+        title="Delete Document"
+        message={`Are you sure you want to delete "${docToDelete?.name}"? This will permanently remove the record from Supabase, trash the file in Google Drive, and log the deletion in audit logs.`}
+        confirmText="Delete Document"
+        cancelText="Cancel"
+        variant="destructive"
+      />
+
+      {/* ================= PHOTOS MODALS ================= */}
       <Modal
         isOpen={isPhotoModalOpen}
         onClose={() => setIsPhotoModalOpen(false)}
         title="Upload Camper Photo"
-        description="Select an image file and enter an optional caption."
+        description="Upload a photo to store in Google Drive under Oorah Admissions / Kid Photos."
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Select Image File</label>
-            <Input type="file" accept="image/*" onChange={handlePhotoFileChange} />
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Select Photo File</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoFileChange}
+              className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
           </div>
-
           {photoPreview && (
-            <div className="border rounded-lg p-2 max-h-48 overflow-hidden flex items-center justify-center bg-slate-100">
+            <div className="h-40 rounded-lg overflow-hidden border bg-slate-100 flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photoPreview} alt="Preview" className="max-h-44 object-contain" />
+              <img src={photoPreview} alt="Preview" className="h-full object-contain" />
             </div>
           )}
-
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Caption / Description</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Caption / Description (Optional)</label>
             <Input
               value={photoCaption}
               onChange={(e) => setPhotoCaption(e.target.value)}
-              placeholder="e.g. Camper portrait photo"
+              placeholder="e.g. Orientation group photo"
             />
           </div>
-
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setIsPhotoModalOpen(false)}>
               Cancel
             </Button>
-            <Button
-              disabled={isPending || (!photoFile && !photoCaption)}
-              onClick={handleConfirmPhotoUpload}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
+            <Button disabled={!photoFile || isPending} onClick={handleConfirmPhotoUpload} className="bg-blue-600 hover:bg-blue-700 text-white">
               Upload Photo
             </Button>
           </div>
@@ -1273,111 +1444,104 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
 
       {/* Photo Lightbox Modal */}
       <Modal
-        isOpen={Boolean(lightboxPhoto)}
+        isOpen={!!lightboxPhoto}
         onClose={() => setLightboxPhoto(null)}
-        title="Photo Preview (Lightbox)"
-        description={lightboxPhoto?.caption || 'Camper Photo'}
+        title={lightboxPhoto?.caption || 'Camper Photo Preview'}
       >
         <div className="space-y-4">
-          <div className="bg-slate-900 rounded-lg p-4 flex items-center justify-center min-h-[250px] max-h-[450px]">
+          <div className="max-h-[60vh] flex items-center justify-center overflow-hidden rounded-lg bg-black">
             {lightboxPhoto?.url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={lightboxPhoto.url} alt={lightboxPhoto.caption || 'Photo'} className="max-h-[400px] object-contain rounded" />
+              <img src={lightboxPhoto.url} alt="Lightbox view" className="max-h-[60vh] object-contain" />
             ) : (
-              <div className="text-slate-300 text-center py-12">
-                <span className="text-6xl block mb-2">📷</span>
-                <span className="text-sm">High-Resolution Photo Preview</span>
+              <div className="p-12 text-slate-400 text-center">
+                <span className="text-5xl block mb-2">📷</span>
+                <span>Photo file stored in Google Drive</span>
               </div>
             )}
           </div>
-          <div className="flex justify-between items-center text-xs text-slate-500">
-            <span>Uploaded: {lightboxPhoto ? new Date(lightboxPhoto.created_at).toLocaleDateString() : ''}</span>
+          <div className="flex justify-between items-center pt-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleDownloadDriveFile(lightboxPhoto?.drive_file_id, lightboxPhoto?.caption || 'photo')}
             >
-              Download Original
+              Open in Google Drive
+            </Button>
+            <Button variant="outline" onClick={() => setLightboxPhoto(null)}>
+              Close
             </Button>
           </div>
         </div>
       </Modal>
 
-      {/* Record Voice Note Modal */}
+      {/* ================= VOICE NOTES MODALS ================= */}
       <Modal
         isOpen={isRecordModalOpen}
         onClose={() => {
-          if (isRecording) handleStopRecording()
+          handleStopRecording()
           setIsRecordModalOpen(false)
         }}
         title="Record Staff Voice Note"
-        description="Use your microphone to record audio notes for this camper."
+        description="Record audio directly from your browser microphone."
       >
-        <div className="space-y-4">
-          <div className="p-6 border rounded-xl bg-slate-50 flex flex-col items-center justify-center text-center">
-            {isRecording ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-center gap-2">
-                  <span className="w-3 h-3 bg-red-600 rounded-full animate-ping" />
-                  <span className="font-bold text-red-600">RECORDING IN PROGRESS</span>
-                </div>
-                <div className="text-3xl font-mono font-bold text-slate-800">
-                  {formatDuration(recordingSeconds)}
-                </div>
-                {/* Visual Audio Level Indicator */}
-                <div className="w-48 bg-slate-200 h-3 rounded-full overflow-hidden border">
-                  <div
-                    className="bg-red-500 h-full transition-all duration-200"
-                    style={{ width: `${Math.min(100, audioLevel)}%` }}
-                  />
-                </div>
-                <Button variant="destructive" onClick={handleStopRecording} className="mt-2">
-                  Stop Recording
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {!recordedAudioUrl ? (
-                  <>
-                    <p className="text-sm text-slate-600">Click below to start recording voice note</p>
-                    <Button
-                      onClick={handleStartRecording}
-                      className="bg-red-600 hover:bg-red-700 text-white font-bold"
-                    >
-                      ● Start Recording
-                    </Button>
-                  </>
-                ) : (
-                  <div className="w-full space-y-3">
-                    <p className="text-xs text-green-700 font-semibold">Recording complete! Preview before saving:</p>
-                    <audio src={recordedAudioUrl} controls className="w-full" />
-                  </div>
-                )}
-              </div>
+        <div className="space-y-5 text-center py-4">
+          <div className="text-3xl font-mono font-bold text-slate-800">
+            {formatDuration(recordingSeconds)}
+          </div>
+
+          {/* Level Meter Animation */}
+          {isRecording && (
+            <div className="flex items-center justify-center gap-1 h-8">
+              {[40, 70, 100, 60, 80, 45, 90, 65, 30].map((h, i) => (
+                <div
+                  key={i}
+                  style={{ height: `${Math.min(100, Math.max(15, (audioLevel * h) / 70))}%` }}
+                  className="w-1.5 bg-red-500 rounded-full transition-all duration-100"
+                />
+              ))}
+            </div>
+          )}
+
+          <div>
+            {!isRecording && !recordedBlob && (
+              <Button onClick={handleStartRecording} className="bg-red-600 hover:bg-red-700 text-white gap-2">
+                <span>●</span> Start Recording
+              </Button>
+            )}
+            {isRecording && (
+              <Button onClick={handleStopRecording} variant="destructive" className="gap-2">
+                <span>⏹</span> Stop Recording
+              </Button>
             )}
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Voice Note Title</label>
-            <Input
-              value={recordingTitle}
-              onChange={(e) => setRecordingTitle(e.target.value)}
-              placeholder="e.g. Initial Parent Phone Call Notes"
-            />
-          </div>
+          {recordedAudioUrl && !isRecording && (
+            <div className="space-y-4 pt-2 text-left border-t">
+              <audio controls src={recordedAudioUrl} className="w-full" />
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Recording Title</label>
+                <Input
+                  value={recordingTitle}
+                  onChange={(e) => setRecordingTitle(e.target.value)}
+                  placeholder="e.g. Behavioral intake notes"
+                />
+              </div>
+            </div>
+          )}
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-3 border-t">
             <Button
               variant="outline"
               onClick={() => {
-                if (isRecording) handleStopRecording()
+                handleStopRecording()
                 setIsRecordModalOpen(false)
               }}
             >
               Cancel
             </Button>
             <Button
-              disabled={isPending || !recordedBlob}
+              disabled={!recordedBlob || isPending}
               onClick={handleSaveRecordedVoiceNote}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
@@ -1387,78 +1551,72 @@ export function CamperDetailClient({ initialCamper }: CamperDetailClientProps) {
         </div>
       </Modal>
 
-      {/* Voice Audio File Upload Modal */}
+      {/* Voice Note File Upload Modal */}
       <Modal
         isOpen={isVoiceUploadModalOpen}
         onClose={() => setIsVoiceUploadModalOpen(false)}
-        title="Upload Audio File"
-        description="Select an audio file (.mp3, .wav, .m4a) to upload."
+        title="Upload Audio Voice Note"
+        description="Upload an existing .mp3, .wav, or .m4a recording file."
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Audio File</label>
-            <Input
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Select Audio File</label>
+            <input
               type="file"
-              accept="audio/*,.mp3,.wav,.m4a"
+              accept="audio/*"
               onChange={(e) => setVoiceFile(e.target.files?.[0] || null)}
+              className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Title</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Title (Optional)</label>
             <Input
               value={voiceTitle}
               onChange={(e) => setVoiceTitle(e.target.value)}
-              placeholder="e.g. Staff Interview Audio Record"
+              placeholder="e.g. Phone Interview Audio"
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setIsVoiceUploadModalOpen(false)}>
               Cancel
             </Button>
-            <Button
-              disabled={isPending || !voiceFile}
-              onClick={handleConfirmVoiceUpload}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Upload Audio File
+            <Button disabled={!voiceFile || isPending} onClick={handleConfirmVoiceUpload} className="bg-green-600 hover:bg-green-700 text-white">
+              Upload Audio
             </Button>
           </div>
         </div>
       </Modal>
 
-      {/* Transcript Upload / Replace Modal */}
+      {/* ================= TRANSCRIPT MODAL ================= */}
       <Modal
         isOpen={isTranscriptModalOpen}
         onClose={() => setIsTranscriptModalOpen(false)}
-        title={replacingTranscriptId ? 'Replace School Transcript' : 'Upload School Transcript'}
-        description="Upload academic transcript or report card file (PDF or image format)."
+        title={replacingTranscriptId ? 'Replace Academic Transcript' : 'Upload Academic Transcript'}
+        description="Upload official report card, IEP, or transcript document."
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Transcript File (PDF or Image)</label>
-            <Input
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Select File (PDF or Image)</label>
+            <input
               type="file"
               accept="application/pdf,image/*"
               onChange={(e) => setTranscriptFile(e.target.files?.[0] || null)}
+              className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Document Title</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Transcript Label / Title</label>
             <Input
               value={transcriptTitle}
               onChange={(e) => setTranscriptTitle(e.target.value)}
-              placeholder="e.g. 2024-2025 Official Report Card"
+              placeholder="e.g. 8th Grade Report Card (Final)"
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setIsTranscriptModalOpen(false)}>
               Cancel
             </Button>
-            <Button
-              disabled={isPending}
-              onClick={handleConfirmTranscriptUpload}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
+            <Button disabled={!transcriptFile || isPending} onClick={handleConfirmTranscriptUpload} className="bg-blue-600 hover:bg-blue-700 text-white">
               {replacingTranscriptId ? 'Replace Transcript' : 'Upload Transcript'}
             </Button>
           </div>
