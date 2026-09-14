@@ -1,7 +1,7 @@
 'use server'
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { requireAdminRole, getCurrentUser } from '@/lib/auth/authorization'
+import { getCurrentUser, requireAdminRole } from '@/lib/auth/authorization'
 import { revalidatePath } from 'next/cache'
 
 export async function deleteCamper(camperId: string) {
@@ -50,7 +50,6 @@ export async function updateCamperStatus(camperId: string, newStatusName: string
     if (statusData) {
       statusId = statusData.id
     } else {
-      // If status doesn't exist, create or fetch
       const { data: newStatus } = await supabase.from('statuses').insert({ name: newStatusName }).select('id').single()
       if (newStatus) statusId = newStatus.id
     }
@@ -128,33 +127,120 @@ export async function toggleCamperVoting(camperId: string, votingOpen: boolean) 
   }
 }
 
+export async function updateCamperProfile(
+  camperId: string,
+  profileData: {
+    grade?: string
+    school?: string
+    city?: string
+    state?: string
+    gender?: string
+    notes?: string
+    name?: string
+  }
+) {
+  try {
+    const actor = await getCurrentUser()
+    if (!actor) {
+      return { success: false, error: 'Unauthorized: Authentication required' }
+    }
+    const supabase = createServerSupabaseClient()
+
+    const updatePayload: Record<string, any> = {
+      ...profileData,
+      updated_at: new Date().toISOString()
+    }
+
+    const { error } = await supabase.from('kids').update(updatePayload).eq('id', camperId)
+
+    if (error) {
+      return { success: false, error: `Failed to update camper profile: ${error.message}` }
+    }
+
+    await supabase.from('audit_log').insert({
+      actor_id: actor.id,
+      action: 'UPDATE_CAMPER_PROFILE',
+      entity_type: 'kid',
+      entity_id: camperId,
+      details: profileData
+    })
+
+    revalidatePath(`/campers/${camperId}`)
+    revalidatePath('/campers')
+    return { success: true }
+  } catch (err: unknown) {
+    return { success: false, error: (err as Error)?.message || 'Failed to update camper profile' }
+  }
+}
+
+export async function assignCamperCohortBunk(
+  camperId: string,
+  sessionName: string,
+  bunk: string
+) {
+  try {
+    const actor = await getCurrentUser()
+    if (!actor) {
+      return { success: false, error: 'Unauthorized: Authentication required' }
+    }
+    const supabase = createServerSupabaseClient()
+
+    const { error } = await supabase.from('kids').update({
+      session: sessionName,
+      notes: `Assigned to ${sessionName}, Bunk: ${bunk}`,
+      updated_at: new Date().toISOString()
+    }).eq('id', camperId)
+
+    if (error) {
+      return { success: false, error: `Failed to assign cohort and bunk: ${error.message}` }
+    }
+
+    await supabase.from('audit_log').insert({
+      actor_id: actor.id,
+      action: 'ASSIGN_COHORT_BUNK',
+      entity_type: 'kid',
+      entity_id: camperId,
+      details: { sessionName, bunk }
+    })
+
+    revalidatePath(`/campers/${camperId}`)
+    revalidatePath('/campers')
+    return { success: true }
+  } catch (err: unknown) {
+    return { success: false, error: (err as Error)?.message || 'Failed to assign cohort and bunk' }
+  }
+}
+
 export async function getAdminCampers() {
   const supabase = createServerSupabaseClient()
-  const { data, error } = await supabase.from('kids').select(`
-    id,
-    application_number,
-    first_name,
-    last_name,
-    voting_open,
-    statuses ( name )
-  `).order('created_at', { ascending: false })
+  const { data, error } = await supabase
+    .from('kids')
+    .select(`
+      id,
+      name,
+      application_number,
+      created_at,
+      voting_open,
+      statuses (
+        id,
+        name,
+        color_hex
+      )
+    `)
+    .order('created_at', { ascending: false })
 
-  if (error || !data) {
-    return [
-      { id: '1', name: 'John Smith', appNum: '1042', status: 'VAAD Review', votingOpen: true },
-      { id: '2', name: 'Sarah Cohen', appNum: '1043', status: 'Accepted', votingOpen: false },
-    ]
+  if (error) {
+    console.error('Error fetching admin campers:', error)
+    return []
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return data.map((c: any) => {
-    const statusName = Array.isArray(c.statuses) ? c.statuses[0]?.name : c.statuses?.name
-    return {
-      id: c.id,
-      name: c.first_name && c.last_name ? `${c.first_name} ${c.last_name}` : c.name || 'Unnamed Camper',
-      appNum: c.application_number || 'N/A',
-      status: statusName || 'New',
-      votingOpen: c.voting_open ?? true,
-    }
-  })
+  return (data || []).map((kid: any) => ({
+    id: kid.id,
+    name: kid.name,
+    appNum: kid.application_number || `APP-${kid.id.slice(0, 5)}`,
+    status: kid.statuses?.name || 'Pending',
+    statusColor: kid.statuses?.color_hex || '#e2e8f0',
+    votingOpen: kid.voting_open ?? true,
+    createdDate: new Date(kid.created_at).toISOString().split('T')[0]
+  }))
 }
