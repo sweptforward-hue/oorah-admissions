@@ -235,7 +235,11 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
     setIsStatusModalOpen(false)
     startTransition(async () => {
       try {
-        await updateCamperStatus(camper.id, statusVal, reasonVal)
+        const res = await updateCamperStatus(camper.id, statusVal, reasonVal)
+        if (!res.success) {
+          showNotification('Status Error', res.error || 'Failed to update status')
+          return
+        }
         setCamper({ ...camper, status: statusVal as KidStatus })
         showNotification('Status Updated', `Camper status successfully changed to "${statusVal}".`)
       } catch (err: unknown) {
@@ -261,7 +265,11 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
     const textToSend = noteText.trim()
     startTransition(async () => {
       try {
-        await sendChatMessage(camper.id, textToSend)
+        const res = await sendChatMessage(camper.id, textToSend)
+        if (!res.success) {
+          showNotification('Chat Error', res.error || 'Failed to send note')
+          return
+        }
         setMessages((prev) => [...prev, `You: ${textToSend}`])
         setNoteText('')
       } catch (err: unknown) {
@@ -294,6 +302,10 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
           'application/pdf',
           categoryName
         )
+        if (!result.success) {
+          showNotification('Upload Error', result.error || 'Failed to upload document')
+          return
+        }
         if (result.document) {
           setDocuments((prev) => [result.document as unknown as CamperDocument, ...prev])
         } else {
@@ -325,7 +337,11 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
 
     startTransition(async () => {
       try {
-        await deleteDocumentAction(doc.id, camper.id, doc.drive_file_id)
+        const res = await deleteDocumentAction(doc.id, camper.id, doc.drive_file_id)
+        if (!res.success) {
+          showNotification('Delete Error', res.error || 'Failed to delete document')
+          return
+        }
         setDocuments((prev) => prev.filter((d) => d.id !== doc.id))
         showNotification('Document Deleted', `Document "${doc.name}" was permanently removed and recorded in the audit log.`)
       } catch (err: unknown) {
@@ -371,6 +387,10 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
           photoFile.type || 'image/jpeg',
           photoCaption
         )
+        if (!res.success) {
+          showNotification('Photo Upload Error', res.error || 'Failed to upload photo')
+          return
+        }
         const newPhoto: PhotoItem = {
           id: res.photo?.id || `photo-${Date.now()}`,
           caption: photoCaption || filename,
@@ -392,7 +412,11 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
   const handleDeletePhoto = async (photoId: string) => {
     startTransition(async () => {
       try {
-        await deletePhotoAction(photoId, camper.id)
+        const res = await deletePhotoAction(photoId, camper.id)
+        if (!res.success) {
+          showNotification('Delete Error', res.error || 'Failed to delete photo')
+          return
+        }
         setPhotos((prev) => prev.filter((p) => p.id !== photoId))
         showNotification('Photo Deleted', 'Photo has been removed.')
       } catch (err: unknown) {
@@ -417,7 +441,6 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
       const recorder = new MediaRecorder(stream)
       mediaRecorderRef.current = recorder
 
-      // Simple AudioContext level meter fallback simulation
       try {
         const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
         audioContextRef.current = audioCtx
@@ -497,6 +520,10 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
           'audio/webm',
           durationSec
         )
+        if (!res.success) {
+          showNotification('Voice Note Error', res.error || 'Failed to save voice note')
+          return
+        }
         const newVoiceNote: VoiceNoteItem = {
           id: res.voiceNote?.id || `voice-${Date.now()}`,
           title,
@@ -535,6 +562,10 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
           voiceFile.type || 'audio/mp3',
           120
         )
+        if (!res.success) {
+          showNotification('Upload Error', res.error || 'Failed to upload audio file')
+          return
+        }
         const newVoiceNote: VoiceNoteItem = {
           id: res.voiceNote?.id || `voice-${Date.now()}`,
           title: filename,
@@ -585,7 +616,11 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
   const handleDeleteVoiceNote = async (voiceNoteId: string) => {
     startTransition(async () => {
       try {
-        await deleteVoiceNoteAction(voiceNoteId, camper.id)
+        const res = await deleteVoiceNoteAction(voiceNoteId, camper.id)
+        if (!res.success) {
+          showNotification('Delete Error', res.error || 'Failed to delete voice note')
+          return
+        }
         setVoiceNotes((prev) => prev.filter((v) => v.id !== voiceNoteId))
         showNotification('Voice Note Deleted', 'Voice note removed.')
       } catch (err: unknown) {
@@ -617,7 +652,11 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
     startTransition(async () => {
       try {
         if (replacingTranscriptId) {
-          await deleteTranscriptAction(replacingTranscriptId, camper.id)
+          const delRes = await deleteTranscriptAction(replacingTranscriptId, camper.id)
+          if (!delRes.success) {
+            showNotification('Transcript Error', delRes.error || 'Failed to delete existing transcript')
+            return
+          }
           setTranscripts((prev) => prev.filter((t) => t.id !== replacingTranscriptId))
         }
 
@@ -627,6 +666,10 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
           fileBase64,
           transcriptFile?.type || 'application/pdf'
         )
+        if (!res.success) {
+          showNotification('Transcript Error', res.error || 'Failed to upload transcript')
+          return
+        }
 
         const newTranscript: TranscriptItem = {
           id: res.transcript?.id || `transcript-${Date.now()}`,
@@ -650,7 +693,11 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
   const handleDeleteTranscript = async (transcriptId: string) => {
     startTransition(async () => {
       try {
-        await deleteTranscriptAction(transcriptId, camper.id)
+        const res = await deleteTranscriptAction(transcriptId, camper.id)
+        if (!res.success) {
+          showNotification('Delete Error', res.error || 'Failed to delete transcript')
+          return
+        }
         setTranscripts((prev) => prev.filter((t) => t.id !== transcriptId))
         showNotification('Transcript Deleted', 'Transcript removed.')
       } catch (err: unknown) {
@@ -664,7 +711,11 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
     const newVotingState = !camper.voting_open
     startTransition(async () => {
       try {
-        await toggleCamperVoting(camper.id, newVotingState)
+        const res = await toggleCamperVoting(camper.id, newVotingState)
+        if (!res.success) {
+          showNotification('VAAD Error', res.error || 'Failed to toggle voting state')
+          return
+        }
         setCamper({ ...camper, voting_open: newVotingState })
       } catch (err: unknown) {
         showNotification('VAAD Error', (err as Error).message || 'Failed to toggle voting state')
@@ -675,7 +726,11 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
   const handleVote = async (choiceLabel: 'Accept' | 'Reject' | 'Abstain' | 'Request Interview') => {
     startTransition(async () => {
       try {
-        await castVaadVoteAction(camper.id, choiceLabel)
+        const res = await castVaadVoteAction(camper.id, choiceLabel)
+        if (!res.success) {
+          showNotification('Vote Error', res.error || 'Failed to submit vote')
+          return
+        }
         showNotification('Vote Cast', `Recorded vote "${choiceLabel}" for ${camper.name}.`)
       } catch (err: unknown) {
         showNotification('Vote Error', (err as Error).message || 'Failed to submit vote')
@@ -687,7 +742,11 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
   const handleGenerateContract = async () => {
     startTransition(async () => {
       try {
-        await generateContractPdf(camper.id)
+        const res = await generateContractPdf(camper.id)
+        if (!res.success) {
+          showNotification('Contract Error', res.error || 'Failed to generate contract PDF')
+          return
+        }
         setContractStatus('Contract PDF Generated')
         showNotification('Contract PDF Generated', 'Official enrollment contract PDF generated and stored in Google Drive.')
       } catch (err: unknown) {
@@ -699,7 +758,11 @@ export function CamperDetailClient({ initialCamper, initialDocuments = [] }: Cam
   const handleUploadSigned = async () => {
     startTransition(async () => {
       try {
-        await uploadSignedContract(camper.id)
+        const res = await uploadSignedContract(camper.id)
+        if (!res.success) {
+          showNotification('Upload Error', res.error || 'Failed to upload signed contract')
+          return
+        }
         setContractStatus('Signed Contract Uploaded')
         showNotification('Signed Contract Uploaded', 'Signed contract uploaded and verified in Google Drive.')
       } catch (err: unknown) {

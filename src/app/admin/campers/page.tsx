@@ -45,7 +45,11 @@ export default function AdminCampersPage() {
 
     startTransition(async () => {
       try {
-        await updateCamperStatus(id, newStatus, reason)
+        const res = await updateCamperStatus(id, newStatus, reason)
+        if (!res.success) {
+          alert(res.error || 'Failed to update status')
+          return
+        }
         setCampers(campers.map(c => c.id === id ? { ...c, status: newStatus } : c))
         alert(`Status updated and audit log entry created: "${reason}"`)
       } catch (err: unknown) {
@@ -58,7 +62,11 @@ export default function AdminCampersPage() {
     const newVoting = !current
     startTransition(async () => {
       try {
-        await toggleCamperVoting(id, newVoting)
+        const res = await toggleCamperVoting(id, newVoting)
+        if (!res.success) {
+          alert(res.error || 'Failed to toggle voting')
+          return
+        }
         setCampers(campers.map(c => c.id === id ? { ...c, votingOpen: newVoting } : c))
       } catch (err: unknown) {
         alert((err as Error).message || 'Failed to toggle voting')
@@ -71,7 +79,11 @@ export default function AdminCampersPage() {
     if (confirmation === 'DELETE') {
       startTransition(async () => {
         try {
-          await deleteCamper(id)
+          const res = await deleteCamper(id)
+          if (!res.success) {
+            alert(res.error || 'Failed to delete camper. Ensure you have Admin privileges.')
+            return
+          }
           setCampers(campers.filter(c => c.id !== id))
           alert('Camper deleted and action recorded in audit log.')
         } catch (err: unknown) {

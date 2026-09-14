@@ -1,12 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as auth from '@/lib/auth/authorization'
-import { updateCamperStatus, toggleCamperVoting } from '@/lib/campers/actions'
+import { updateCamperStatus, toggleCamperVoting, deleteCamper } from '@/lib/campers/actions'
 import {
   sendChatMessage,
   uploadDocumentToDrive,
   castVaadVoteAction,
   generateContractPdf,
-  uploadSignedContract
+  uploadSignedContract,
+  uploadPhotoAction,
+  uploadVoiceNoteAction,
+  uploadTranscriptAction,
+  deletePhotoAction,
+  deleteVoiceNoteAction,
+  deleteTranscriptAction,
+  deleteDocumentAction
 } from '@/lib/campers/detail-actions'
 import {
   toggleVaadMemberPermission,
@@ -76,39 +83,94 @@ describe('Server Actions Authorization Checks', () => {
   })
 
   describe('Camper Actions Null Actor Handling', () => {
-    it('updateCamperStatus throws error when unauthenticated', async () => {
-      vi.mocked(auth.getCurrentUser).mockResolvedValue(null)
-      await expect(updateCamperStatus('kid-1', 'Accepted', 'Reason')).rejects.toThrow('Unauthorized: Authentication required')
+    it('deleteCamper returns structured error when unauthenticated', async () => {
+      vi.mocked(auth.requireAdminRole).mockRejectedValue(new Error('Unauthorized: Admin role required'))
+      const res = await deleteCamper('kid-1')
+      expect(res).toEqual({ success: false, error: 'Unauthorized: Admin role required' })
     })
 
-    it('toggleCamperVoting throws error when unauthenticated', async () => {
+    it('updateCamperStatus returns structured error when unauthenticated', async () => {
       vi.mocked(auth.getCurrentUser).mockResolvedValue(null)
-      await expect(toggleCamperVoting('kid-1', true)).rejects.toThrow('Unauthorized: Authentication required')
+      const res = await updateCamperStatus('kid-1', 'Accepted', 'Reason')
+      expect(res).toEqual({ success: false, error: 'Unauthorized: Authentication required' })
     })
 
-    it('sendChatMessage throws error when unauthenticated', async () => {
+    it('toggleCamperVoting returns structured error when unauthenticated', async () => {
       vi.mocked(auth.getCurrentUser).mockResolvedValue(null)
-      await expect(sendChatMessage('kid-1', 'Hello')).rejects.toThrow('Unauthorized: Authentication required')
+      const res = await toggleCamperVoting('kid-1', true)
+      expect(res).toEqual({ success: false, error: 'Unauthorized: Authentication required' })
     })
 
-    it('uploadDocumentToDrive throws error when unauthenticated', async () => {
+    it('sendChatMessage returns structured error when unauthenticated', async () => {
       vi.mocked(auth.getCurrentUser).mockResolvedValue(null)
-      await expect(uploadDocumentToDrive('kid-1', 'doc.pdf')).rejects.toThrow('Unauthorized: Authentication required')
+      const res = await sendChatMessage('kid-1', 'Hello')
+      expect(res).toEqual({ success: false, error: 'Unauthorized: Authentication required' })
     })
 
-    it('castVaadVoteAction throws error when unauthenticated', async () => {
+    it('uploadDocumentToDrive returns structured error when unauthenticated', async () => {
       vi.mocked(auth.getCurrentUser).mockResolvedValue(null)
-      await expect(castVaadVoteAction('kid-1', 'Accept')).rejects.toThrow('Unauthorized: Authentication required')
+      const res = await uploadDocumentToDrive('kid-1', 'doc.pdf')
+      expect(res).toEqual({ success: false, error: 'Unauthorized: Authentication required' })
     })
 
-    it('generateContractPdf throws error when unauthenticated', async () => {
+    it('deleteDocumentAction returns structured error when unauthenticated', async () => {
       vi.mocked(auth.getCurrentUser).mockResolvedValue(null)
-      await expect(generateContractPdf('kid-1')).rejects.toThrow('Unauthorized: Authentication required')
+      const res = await deleteDocumentAction('doc-1', 'kid-1')
+      expect(res).toEqual({ success: false, error: 'Unauthorized: Authentication required' })
     })
 
-    it('uploadSignedContract throws error when unauthenticated', async () => {
+    it('castVaadVoteAction returns structured error when unauthenticated', async () => {
       vi.mocked(auth.getCurrentUser).mockResolvedValue(null)
-      await expect(uploadSignedContract('kid-1')).rejects.toThrow('Unauthorized: Authentication required')
+      const res = await castVaadVoteAction('kid-1', 'Accept')
+      expect(res).toEqual({ success: false, error: 'Unauthorized: Authentication required' })
+    })
+
+    it('generateContractPdf returns structured error when unauthenticated', async () => {
+      vi.mocked(auth.getCurrentUser).mockResolvedValue(null)
+      const res = await generateContractPdf('kid-1')
+      expect(res).toEqual({ success: false, error: 'Unauthorized: Authentication required' })
+    })
+
+    it('uploadSignedContract returns structured error when unauthenticated', async () => {
+      vi.mocked(auth.getCurrentUser).mockResolvedValue(null)
+      const res = await uploadSignedContract('kid-1')
+      expect(res).toEqual({ success: false, error: 'Unauthorized: Authentication required' })
+    })
+
+    it('uploadPhotoAction returns structured error when unauthenticated', async () => {
+      vi.mocked(auth.getCurrentUser).mockResolvedValue(null)
+      const res = await uploadPhotoAction('kid-1', 'photo.jpg', '')
+      expect(res).toEqual({ success: false, error: 'Unauthorized: Authentication required' })
+    })
+
+    it('uploadVoiceNoteAction returns structured error when unauthenticated', async () => {
+      vi.mocked(auth.getCurrentUser).mockResolvedValue(null)
+      const res = await uploadVoiceNoteAction('kid-1', 'audio.webm', '')
+      expect(res).toEqual({ success: false, error: 'Unauthorized: Authentication required' })
+    })
+
+    it('uploadTranscriptAction returns structured error when unauthenticated', async () => {
+      vi.mocked(auth.getCurrentUser).mockResolvedValue(null)
+      const res = await uploadTranscriptAction('kid-1', 'transcript.pdf', '')
+      expect(res).toEqual({ success: false, error: 'Unauthorized: Authentication required' })
+    })
+
+    it('deletePhotoAction returns structured error when unauthenticated', async () => {
+      vi.mocked(auth.getCurrentUser).mockResolvedValue(null)
+      const res = await deletePhotoAction('photo-1', 'kid-1')
+      expect(res).toEqual({ success: false, error: 'Unauthorized: Authentication required' })
+    })
+
+    it('deleteVoiceNoteAction returns structured error when unauthenticated', async () => {
+      vi.mocked(auth.getCurrentUser).mockResolvedValue(null)
+      const res = await deleteVoiceNoteAction('voice-1', 'kid-1')
+      expect(res).toEqual({ success: false, error: 'Unauthorized: Authentication required' })
+    })
+
+    it('deleteTranscriptAction returns structured error when unauthenticated', async () => {
+      vi.mocked(auth.getCurrentUser).mockResolvedValue(null)
+      const res = await deleteTranscriptAction('transcript-1', 'kid-1')
+      expect(res).toEqual({ success: false, error: 'Unauthorized: Authentication required' })
     })
   })
 
