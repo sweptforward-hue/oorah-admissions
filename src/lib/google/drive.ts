@@ -325,6 +325,25 @@ export async function uploadFileToDrive({
 }
 
 /**
+ * Deletes or trashes a file in Google Drive.
+ */
+export async function deleteDriveFile(fileId: string): Promise<boolean> {
+  const token = await getAccessToken()
+  if (!token) return true
+
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return res.ok
+  } catch (err) {
+    console.error('Error deleting Google Drive file:', err)
+    return false
+  }
+}
+
+/**
  * Uploads media asset with hierarchical Drive storage and Supabase metadata logging.
  */
 export async function uploadKidMediaAsset(params: UploadKidMediaAssetParams) {
@@ -356,12 +375,15 @@ export async function uploadKidMediaAsset(params: UploadKidMediaAssetParams) {
 
   if (category === 'Transcripts') {
     const { data } = await supabase
-      .from('transcripts')
+      .from('documents')
       .insert({
         kid_id: kidId,
-        title: filename,
-        content: `Stored in Google Drive: ${driveFile.name} (${driveFile.id})`,
+        name: filename,
+        file_type: mimeType,
+        file_size: fileBuffer.length,
+        drive_file_id: driveFile.id,
         uploader_id: uploadedBy || null,
+        document_type: 'Transcript',
       })
       .select()
       .single()
