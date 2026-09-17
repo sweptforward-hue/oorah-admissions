@@ -59,6 +59,11 @@ export default async function CamperDetailPage({ params }: PageProps) {
 
   if (!camper) return notFound();
 
+  const clientCamper = {
+    ...camper,
+    voting_open: camper.voting_open ?? true,
+  };
+
   const { data: docsData } = await supabase
     .from('documents')
     .select('*')
@@ -90,5 +95,5 @@ export default async function CamperDetailPage({ params }: PageProps) {
 
   const initialDocuments = docsData && docsData.length > 0 ? docsData : fallbackDocs;
 
-  return <CamperDetailClient initialCamper={camper} initialDocuments={initialDocuments} />;
+  return <CamperDetailClient initialCamper={clientCamper} initialDocuments={initialDocuments} />;
 }

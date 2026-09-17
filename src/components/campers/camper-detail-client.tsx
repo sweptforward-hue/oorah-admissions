@@ -41,15 +41,9 @@ import {
   deleteTranscriptAction,
 } from '@/lib/campers/detail-actions'
 import { triggerExport } from '@/lib/admin/actions'
+import { KidStatus } from '@/types/campers'
 
-export type KidStatus =
-  | 'Pending'
-  | 'Under Review'
-  | 'Accepted'
-  | 'Waitlisted'
-  | 'Rejected'
-  | 'Contract Sent'
-  | 'Enrolled'
+export type { KidStatus }
 
 export interface CamperDocument {
   id: string
