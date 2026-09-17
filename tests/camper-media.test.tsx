@@ -2,7 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { CamperDetailClient } from '@/components/campers/camper-detail-client'
 
-// Mock next/link
+// Mock next/navigation & next/link
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    refresh: vi.fn(),
+  }),
+}))
+
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>,
 }))
@@ -77,7 +84,7 @@ describe('Camper Media Management (Photos, Voice Notes, Transcript)', () => {
     fireEvent.click(photosTabTrigger)
 
     expect(screen.getByRole('button', { name: '+ Upload Photo' })).toBeInTheDocument()
-    expect(screen.getByText('No camper photos uploaded yet.')).toBeInTheDocument()
+    expect(screen.getByText('No photos uploaded for this applicant yet.')).toBeInTheDocument()
 
     // Click + Upload Photo button
     fireEvent.click(screen.getByRole('button', { name: '+ Upload Photo' }))
@@ -100,12 +107,12 @@ describe('Camper Media Management (Photos, Voice Notes, Transcript)', () => {
   it('renders academic transcript tab and handles upload transcript button', () => {
     render(<CamperDetailClient initialCamper={mockCamper} />)
 
-    const transcriptTabTrigger = screen.getByRole('tab', { name: 'Transcript' })
+    const transcriptTabTrigger = screen.getByRole('tab', { name: 'Transcripts' })
     transcriptTabTrigger.focus()
     fireEvent.keyDown(transcriptTabTrigger, { key: ' ', code: 'Space' })
     fireEvent.click(transcriptTabTrigger)
 
     expect(screen.getByRole('button', { name: '+ Upload Transcript' })).toBeInTheDocument()
-    expect(screen.getByText('No school transcripts uploaded yet.')).toBeInTheDocument()
+    expect(screen.getByText('No transcripts uploaded yet.')).toBeInTheDocument()
   })
 })

@@ -505,7 +505,7 @@ export async function uploadCamperVoiceNote(
       filename,
       mimeType,
       uploadedBy: actorId,
-      durationSeconds: durationSeconds || 0,
+      duration: durationSeconds || 0,
     })
 
     await supabase.from('audit_log').insert({
@@ -706,3 +706,8 @@ export async function voidAndRegenerateContract(kidId: string, reason: string = 
     return { success: false, error: (err as Error)?.message || 'Failed to void and regenerate contract' }
   }
 }
+
+// Aliases for media upload actions to match tests and external callers
+export const uploadPhotoAction = uploadCamperPhoto
+export const uploadVoiceNoteAction = uploadCamperVoiceNote
+export const uploadTranscriptAction = uploadCamperTranscript

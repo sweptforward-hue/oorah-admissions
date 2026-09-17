@@ -11,7 +11,20 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  if (pathname.startsWith('/admin')) {
+  const protectedPrefixes = [
+    '/admin',
+    '/dashboard',
+    '/campers',
+    '/kids',
+    '/session-a',
+    '/session-b',
+  ]
+
+  const isProtected = protectedPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  )
+
+  if (isProtected) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321'
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key'
 
@@ -38,29 +51,31 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'service-role-key'
-    const adminSupabase = createServerClient(supabaseUrl, serviceKey, {
-      cookies: {
-        getAll() {
-          return []
+    if (pathname.startsWith('/admin')) {
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'service-role-key'
+      const adminSupabase = createServerClient(supabaseUrl, serviceKey, {
+        cookies: {
+          getAll() {
+            return []
+          },
+          setAll() {},
         },
-        setAll() {},
-      },
-    })
+      })
 
-    const { data: dbUser } = await adminSupabase
-      .from('users')
-      .select('role, active')
-      .eq('id', user.id)
-      .single()
+      const { data: dbUser } = await adminSupabase
+        .from('users')
+        .select('role, active')
+        .eq('id', user.id)
+        .single()
 
-    if (dbUser && dbUser.active === false) {
-      return NextResponse.redirect(new URL('/access-denied?reason=deactivated', request.url))
-    }
+      if (dbUser && dbUser.active === false) {
+        return NextResponse.redirect(new URL('/access-denied?reason=deactivated', request.url))
+      }
 
-    const role = dbUser?.role || 'staff'
-    if (role !== 'admin') {
-      return NextResponse.redirect(new URL('/access-denied?reason=admin_required', request.url))
+      const role = dbUser?.role || 'staff'
+      if (role !== 'admin') {
+        return NextResponse.redirect(new URL('/access-denied?reason=admin_required', request.url))
+      }
     }
   }
 
@@ -68,5 +83,13 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: [
+    '/admin/:path*',
+    '/dashboard/:path*',
+    '/dashboard',
+    '/campers/:path*',
+    '/kids/:path*',
+    '/session-a/:path*',
+    '/session-b/:path*',
+  ],
 }

@@ -1,4 +1,16 @@
-export type KidStatus = 'New' | 'Incomplete' | 'Under Review' | 'Interview' | 'VAAD Review' | 'Accepted' | 'Rejected' | 'Waitlisted' | 'Withdrawn';
+export type KidStatus =
+  | 'New'
+  | 'Incomplete'
+  | 'Pending'
+  | 'Under Review'
+  | 'Interview'
+  | 'VAAD Review'
+  | 'Accepted'
+  | 'Rejected'
+  | 'Waitlisted'
+  | 'Withdrawn'
+  | 'Contract Sent'
+  | 'Enrolled'
 
 export interface Kid {
   id: string;
