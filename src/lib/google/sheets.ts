@@ -1,13 +1,13 @@
 import { getAccessToken } from './drive'
 
 export interface ExportData {
-  kids?: Record<string, any>[]
-  users?: Record<string, any>[]
-  statusHistory?: Record<string, any>[]
-  vaadVotes?: Record<string, any>[]
-  chatTranscripts?: Record<string, any>[]
-  documents?: Record<string, any>[]
-  auditLogs?: Record<string, any>[]
+  kids?: Record<string, unknown>[]
+  users?: Record<string, unknown>[]
+  statusHistory?: Record<string, unknown>[]
+  vaadVotes?: Record<string, unknown>[]
+  chatTranscripts?: Record<string, unknown>[]
+  documents?: Record<string, unknown>[]
+  auditLogs?: Record<string, unknown>[]
 }
 
 export const REQUIRED_TAB_NAMES = [
@@ -82,7 +82,7 @@ export function buildSheetPayload(title: string, data: ExportData = {}) {
   }
 }
 
-function getRowsDataForTab(tabName: TabName, data: ExportData): Record<string, any>[] {
+function getRowsDataForTab(tabName: TabName, data: ExportData): Record<string, unknown>[] {
   switch (tabName) {
     case 'Kids':
       return data.kids || []

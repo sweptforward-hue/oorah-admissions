@@ -1,7 +1,7 @@
 'use server'
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { requireAdminRole, getCurrentUser } from '@/lib/auth/authorization'
+import { requireAdminRole } from '@/lib/auth/authorization'
 import { revalidatePath } from 'next/cache'
 
 export interface CustomFieldDefinition {
@@ -10,7 +10,7 @@ export interface CustomFieldDefinition {
   label: string
   field_type: string
   required: boolean
-  options?: any
+  options?: Record<string, unknown>
   created_at?: string
 }
 
@@ -38,7 +38,7 @@ export async function createCustomField(fieldData: {
   field_type: string
   required: boolean
   entity_type?: string
-  options?: any
+  options?: Record<string, unknown>
 }) {
   await requireAdminRole()
   const supabase = createServerSupabaseClient()
@@ -74,7 +74,7 @@ export async function updateCustomField(
     label?: string
     field_type?: string
     required?: boolean
-    options?: any
+    options?: Record<string, unknown>
   }
 ) {
   await requireAdminRole()

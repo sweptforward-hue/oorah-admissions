@@ -150,8 +150,9 @@ export async function verifyDriveConnection(): Promise<{ success: boolean; messa
     }
 
     return { success: true, message: 'Google Cloud Platform OAuth connection verified successfully.' }
-  } catch (err: any) {
-    return { success: false, message: `Drive connection error: ${err.message}` }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { success: false, message: `Drive connection error: ${message}` }
   }
 }
 

@@ -10,6 +10,7 @@ export function Navbar() {
 
   useEffect(() => {
     // Simulated notification count for demonstration/active user
+    // eslint-disable-next-line
     setUnreadCount(2)
   }, [])
 
@@ -54,6 +55,18 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center space-x-4">
+            {/* Recent Activity Ticker */}
+            <div className="hidden lg:flex items-center bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-full mr-2">
+              <span className="flex h-2 w-2 relative mr-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              <span className="text-xs text-slate-600 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                <span className="text-slate-400 mr-1">Just now:</span>
+                Sarah C. app submitted
+              </span>
+            </div>
+
             {/* Notification indicator */}
             <Link
               href="/dashboard#notifications"

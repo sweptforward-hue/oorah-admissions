@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { getActiveVaadChoices } from './queries';
-import { VaadChoice } from '../../types/vaad';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export async function submitVote(
-  supabase:   any,
+  supabase: SupabaseClient,
   kidId: string,
   choiceId: string
 ) {

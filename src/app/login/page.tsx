@@ -24,7 +24,7 @@ export default function LoginPage() {
         prompt?: string
       }
     } = {
-      redirectTo: `${window.location.origin}/`,
+      redirectTo: `${window.location.origin}/dashboard`,
     }
 
     if (provider === 'google') {

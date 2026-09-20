@@ -11,7 +11,7 @@ export async function createClient() {
       getAll() {
         return cookieStore.getAll()
       },
-      setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
+      setAll(cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
             cookieStore.set(name, value, options)
@@ -32,18 +32,21 @@ export function createServerSupabaseClient() {
 
   try {
     // In server component or server action context
-    const cookieStore = cookies() as any
+    const cookieStore = cookies() as unknown as {
+      getAll?: () => Array<{ name: string; value: string }>
+      set?: (name: string, value: string, options?: Record<string, unknown>) => void
+    }
     if (cookieStore && typeof cookieStore.getAll === 'function') {
       return createServerClient(supabaseUrl, supabaseAnonKey, {
         cookies: {
           getAll() {
-            return cookieStore.getAll()
+            return cookieStore.getAll ? cookieStore.getAll() : []
           },
-          setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
+          setAll(cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
             try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
+              cookiesToSet.forEach(({ name, value, options }) => {
+                if (cookieStore.set) cookieStore.set(name, value, options)
+              })
             } catch {
               // Ignore if called from Server Component
             }

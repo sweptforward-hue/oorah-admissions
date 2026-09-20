@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -33,10 +33,10 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
-          cookiesToSet.forEach(({ name, value }: { name: string; value: string }) => request.cookies.set(name, value))
+        setAll(cookiesToSet: Array<{ name: string; value: string; options?: Parameters<typeof response.cookies.set>[2] }>) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }: { name: string; value: string; options?: any }) =>
+          cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           )
         },
@@ -81,6 +81,9 @@ export async function middleware(request: NextRequest) {
 
   return response
 }
+
+export const middleware = proxy
+export default proxy
 
 export const config = {
   matcher: [
