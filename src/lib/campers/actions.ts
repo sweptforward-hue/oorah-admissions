@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache'
 export async function deleteCamper(camperId: string) {
   try {
     const admin = await requireAdminRole()
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     // Fetch camper name/appNum for audit log before deletion
     const { data: camper } = await supabase.from('kids').select('name, application_number, first_name, last_name').eq('id', camperId).single()
@@ -42,7 +42,7 @@ export async function updateCamperStatus(camperId: string, newStatusName: string
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     // Find status_id from public.statuses
     let statusId: string | null = null
@@ -100,7 +100,7 @@ export async function toggleCamperVoting(camperId: string, votingOpen: boolean) 
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     const { error } = await supabase.from('kids').update({
       voting_open: votingOpen,
@@ -144,7 +144,7 @@ export async function updateCamperProfile(
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     const updatePayload: Record<string, any> = {
       ...profileData,
@@ -183,7 +183,7 @@ export async function assignCamperCohortBunk(
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     const { error } = await supabase.from('kids').update({
       session: sessionName,
@@ -212,7 +212,7 @@ export async function assignCamperCohortBunk(
 }
 
 export async function getAdminCampers() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const { data, error } = await supabase
     .from('kids')
     .select(`

@@ -14,7 +14,7 @@ export async function toggleVaadMemberPermission(
   value: boolean
 ) {
   await requireAdminRole()
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   // Determine actual column name in vaad_members table
   const updateData: Record<string, boolean | string> = {
@@ -43,7 +43,7 @@ export async function toggleVaadMemberPermission(
 // Operational Years
 export async function createYear(yearName: string) {
   await requireAdminRole()
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const yearNum = parseInt(yearName.replace(/\D/g, ''), 10) || new Date().getFullYear() + 1
 
@@ -66,7 +66,7 @@ export async function createYear(yearName: string) {
 
 export async function updateYear(id: string, data: { year?: number; is_active?: boolean }) {
   await requireAdminRole()
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const { error } = await supabase
     .from('years')
@@ -90,7 +90,7 @@ export async function createSession(sessionData: {
   end_date: string
 }) {
   await requireAdminRole()
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const { data, error } = await supabase
     .from('sessions')
@@ -113,7 +113,7 @@ export async function createSession(sessionData: {
 
 export async function updateSessionSchedule(id: string, start_date: string, end_date: string) {
   await requireAdminRole()
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const { error } = await supabase
     .from('sessions')
@@ -135,7 +135,7 @@ export async function updateSessionSchedule(id: string, start_date: string, end_
 export async function triggerExport(exportType: 'Sheets' | 'CSV' | 'Drive Archive') {
   const actor = await requireAdminRole()
   const actorId = actor.id
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   // 1. Fetch real application records from database
   const [{ data: kids }, { data: users }, { data: docs }, { data: votes }, { data: auditLogs }] = await Promise.all([
@@ -206,7 +206,7 @@ export async function triggerExport(exportType: 'Sheets' | 'CSV' | 'Drive Archiv
 export async function updateDriveFolder(folderId: string) {
   const actor = await requireAdminRole()
   const actorId = actor.id
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   await supabase.from('audit_log').insert({
     actor_id: actorId,

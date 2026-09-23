@@ -15,7 +15,7 @@ export interface CustomFieldDefinition {
 }
 
 export async function getCustomFields(): Promise<CustomFieldDefinition[]> {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const { data, error } = await supabase
     .from('custom_field_definitions')
     .select('*')
@@ -41,7 +41,7 @@ export async function createCustomField(fieldData: {
   options?: any
 }) {
   await requireAdminRole()
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const opts = {
     ...(fieldData.options || {}),
@@ -78,7 +78,7 @@ export async function updateCustomField(
   }
 ) {
   await requireAdminRole()
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const { data, error } = await supabase
     .from('custom_field_definitions')
@@ -102,7 +102,7 @@ export async function updateCustomField(
 
 export async function deleteCustomField(id: string) {
   const admin = await requireAdminRole()
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const { error } = await supabase
     .from('custom_field_definitions')

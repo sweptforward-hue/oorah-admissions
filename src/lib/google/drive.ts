@@ -370,7 +370,7 @@ export async function uploadKidMediaAsset(params: UploadKidMediaAssetParams) {
     parentId: targetFolderId,
   })
 
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   let dbRecord: DbMediaRecord | null = null
 
   if (category === 'Transcripts') {

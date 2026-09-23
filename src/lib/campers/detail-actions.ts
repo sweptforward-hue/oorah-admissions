@@ -59,7 +59,7 @@ export async function sendChatMessage(kidId: string, content: string) {
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     if (!content || !content.trim()) {
       return { success: false, error: 'Message content is required' }
@@ -107,7 +107,7 @@ export async function uploadDocumentToDrive(
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data: kid } = await supabase.from('kids').select('name, first_name, last_name').eq('id', kidId).single()
     const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
@@ -171,7 +171,7 @@ export async function deleteDocumentAction(
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const actorId = actor.id
 
     let targetDriveId = driveFileId
@@ -227,7 +227,7 @@ export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     let { data: choice } = await supabase
       .from('vaad_choices')
@@ -275,7 +275,7 @@ export async function generateContractPdf(kidId: string) {
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data: kid } = await supabase.from('kids').select('name, first_name, last_name, application_number').eq('id', kidId).single()
     const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : 'Camper')
@@ -324,7 +324,7 @@ export async function uploadSignedContract(kidId: string, signedCopyName?: strin
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data: kid } = await supabase.from('kids').select('name, first_name, last_name, application_number').eq('id', kidId).single()
     const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : 'Camper')
@@ -379,7 +379,7 @@ export async function uploadCamperPhoto(
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data: kid } = await supabase.from('kids').select('name, first_name, last_name').eq('id', kidId).single()
     const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
@@ -432,7 +432,7 @@ export async function deletePhotoAction(photoId: string, kidId: string, driveFil
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const actorId = actor.id
 
     let targetDriveId = driveFileId
@@ -484,7 +484,7 @@ export async function uploadCamperVoiceNote(
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data: kid } = await supabase.from('kids').select('name, first_name, last_name').eq('id', kidId).single()
     const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
@@ -537,7 +537,7 @@ export async function deleteVoiceNoteAction(voiceNoteId: string, kidId: string, 
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const actorId = actor.id
 
     let targetDriveId = driveFileId
@@ -588,7 +588,7 @@ export async function uploadCamperTranscript(
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data: kid } = await supabase.from('kids').select('name, first_name, last_name').eq('id', kidId).single()
     const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
@@ -640,7 +640,7 @@ export async function deleteTranscriptAction(transcriptId: string, kidId: string
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const actorId = actor.id
 
     let targetDriveId = driveFileId
@@ -686,7 +686,7 @@ export async function voidAndRegenerateContract(kidId: string, reason: string = 
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     const actorId = actor.id
 

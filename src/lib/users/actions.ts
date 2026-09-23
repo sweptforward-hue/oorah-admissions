@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { UserWithVaadInfo } from '@/types/users'
 
 export async function getUsersWithVaadInfo(): Promise<UserWithVaadInfo[]> {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   // Left join to vaad_members
   const { data, error } = await supabase
@@ -46,7 +46,7 @@ export async function updateUser(
   userId: string,
   data: { role?: string; active?: boolean }
 ) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const { error } = await supabase
     .from('users')
@@ -69,7 +69,7 @@ export async function updateVaadPermissions(
   userId: string,
   data: { isVaadMember: boolean; canContribute: boolean; canVote: boolean }
 ) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   if (!data.isVaadMember) {
     // If not a VAAD member, set is_active to false in vaad_members table if it exists

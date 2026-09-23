@@ -16,6 +16,7 @@ export default function LoginPage() {
     setLoadingProvider(key)
     setError(null)
 
+    const nextTarget = withDrive ? '/admin/storage' : '/dashboard'
     const options: {
       redirectTo: string
       scopes?: string
@@ -24,7 +25,7 @@ export default function LoginPage() {
         prompt?: string
       }
     } = {
-      redirectTo: `${window.location.origin}/`,
+      redirectTo: `${window.location.origin}/auth/callback?next=${nextTarget}`,
     }
 
     if (provider === 'google') {
