@@ -223,3 +223,40 @@ export async function testDriveConnection() {
   await requireAdminRole()
   return await verifyDriveConnection()
 }
+
+// Audit Logs
+export async function getAuditLogs() {
+  const supabase = createServerSupabaseClient()
+  const { data, error } = await supabase
+    .from('audit_log')
+    .select(`
+      id,
+      action,
+      entity_type,
+      entity_id,
+      details,
+      created_at,
+      actor:actor_id (
+        id,
+        full_name,
+        email
+      )
+    `)
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  if (error) {
+    console.error('Error fetching audit logs:', error)
+    return []
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data || []).map((item: any) => ({
+    id: item.id,
+    action: item.action,
+    actor: item.actor?.full_name || item.actor?.email || 'System',
+    entityType: item.entity_type,
+    entityId: item.entity_id || '-',
+    timestamp: item.created_at ? new Date(item.created_at).toLocaleString() : new Date().toLocaleString()
+  }))
+}

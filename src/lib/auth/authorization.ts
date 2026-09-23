@@ -2,6 +2,51 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
+interface AuthUserMeta {
+  id: string
+  email?: string
+  user_metadata?: {
+    full_name?: string
+    name?: string
+    avatar_url?: string
+  }
+}
+
+export async function syncUserProfile(user: AuthUserMeta) {
+  if (!user || !user.id) return null
+
+  const supabase = createServerSupabaseClient()
+  const fullName =
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
+    user.email?.split('@')[0] ||
+    'Staff Member'
+  const avatarUrl = user.user_metadata?.avatar_url || null
+
+  const { data, error } = await supabase
+    .from('users')
+    .upsert(
+      {
+        id: user.id,
+        email: user.email || '',
+        full_name: fullName,
+        role: 'staff',
+        active: true,
+        avatar_url: avatarUrl,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' }
+    )
+    .select('*')
+    .single()
+
+  if (error) {
+    console.error('Error syncing user profile:', error)
+  }
+
+  return data
+}
+
 export async function getCurrentUser() {
   const supabase = createServerSupabaseClient()
 
@@ -17,7 +62,13 @@ export async function getCurrentUser() {
   }
 
   const { data: dbUser } = await supabase.from('users').select('*').eq('id', user.id).single()
-  return dbUser || { id: user.id, role: 'staff', active: true, full_name: 'Staff Member', email: user.email || '' }
+
+  if (!dbUser) {
+    const synced = await syncUserProfile(user)
+    if (synced) return synced
+  }
+
+  return dbUser || { id: user.id, role: 'staff', active: true, full_name: user.user_metadata?.full_name || 'Staff Member', email: user.email || '' }
 }
 
 export async function requireAdminRole() {

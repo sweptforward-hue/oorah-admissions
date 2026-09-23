@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Navbar } from '@/components/layout/Navbar'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { supabase } from '@/lib/supabase/client'
 
 interface StatusStat {
   name: string
@@ -13,23 +14,133 @@ interface StatusStat {
   percent: number
 }
 
+const DEFAULT_STATUS_COLORS: Record<string, string> = {
+  'Accepted': '#22c55e',
+  'VAAD Review': '#f59e0b',
+  'Under Review': '#3b82f6',
+  'Interview': '#8b5cf6',
+  'Incomplete / New': '#64748b',
+  'Rejected / Withdrawn': '#ef4444',
+}
+
+const INITIAL_STATUS_STATS: StatusStat[] = [
+  { name: 'Accepted', count: 0, color: '#22c55e', percent: 0 },
+  { name: 'VAAD Review', count: 0, color: '#f59e0b', percent: 0 },
+  { name: 'Under Review', count: 0, color: '#3b82f6', percent: 0 },
+  { name: 'Interview', count: 0, color: '#8b5cf6', percent: 0 },
+  { name: 'Incomplete / New', count: 0, color: '#64748b', percent: 0 },
+  { name: 'Rejected / Withdrawn', count: 0, color: '#ef4444', percent: 0 },
+]
+
 export default function DashboardPage() {
   const [selectedYear, setSelectedYear] = useState('2025')
   const [selectedSession, setSelectedSession] = useState('All')
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  // Status breakdown data
-  const statusStats: StatusStat[] = [
-    { name: 'Accepted', count: 48, color: '#22c55e', percent: 40 },
-    { name: 'VAAD Review', count: 24, color: '#f59e0b', percent: 20 },
-    { name: 'Under Review', count: 18, color: '#3b82f6', percent: 15 },
-    { name: 'Interview', count: 12, color: '#8b5cf6', percent: 10 },
-    { name: 'Incomplete / New', count: 12, color: '#64748b', percent: 10 },
-    { name: 'Rejected / Withdrawn', count: 6, color: '#ef4444', percent: 5 },
-  ]
+  const [totalCampers, setTotalCampers] = useState(0)
+  const [acceptedCount, setAcceptedCount] = useState(0)
+  const [activeVaadCount, setActiveVaadCount] = useState(0)
+  const [signedContractsCount, setSignedContractsCount] = useState(0)
+  const [statusStats, setStatusStats] = useState<StatusStat[]>(INITIAL_STATUS_STATS)
 
-  const totalCampers = statusStats.reduce((acc, curr) => acc + curr.count, 0)
-  const acceptanceRate = Math.round((statusStats[0].count / totalCampers) * 100)
+  const fetchDashboardMetrics = useCallback(async () => {
+    setLoading(true)
+    try {
+      // 1. Fetch statuses
+      const { data: statusesData } = await supabase
+        .from('statuses')
+        .select('*')
+        .order('sort_order', { ascending: true })
+
+      // 2. Fetch kids
+      let query = supabase.from('kids').select('id, session, year, voting_open, status_id')
+      if (selectedYear !== 'All') {
+        const yearNum = parseInt(selectedYear, 10)
+        if (!isNaN(yearNum)) {
+          query = query.eq('year', yearNum)
+        }
+      }
+      if (selectedSession !== 'All') {
+        query = query.ilike('session', `%${selectedSession}%`)
+      }
+
+      const { data: kidsData } = await query
+
+      // 3. Fetch signed contracts documents count
+      const { count: contractsCount } = await supabase
+        .from('documents')
+        .select('id', { count: 'exact', head: true })
+        .ilike('name', '%signed%')
+
+      const kids = kidsData || []
+      const statuses = statusesData || []
+      const statusMap = new Map<string, string>()
+      statuses.forEach((s) => statusMap.set(s.id, s.name))
+
+      const total = kids.length
+      setTotalCampers(total)
+      setSignedContractsCount(contractsCount || 0)
+
+      // Count per status
+      const countsByName: Record<string, number> = {
+        'Accepted': 0,
+        'VAAD Review': 0,
+        'Under Review': 0,
+        'Interview': 0,
+        'Incomplete / New': 0,
+        'Rejected / Withdrawn': 0,
+      }
+
+      let activeVaad = 0
+      let accepted = 0
+
+      kids.forEach((k) => {
+        const statusName = statusMap.get(k.status_id) || 'Under Review'
+        if (statusName.toLowerCase().includes('accept')) {
+          accepted++
+          countsByName['Accepted'] = (countsByName['Accepted'] || 0) + 1
+        } else if (statusName.toLowerCase().includes('vaad')) {
+          activeVaad++
+          countsByName['VAAD Review'] = (countsByName['VAAD Review'] || 0) + 1
+        } else if (statusName.toLowerCase().includes('interview')) {
+          countsByName['Interview'] = (countsByName['Interview'] || 0) + 1
+        } else if (statusName.toLowerCase().includes('reject') || statusName.toLowerCase().includes('withdraw')) {
+          countsByName['Rejected / Withdrawn'] = (countsByName['Rejected / Withdrawn'] || 0) + 1
+        } else if (statusName.toLowerCase().includes('new') || statusName.toLowerCase().includes('incomplete')) {
+          countsByName['Incomplete / New'] = (countsByName['Incomplete / New'] || 0) + 1
+        } else {
+          countsByName['Under Review'] = (countsByName['Under Review'] || 0) + 1
+        }
+
+        if (k.voting_open && !statusName.toLowerCase().includes('accept')) {
+          activeVaad++
+        }
+      })
+
+      setAcceptedCount(accepted)
+      setActiveVaadCount(activeVaad)
+
+      // Build stats array
+      const statsList: StatusStat[] = Object.entries(countsByName).map(([name, count]) => ({
+        name,
+        count,
+        color: DEFAULT_STATUS_COLORS[name] || '#64748b',
+        percent: total > 0 ? Math.round((count / total) * 100) : 0,
+      }))
+
+      setStatusStats(statsList)
+    } catch (e) {
+      console.error('Error loading dashboard metrics:', e)
+    } finally {
+      setLoading(false)
+    }
+  }, [selectedYear, selectedSession])
+
+  useEffect(() => {
+    fetchDashboardMetrics()
+  }, [fetchDashboardMetrics])
+
+  const acceptanceRate = totalCampers > 0 ? Math.round((acceptedCount / totalCampers) * 100) : 0
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -51,6 +162,7 @@ export default function DashboardPage() {
             >
               <option value="2025">Summer 2025 (Active)</option>
               <option value="2024">Summer 2024</option>
+              <option value="All">All Years</option>
             </select>
 
             <span className="text-slate-300">|</span>
@@ -75,8 +187,8 @@ export default function DashboardPage() {
               <CardTitle className="text-sm font-medium text-slate-500">Total Applicants</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-extrabold text-slate-900">{totalCampers}</div>
-              <p className="text-xs text-green-600 mt-1">↑ +14% compared to last season</p>
+              <div className="text-3xl font-extrabold text-slate-900">{loading ? '...' : totalCampers}</div>
+              <p className="text-xs text-green-600 mt-1">Real-time database count</p>
             </CardContent>
           </Card>
 
@@ -85,8 +197,8 @@ export default function DashboardPage() {
               <CardTitle className="text-sm font-medium text-slate-500">Acceptance Rate</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-extrabold text-green-700">{acceptanceRate}%</div>
-              <p className="text-xs text-slate-500 mt-1">48 of 120 approved</p>
+              <div className="text-3xl font-extrabold text-green-700">{loading ? '...' : `${acceptanceRate}%`}</div>
+              <p className="text-xs text-slate-500 mt-1">{acceptedCount} of {totalCampers} approved</p>
             </CardContent>
           </Card>
 
@@ -95,7 +207,7 @@ export default function DashboardPage() {
               <CardTitle className="text-sm font-medium text-slate-500">Active VAAD Votes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-extrabold text-amber-600">24</div>
+              <div className="text-3xl font-extrabold text-amber-600">{loading ? '...' : activeVaadCount}</div>
               <p className="text-xs text-slate-500 mt-1">Requires 2/3 acceptances</p>
             </CardContent>
           </Card>
@@ -105,8 +217,8 @@ export default function DashboardPage() {
               <CardTitle className="text-sm font-medium text-slate-500">Contracts Signed</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-extrabold text-indigo-600">38</div>
-              <p className="text-xs text-slate-500 mt-1">79% signature completion</p>
+              <div className="text-3xl font-extrabold text-indigo-600">{loading ? '...' : signedContractsCount}</div>
+              <p className="text-xs text-slate-500 mt-1">Uploaded contract documents</p>
             </CardContent>
           </Card>
         </div>
@@ -212,10 +324,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs">
-                  <span className="font-semibold text-amber-900">@Azriel Cohenca</span>: David Katz requires your second VAAD signature.
-                </div>
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs">
-                  <span className="font-semibold text-blue-900">@Admissions</span>: New transcript uploaded for Sarah Cohen (App #1043).
+                  <span className="font-semibold text-amber-900">@System</span>: Welcome to Oorah Admissions Portal. Real-time metrics synced.
                 </div>
               </CardContent>
             </Card>

@@ -1,7 +1,7 @@
 'use server'
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { requireAdminRole, getCurrentUser } from '@/lib/auth/authorization'
+import { requireAdminRole } from '@/lib/auth/authorization'
 import { revalidatePath } from 'next/cache'
 
 export interface CustomFieldDefinition {
@@ -10,7 +10,7 @@ export interface CustomFieldDefinition {
   label: string
   field_type: string
   required: boolean
-  options?: any
+  options?: Record<string, unknown>
   created_at?: string
 }
 
@@ -21,15 +21,12 @@ export async function getCustomFields(): Promise<CustomFieldDefinition[]> {
     .select('*')
     .order('created_at', { ascending: true })
 
-  if (error || !data || data.length === 0) {
-    return [
-      { id: '1', name: 't_shirt_size', label: 'T-Shirt Size', field_type: 'dropdown', required: true, options: { entity_type: 'camper', choices: ['S', 'M', 'L', 'XL'] } },
-      { id: '2', name: 'dietary_restrictions', label: 'Dietary Restrictions', field_type: 'text', required: false, options: { entity_type: 'camper' } },
-      { id: '3', name: 'driver_license_verified', label: 'Driver License Verified', field_type: 'checkbox', required: true, options: { entity_type: 'staff' } },
-    ]
+  if (error) {
+    console.error('Error fetching custom fields:', error)
+    return []
   }
 
-  return data
+  return data || []
 }
 
 export async function createCustomField(fieldData: {
@@ -38,7 +35,7 @@ export async function createCustomField(fieldData: {
   field_type: string
   required: boolean
   entity_type?: string
-  options?: any
+  options?: Record<string, unknown>
 }) {
   await requireAdminRole()
   const supabase = createServerSupabaseClient()
@@ -74,7 +71,7 @@ export async function updateCustomField(
     label?: string
     field_type?: string
     required?: boolean
-    options?: any
+    options?: Record<string, unknown>
   }
 ) {
   await requireAdminRole()

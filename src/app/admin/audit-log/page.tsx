@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { getAuditLogs } from '@/lib/admin/actions'
 
 interface AuditItem {
   id: string
@@ -13,11 +14,23 @@ interface AuditItem {
 }
 
 export default function AdminAuditLogPage() {
-  const [logs] = useState<AuditItem[]>([
-    { id: '1', action: 'status_override', actor: 'Azriel Cohenca', entityType: 'kid', entityId: '1042', timestamp: '2026-08-20 18:25' },
-    { id: '2', action: 'export_data', actor: 'Azriel Cohenca', entityType: 'export', entityId: 'sheets-sync', timestamp: '2026-08-20 17:40' },
-    { id: '3', action: 'automatic_acceptance', actor: 'System (VAAD)', entityType: 'kid', entityId: '1043', timestamp: '2026-08-20 16:10' },
-  ])
+  const [logs, setLogs] = useState<AuditItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadLogs() {
+      setLoading(true)
+      try {
+        const data = await getAuditLogs()
+        setLogs(data || [])
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadLogs()
+  }, [])
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
@@ -36,7 +49,13 @@ export default function AdminAuditLogPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {logs.map((l) => (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-slate-500">
+                  Loading audit logs...
+                </TableCell>
+              </TableRow>
+            ) : logs.map((l) => (
               <TableRow key={l.id}>
                 <TableCell className="text-xs text-slate-500">{l.timestamp}</TableCell>
                 <TableCell className="font-semibold text-slate-900">{l.action}</TableCell>
@@ -45,6 +64,13 @@ export default function AdminAuditLogPage() {
                 <TableCell className="text-slate-500 font-mono text-xs">{l.entityId}</TableCell>
               </TableRow>
             ))}
+            {!loading && logs.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-slate-500">
+                  No audit log records found.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

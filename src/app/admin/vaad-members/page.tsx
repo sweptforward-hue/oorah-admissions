@@ -6,7 +6,8 @@ import { toggleVaadMemberPermission } from '@/lib/admin/actions'
 
 interface User {
   id: string
-  name: string
+  name?: string
+  full_name?: string
   email: string
 }
 
@@ -29,43 +30,19 @@ export default function VaadMembersPage() {
       setLoading(true)
       const { data } = await supabase
         .from('vaad_members')
-        .select('*, user:user_id(id, name, email)')
+        .select('*, user:user_id(id, full_name, email)')
 
-      if (data && data.length > 0) {
+      if (data) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setMembers(data.map((d: any) => ({
           ...d,
           is_active: d.is_active ?? d.active ?? true,
           can_contribute: d.can_contribute ?? true,
           can_vote: d.can_vote ?? true,
+          user: d.user || { id: d.user_id, full_name: 'Unknown User', email: '' }
         })))
       } else {
-        setMembers([
-          {
-            id: '1',
-            user_id: 'u1',
-            is_active: true,
-            can_contribute: true,
-            can_vote: true,
-            user: { id: 'u1', name: 'David Cohen', email: 'david@example.com' }
-          },
-          {
-            id: '2',
-            user_id: 'u2',
-            is_active: true,
-            can_contribute: true,
-            can_vote: true,
-            user: { id: 'u2', name: 'Sarah Levy', email: 'sarah@example.com' }
-          },
-          {
-            id: '3',
-            user_id: 'u3',
-            is_active: true,
-            can_contribute: false,
-            can_vote: true,
-            user: { id: 'u3', name: 'Michael Klein', email: 'michael@example.com' }
-          }
-        ])
+        setMembers([])
       }
       setLoading(false)
     }
@@ -88,7 +65,7 @@ export default function VaadMembersPage() {
     })
   }
 
-  if (loading) return <div className="p-8">Loading...</div>
+  if (loading) return <div className="p-8">Loading VAAD members...</div>
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
@@ -98,7 +75,7 @@ export default function VaadMembersPage() {
         {members.map(member => (
           <div key={member.id} className="border border-black rounded-sm overflow-hidden">
             <div className="bg-white p-4 border-b border-black font-semibold">
-              {member.user?.name || 'Unknown User'}
+              {member.user?.full_name || member.user?.name || member.user?.email || 'Unknown User'}
             </div>
             <div className="bg-white p-4 space-y-4">
               <div className="flex justify-between items-center max-w-sm">
@@ -134,6 +111,12 @@ export default function VaadMembersPage() {
             </div>
           </div>
         ))}
+
+        {members.length === 0 && (
+          <div className="p-8 border rounded text-center text-gray-500">
+            No VAAD members configured. Enable VAAD membership in Staff Management.
+          </div>
+        )}
       </div>
     </div>
   )

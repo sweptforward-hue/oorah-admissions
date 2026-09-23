@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import DashboardPage from '@/app/dashboard/page'
 
 describe('DashboardPage', () => {
@@ -11,10 +11,12 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Applicant Status Distribution')).toBeInTheDocument()
   })
 
-  it('renders status breakdown legend items', () => {
+  it('renders status breakdown legend items', async () => {
     render(<DashboardPage />)
-    expect(screen.getByText('Accepted')).toBeInTheDocument()
-    expect(screen.getByText('VAAD Review')).toBeInTheDocument()
-    expect(screen.getByText('Under Review')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Accepted')).toBeInTheDocument()
+      expect(screen.getByText('VAAD Review')).toBeInTheDocument()
+      expect(screen.getByText('Under Review')).toBeInTheDocument()
+    })
   })
 })

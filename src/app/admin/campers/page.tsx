@@ -14,24 +14,21 @@ interface CamperItem {
   votingOpen: boolean
 }
 
-const DEFAULT_ADMIN_CAMPERS: CamperItem[] = [
-  { id: '1', name: 'John Smith', appNum: '1042', status: 'VAAD Review', votingOpen: true },
-  { id: '2', name: 'Sarah Cohen', appNum: '1043', status: 'Accepted', votingOpen: false },
-]
-
 export default function AdminCampersPage() {
-  const [campers, setCampers] = useState<CamperItem[]>(DEFAULT_ADMIN_CAMPERS)
+  const [campers, setCampers] = useState<CamperItem[]>([])
+  const [loading, setLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
     async function loadData() {
+      setLoading(true)
       try {
         const data = await getAdminCampers()
-        if (data && data.length > 0) {
-          setCampers(data)
-        }
+        setCampers(data || [])
       } catch (e) {
         console.error(e)
+      } finally {
+        setLoading(false)
       }
     }
     loadData()
@@ -114,7 +111,13 @@ export default function AdminCampersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {campers.map((c) => (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-slate-500">
+                  Loading camper records...
+                </TableCell>
+              </TableRow>
+            ) : campers.map((c) => (
               <TableRow key={c.id}>
                 <TableCell className="font-semibold text-slate-900">{c.name}</TableCell>
                 <TableCell className="text-slate-500">{c.appNum}</TableCell>
@@ -139,6 +142,13 @@ export default function AdminCampersPage() {
                 </TableCell>
               </TableRow>
             ))}
+            {!loading && campers.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-slate-500">
+                  No camper records found in database.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
