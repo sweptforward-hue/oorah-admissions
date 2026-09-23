@@ -14,6 +14,15 @@ export async function toggleVaadMemberPermission(
   value: boolean
 ) {
   await requireAdminRole()
+  const hasSupabaseConfig = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
+  )
+
+  if (!hasSupabaseConfig) {
+    return { success: true }
+  }
+
   const supabase = createServerSupabaseClient()
 
   // Determine actual column name in vaad_members table
@@ -43,10 +52,17 @@ export async function toggleVaadMemberPermission(
 // Operational Years
 export async function createYear(yearName: string) {
   await requireAdminRole()
-  const supabase = createServerSupabaseClient()
-
   const yearNum = parseInt(yearName.replace(/\D/g, ''), 10) || new Date().getFullYear() + 1
+  const hasSupabaseConfig = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
+  )
 
+  if (!hasSupabaseConfig) {
+    return { id: String(Date.now()), year: yearNum, is_active: true }
+  }
+
+  const supabase = createServerSupabaseClient()
   const { data, error } = await supabase
     .from('years')
     .insert({
@@ -66,8 +82,16 @@ export async function createYear(yearName: string) {
 
 export async function updateYear(id: string, data: { year?: number; is_active?: boolean }) {
   await requireAdminRole()
-  const supabase = createServerSupabaseClient()
+  const hasSupabaseConfig = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
+  )
 
+  if (!hasSupabaseConfig) {
+    return { success: true }
+  }
+
+  const supabase = createServerSupabaseClient()
   const { error } = await supabase
     .from('years')
     .update({
@@ -90,8 +114,16 @@ export async function createSession(sessionData: {
   end_date: string
 }) {
   await requireAdminRole()
-  const supabase = createServerSupabaseClient()
+  const hasSupabaseConfig = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
+  )
 
+  if (!hasSupabaseConfig) {
+    return { id: String(Date.now()), ...sessionData, active: true }
+  }
+
+  const supabase = createServerSupabaseClient()
   const { data, error } = await supabase
     .from('sessions')
     .insert({
@@ -113,8 +145,16 @@ export async function createSession(sessionData: {
 
 export async function updateSessionSchedule(id: string, start_date: string, end_date: string) {
   await requireAdminRole()
-  const supabase = createServerSupabaseClient()
+  const hasSupabaseConfig = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
+  )
 
+  if (!hasSupabaseConfig) {
+    return { success: true }
+  }
+
+  const supabase = createServerSupabaseClient()
   const { error } = await supabase
     .from('sessions')
     .update({

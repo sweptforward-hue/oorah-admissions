@@ -10,7 +10,7 @@ export const UTF8_BOM = '\uFEFF'
  * - If field contains quotes, commas, or newlines (\n or \r), wrap in double quotes.
  * - Any double quotes inside field are escaped as double-double quotes ("").
  */
-export function escapeCSVField(val: any): string {
+export function escapeCSVField(val: unknown): string {
   if (val === null || val === undefined) {
     return ''
   }
@@ -33,7 +33,7 @@ export function escapeCSVField(val: any): string {
 /**
  * Formats a single CSV row with CRLF (\r\n) ending as per RFC 4180.
  */
-export function formatCSVRow(fields: any[]): string {
+export function formatCSVRow(fields: unknown[]): string {
   return fields.map(escapeCSVField).join(',') + '\r\n'
 }
 
@@ -42,7 +42,7 @@ export function formatCSVRow(fields: any[]): string {
  */
 export function createCSVStream(
   headers: string[],
-  rowsGenerator: AsyncIterable<Record<string, any>> | Iterable<Record<string, any>>,
+  rowsGenerator: AsyncIterable<Record<string, unknown>> | Iterable<Record<string, unknown>>,
   options: { includeBOM?: boolean } = { includeBOM: true }
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder()
@@ -74,7 +74,7 @@ export function createCSVStream(
  */
 export async function generateCSVString(
   headers: string[],
-  rows: Record<string, any>[],
+  rows: Record<string, unknown>[],
   options: { includeBOM?: boolean } = { includeBOM: true }
 ): Promise<string> {
   let result = options.includeBOM !== false ? UTF8_BOM : ''

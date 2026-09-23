@@ -21,29 +21,54 @@ export default function VaadChoicesPage() {
   const [editName, setEditName] = useState('')
   const [editOrder, setEditOrder] = useState<number>(0)
 
+  const fallbackChoices: VaadChoice[] = [
+    { id: '1', label: 'Accept', color: '#22c55e', action: 'accept', active: true, sort_order: 10 },
+    { id: '2', label: 'Reject', color: '#ef4444', action: 'reject', active: true, sort_order: 20 },
+    { id: '3', label: 'Abstain', color: '#64748b', action: 'abstain', active: true, sort_order: 30 },
+    { id: '4', label: 'Request Interview', color: '#8b5cf6', action: 'request_interview', active: true, sort_order: 40 },
+  ]
+
   useEffect(() => {
     fetchChoices()
   }, [])
 
   async function fetchChoices() {
     setLoading(true)
-    const { data } = await supabase
-      .from('vaad_choices')
-      .select('*')
-      .order('sort_order', { ascending: true })
+    const hasSupabaseConfig = Boolean(
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
+    )
 
-    if (data) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setChoices(data.map((c: any) => ({
-        id: c.id,
-        label: c.label || c.name || '',
-        color: c.color || c.color_hex || null,
-        action: c.action || 'none',
-        active: c.active ?? c.is_active ?? true,
-        sort_order: c.sort_order ?? c.display_order ?? 0,
-      })))
+    if (!hasSupabaseConfig) {
+      setChoices(fallbackChoices)
+      setLoading(false)
+      return
     }
-    setLoading(false)
+
+    try {
+      const { data, error } = await supabase
+        .from('vaad_choices')
+        .select('*')
+        .order('sort_order', { ascending: true })
+
+      if (!error && data && data.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setChoices(data.map((c: any) => ({
+          id: c.id,
+          label: c.label || c.name || '',
+          color: c.color || c.color_hex || null,
+          action: c.action || 'none',
+          active: c.active ?? c.is_active ?? true,
+          sort_order: c.sort_order ?? c.display_order ?? 0,
+        })))
+      } else {
+        setChoices(fallbackChoices)
+      }
+    } catch {
+      setChoices(fallbackChoices)
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function toggleActive(id: string, currentStatus: boolean) {

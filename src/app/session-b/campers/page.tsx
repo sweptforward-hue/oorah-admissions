@@ -2,12 +2,49 @@ import Link from 'next/link'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 
-export default function SessionBCampersPage() {
-  const sessionBCampers = [
-    { id: '2', name: 'Sarah Cohen', appNum: '1043', status: 'Accepted', bunk: 'Bunk 7', activity: 'Yesterday' },
-    { id: '4', name: 'Rachel Katz', appNum: '1050', status: 'New', bunk: 'Unassigned', activity: 'Today' },
-  ]
+export const dynamic = 'force-dynamic'
+
+interface CamperItem {
+  id: string
+  name: string
+  appNum: string
+  status: string
+  bunk: string
+  activity: string
+}
+
+export default async function SessionBCampersPage() {
+  let campers: CamperItem[] = []
+
+  try {
+    const supabase = await createServerSupabaseClient()
+    const { data } = await supabase
+      .from('kids')
+      .select('id, name, first_name, last_name, application_number, created_at, session, statuses(name)')
+      .or('session.eq.Session B,session.is.null')
+      .order('created_at', { ascending: false })
+
+    if (data && data.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      campers = data.map((c: any) => {
+        const rawStatus = c.statuses
+        const statusName = Array.isArray(rawStatus) ? rawStatus[0]?.name : rawStatus?.name
+        const fullName = c.name || (c.first_name && c.last_name ? `${c.first_name} ${c.last_name}` : 'Camper')
+        return {
+          id: c.id,
+          name: fullName,
+          appNum: c.application_number || 'N/A',
+          status: statusName || 'New',
+          bunk: 'Unassigned',
+          activity: new Date(c.created_at).toLocaleDateString(),
+        }
+      })
+    }
+  } catch (err) {
+    console.error('Failed to query session B campers:', err)
+  }
 
   return (
     <div>
@@ -22,32 +59,44 @@ export default function SessionBCampersPage() {
       </div>
 
       <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Camper Name</TableHead>
-              <TableHead>Application #</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Bunk</TableHead>
-              <TableHead className="text-right">Activity</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sessionBCampers.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell className="font-semibold text-slate-900">
-                  <Link href={`/campers/${c.id}`} className="hover:underline">{c.name}</Link>
-                </TableCell>
-                <TableCell className="text-slate-500">{c.appNum}</TableCell>
-                <TableCell>
-                  <Badge variant={c.status === 'Accepted' ? 'success' : 'secondary'}>{c.status}</Badge>
-                </TableCell>
-                <TableCell className="text-slate-600">{c.bunk}</TableCell>
-                <TableCell className="text-right text-slate-500">{c.activity}</TableCell>
+        {campers.length === 0 ? (
+          <div className="p-12 text-center text-slate-500">
+            <span className="text-3xl block mb-2">🏕️</span>
+            <p className="font-semibold text-slate-700">No campers enrolled in Session B yet</p>
+            <p className="text-xs text-slate-400 mt-1">
+              Registered campers assigned to Session B will appear here.
+            </p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Camper Name</TableHead>
+                <TableHead>Application #</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Bunk</TableHead>
+                <TableHead className="text-right">Enrolled</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {campers.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell className="font-semibold text-slate-900">
+                    <Link href={`/campers/${c.id}`} className="hover:underline text-green-700">
+                      {c.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-slate-500">{c.appNum}</TableCell>
+                  <TableCell>
+                    <Badge variant={c.status === 'Accepted' ? 'success' : 'secondary'}>{c.status}</Badge>
+                  </TableCell>
+                  <TableCell className="text-slate-600">{c.bunk}</TableCell>
+                  <TableCell className="text-right text-slate-500">{c.activity}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </div>
   )

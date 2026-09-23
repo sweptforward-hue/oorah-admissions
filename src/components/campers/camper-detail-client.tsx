@@ -222,7 +222,7 @@ export function CamperDetailClient({
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
   const [audioMeterLevel, setAudioMeterLevel] = useState(0)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const recordingTimerRef = useRef<any>(null)
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | NodeJS.Timeout | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const [playingVoiceNoteId, setPlayingVoiceNoteId] = useState<string | null>(null)
   const currentAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -578,7 +578,8 @@ export function CamperDetailClient({
       mediaRecorderRef.current = recorder
 
       try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        const audioCtx = new AudioContextClass()
         audioContextRef.current = audioCtx
         const analyser = audioCtx.createAnalyser()
         const source = audioCtx.createMediaStreamSource(stream)
@@ -609,7 +610,7 @@ export function CamperDetailClient({
         setRecordingSeconds((prev) => prev + 1)
         setAudioMeterLevel(Math.min(100, Math.floor(Math.random() * 60 + 20)))
       }, 1000)
-    } catch (err: unknown) {
+    } catch {
       showNotification('Microphone Error', 'Microphone access denied or unavailable.')
     }
   }
@@ -618,7 +619,9 @@ export function CamperDetailClient({
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop()
       setIsRecording(false)
-      clearInterval(recordingTimerRef.current)
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current)
+      }
       setAudioMeterLevel(0)
     }
   }

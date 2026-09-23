@@ -90,6 +90,7 @@ export default function StaffPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <select
+                      aria-label={`Role for ${user.name || user.email}`}
                       value={user.role}
                       onChange={(e) => handleRoleChange(user.id, e.target.value)}
                       className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
@@ -101,6 +102,7 @@ export default function StaffPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
+                      aria-label={`Toggle active status for ${user.name || user.email}`}
                       onClick={() => handleToggleActive(user.id, user.active)}
                       className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         user.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'

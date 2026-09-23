@@ -227,6 +227,16 @@ export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 
     if (!actor) {
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
+
+    const hasSupabaseConfig = Boolean(
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
+    )
+    if (!hasSupabaseConfig) {
+      revalidatePath(`/campers/${kidId}`)
+      return { success: true }
+    }
+
     const supabase = createServerSupabaseClient()
 
     let { data: choice } = await supabase

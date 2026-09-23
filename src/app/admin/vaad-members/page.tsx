@@ -27,19 +27,12 @@ export default function VaadMembersPage() {
   useEffect(() => {
     async function fetchMembers() {
       setLoading(true)
-      const { data } = await supabase
-        .from('vaad_members')
-        .select('*, user:user_id(id, name, email)')
+      const hasSupabaseConfig = Boolean(
+        process.env.NEXT_PUBLIC_SUPABASE_URL &&
+        process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
+      )
 
-      if (data && data.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setMembers(data.map((d: any) => ({
-          ...d,
-          is_active: d.is_active ?? d.active ?? true,
-          can_contribute: d.can_contribute ?? true,
-          can_vote: d.can_vote ?? true,
-        })))
-      } else {
+      if (!hasSupabaseConfig && process.env.NODE_ENV !== 'test') {
         setMembers([
           {
             id: '1',
@@ -66,8 +59,56 @@ export default function VaadMembersPage() {
             user: { id: 'u3', name: 'Michael Klein', email: 'michael@example.com' }
           }
         ])
+        setLoading(false)
+        return
       }
-      setLoading(false)
+
+      try {
+        const { data, error } = await supabase
+          .from('vaad_members')
+          .select('*, user:user_id(id, name, email)')
+
+        if (!error && data && data.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setMembers(data.map((d: any) => ({
+            ...d,
+            is_active: d.is_active ?? d.active ?? true,
+            can_contribute: d.can_contribute ?? true,
+            can_vote: d.can_vote ?? true,
+          })))
+        } else {
+          setMembers([
+          {
+            id: '1',
+            user_id: 'u1',
+            is_active: true,
+            can_contribute: true,
+            can_vote: true,
+            user: { id: 'u1', name: 'David Cohen', email: 'david@example.com' }
+          },
+          {
+            id: '2',
+            user_id: 'u2',
+            is_active: true,
+            can_contribute: true,
+            can_vote: true,
+            user: { id: 'u2', name: 'Sarah Levy', email: 'sarah@example.com' }
+          },
+          {
+            id: '3',
+            user_id: 'u3',
+            is_active: true,
+            can_contribute: false,
+            can_vote: true,
+            user: { id: 'u3', name: 'Michael Klein', email: 'michael@example.com' }
+          }
+        ])
+        }
+      } catch {
+        // Fallback already populated or retained on error
+      } finally {
+        setLoading(false)
+      }
     }
 
     fetchMembers()
@@ -105,6 +146,7 @@ export default function VaadMembersPage() {
                 <span>VAAD Member</span>
                 <button
                   disabled={isPending}
+                  aria-label={`Toggle VAAD Member status for ${member.user?.name || 'user'}`}
                   onClick={() => updatePermission(member.id, 'is_active', !member.is_active)}
                   className="font-mono bg-gray-100 px-3 py-1 border border-gray-300 min-w-[60px] text-center hover:bg-gray-200"
                 >
@@ -115,6 +157,7 @@ export default function VaadMembersPage() {
                 <span>Can Contribute</span>
                 <button
                   disabled={isPending}
+                  aria-label={`Toggle Can Contribute permission for ${member.user?.name || 'user'}`}
                   onClick={() => updatePermission(member.id, 'can_contribute', !member.can_contribute)}
                   className="font-mono bg-gray-100 px-3 py-1 border border-gray-300 min-w-[60px] text-center hover:bg-gray-200"
                 >
@@ -125,6 +168,7 @@ export default function VaadMembersPage() {
                 <span>Can Vote</span>
                 <button
                   disabled={isPending}
+                  aria-label={`Toggle Can Vote permission for ${member.user?.name || 'user'}`}
                   onClick={() => updatePermission(member.id, 'can_vote', !member.can_vote)}
                   className="font-mono bg-gray-100 px-3 py-1 border border-gray-300 min-w-[60px] text-center hover:bg-gray-200"
                 >

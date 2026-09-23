@@ -43,6 +43,7 @@ export default function AdminCustomFieldsPage() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line
     loadData()
   }, [])
 
@@ -62,7 +63,7 @@ export default function AdminCustomFieldsPage() {
     setEditingField(field)
     setLabel(field.label || field.name)
     setFieldType(field.field_type)
-    setEntityType(field.options?.entity_type || 'camper')
+    setEntityType(field.options?.entity_type === 'staff' ? 'staff' : 'camper')
     setRequired(field.required)
   }
 
@@ -72,13 +73,16 @@ export default function AdminCustomFieldsPage() {
 
     startTransition(async () => {
       try {
-        await createCustomField({
+        const res = await createCustomField({
           name: label,
           label: label.trim(),
           field_type: fieldType,
           required,
           entity_type: entityType,
         })
+        if (res) {
+          setFields(prev => [...prev.filter(f => f.id !== res.id), res])
+        }
         await loadData()
         setIsAddOpen(false)
         resetForm()
@@ -135,7 +139,7 @@ export default function AdminCustomFieldsPage() {
 
       <div className="space-y-4">
         {fields.map((f) => {
-          const entType = f.options?.entity_type || 'camper'
+          const entType = typeof f.options?.entity_type === 'string' ? f.options.entity_type : 'camper'
           return (
             <Card key={f.id} className="p-4 flex items-center justify-between">
               <div>

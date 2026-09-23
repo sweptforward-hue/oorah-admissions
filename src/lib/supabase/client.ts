@@ -1,10 +1,18 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient as createSSRBrowserClient } from '@supabase/ssr'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321'
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key'
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+let browserClient: ReturnType<typeof createSSRBrowserClient> | null = null
 
 export function createBrowserClient() {
-  return supabase
+  if (typeof window === 'undefined') {
+    return createSSRBrowserClient(supabaseUrl, supabaseKey)
+  }
+  if (!browserClient) {
+    browserClient = createSSRBrowserClient(supabaseUrl, supabaseKey)
+  }
+  return browserClient
 }
+
+export const supabase = createBrowserClient()

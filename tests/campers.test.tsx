@@ -8,8 +8,8 @@ vi.mock('next/link', () => ({
 }))
 
 // Mock Supabase server client
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn().mockResolvedValue({
+vi.mock('@/lib/supabase/server', () => {
+  const mockClient = {
     from: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
     order: vi.fn().mockResolvedValue({
@@ -33,9 +33,12 @@ vi.mock('@/lib/supabase/server', () => ({
       ],
       error: null
     })
-  }),
-  createServerSupabaseClient: vi.fn()
-}))
+  }
+  return {
+    createClient: vi.fn().mockResolvedValue(mockClient),
+    createServerSupabaseClient: vi.fn().mockResolvedValue(mockClient)
+  }
+})
 
 describe('Campers Dashboard', () => {
   it('renders the dashboard heading', async () => {

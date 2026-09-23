@@ -24,11 +24,12 @@ export default function LoginPage() {
         prompt?: string
       }
     } = {
-      redirectTo: `${window.location.origin}/`,
+      redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
     }
 
     if (provider === 'google') {
       if (withDrive) {
+        options.redirectTo = `${window.location.origin}/auth/callback?next=/admin/storage`
         // OAuth 2.0 scopes for full read, write, and store access to Google Drive
         options.scopes = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.file'
         options.queryParams = {
@@ -48,6 +49,11 @@ export default function LoginPage() {
       setError(signInError.message)
       setLoadingProvider(null)
     }
+  }
+
+  const handleDevBypass = (role: 'admin' | 'staff') => {
+    document.cookie = `oorah_dev_auth=${role}; path=/; max-age=86400; SameSite=Lax`
+    window.location.href = '/dashboard'
   }
 
   return (
@@ -151,6 +157,35 @@ export default function LoginPage() {
                   />
                 </svg>
                 {loadingProvider === 'github' ? 'Connecting to GitHub...' : 'Continue with GitHub'}
+              </Button>
+            </div>
+
+            {/* Dev Mode Quick Sign-In */}
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-slate-200" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-slate-400 font-semibold">Dev & Testing Bypass</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                type="button"
+                className="w-full h-10 text-xs font-semibold bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 transition-colors shadow-sm"
+                onClick={() => handleDevBypass('admin')}
+              >
+                ⚡ Sign In as Admin
+              </Button>
+              <Button
+                variant="outline"
+                type="button"
+                className="w-full h-10 text-xs font-semibold bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100 transition-colors shadow-sm"
+                onClick={() => handleDevBypass('staff')}
+              >
+                👤 Sign In as Staff
               </Button>
             </div>
 

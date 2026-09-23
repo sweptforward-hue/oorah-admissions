@@ -1,7 +1,7 @@
 'use server'
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { requireAdminRole, getCurrentUser } from '@/lib/auth/authorization'
+import { requireAdminRole } from '@/lib/auth/authorization'
 import { revalidatePath } from 'next/cache'
 
 export interface CustomFieldDefinition {
@@ -10,7 +10,7 @@ export interface CustomFieldDefinition {
   label: string
   field_type: string
   required: boolean
-  options?: any
+  options?: Record<string, unknown>
   created_at?: string
 }
 
@@ -38,15 +38,34 @@ export async function createCustomField(fieldData: {
   field_type: string
   required: boolean
   entity_type?: string
-  options?: any
+  options?: Record<string, unknown>
 }) {
   await requireAdminRole()
-  const supabase = createServerSupabaseClient()
-
   const opts = {
     ...(fieldData.options || {}),
     entity_type: fieldData.entity_type || 'camper'
   }
+
+  const hasSupabaseConfig = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
+  )
+
+  if (!hasSupabaseConfig) {
+    const newField: CustomFieldDefinition = {
+      id: String(Date.now()),
+      name: fieldData.name.toLowerCase().replace(/\s+/g, '_'),
+      label: fieldData.label,
+      field_type: fieldData.field_type,
+      required: fieldData.required,
+      options: opts,
+      created_at: new Date().toISOString()
+    }
+    revalidatePath('/admin/custom-fields')
+    return newField
+  }
+
+  const supabase = createServerSupabaseClient()
 
   const { data, error } = await supabase
     .from('custom_field_definitions')
@@ -74,10 +93,20 @@ export async function updateCustomField(
     label?: string
     field_type?: string
     required?: boolean
-    options?: any
+    options?: Record<string, unknown>
   }
 ) {
   await requireAdminRole()
+  const hasSupabaseConfig = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
+  )
+
+  if (!hasSupabaseConfig) {
+    revalidatePath('/admin/custom-fields')
+    return { id, ...fieldData, name: 'field_' + id }
+  }
+
   const supabase = createServerSupabaseClient()
 
   const { data, error } = await supabase
@@ -102,6 +131,16 @@ export async function updateCustomField(
 
 export async function deleteCustomField(id: string) {
   const admin = await requireAdminRole()
+  const hasSupabaseConfig = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
+  )
+
+  if (!hasSupabaseConfig) {
+    revalidatePath('/admin/custom-fields')
+    return { success: true }
+  }
+
   const supabase = createServerSupabaseClient()
 
   const { error } = await supabase

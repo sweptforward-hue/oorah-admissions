@@ -44,7 +44,7 @@ export default function AdminStoragePage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/admin/storage`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/admin/storage`,
           scopes: 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.file',
           queryParams: {
             access_type: 'offline',
