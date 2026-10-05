@@ -45,4 +45,6 @@ next-env.d.ts
 # scratch / colab notebooks
 *.ipynb
 colab_antigravity_runner.py
+make_sync_nb.py
+enhanced-victor-*.json
 

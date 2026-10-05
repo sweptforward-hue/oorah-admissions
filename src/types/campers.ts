@@ -26,4 +26,12 @@ export interface Kid {
   last_activity?: string;
   assigned_users?: string[];
   custom_values?: Record<string, unknown>;
+  gender?: string;
+  grade?: string;
+  school?: string;
+  city?: string;
+  state?: string;
+  notes?: string;
+  session?: string;
+  bunk?: string;
 }

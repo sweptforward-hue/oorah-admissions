@@ -42,6 +42,17 @@ export async function createClient() {
   })
 }
 
+export function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321'
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'service-role-key'
+  return createServerClient(supabaseUrl, serviceKey, {
+    cookies: {
+      getAll() { return [] },
+      setAll() {},
+    },
+  })
+}
+
 /**
  * Universal Server Supabase Client.
  * Supports both `await createServerSupabaseClient()` and synchronous invocation

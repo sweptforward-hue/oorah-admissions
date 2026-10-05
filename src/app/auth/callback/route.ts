@@ -17,6 +17,9 @@ export async function GET(request: NextRequest) {
     )
   }
 
+  const redirectUrl = new URL(next.startsWith('/') ? next : '/dashboard', requestUrl.origin)
+  const response = NextResponse.redirect(redirectUrl)
+
   if (code) {
     const cookieStore = await cookies()
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321'
@@ -29,7 +32,7 @@ export async function GET(request: NextRequest) {
         },
         setAll(cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
+            cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, {
                 ...options,
                 httpOnly: true,
@@ -37,7 +40,14 @@ export async function GET(request: NextRequest) {
                 sameSite: 'lax',
                 path: '/',
               })
-            )
+              response.cookies.set(name, value, {
+                ...options,
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: '/',
+              })
+            })
           } catch {
             // Ignored when invoked in edge response context
           }
@@ -60,14 +70,19 @@ export async function GET(request: NextRequest) {
 
       // Synchronize authenticated user with public.users
       try {
-        const { data: existingUser } = await supabase
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey
+        const adminSupabase = createServerClient(supabaseUrl, serviceKey, {
+          cookies: { getAll() { return [] }, setAll() {} }
+        })
+
+        const { data: existingUser } = await adminSupabase
           .from('users')
           .select('id, role, active')
           .eq('id', data.user.id)
           .single()
 
         if (!existingUser) {
-          await supabase.from('users').insert({
+          await adminSupabase.from('users').insert({
             id: data.user.id,
             email: userEmail,
             name:
@@ -78,7 +93,7 @@ export async function GET(request: NextRequest) {
             active: true,
           })
         } else if (isMasterAdmin && existingUser.role !== 'admin') {
-          await supabase
+          await adminSupabase
             .from('users')
             .update({ role: 'admin', active: true })
             .eq('id', data.user.id)
@@ -90,5 +105,5 @@ export async function GET(request: NextRequest) {
   }
 
   // Redirect to requested next destination (defaulting to /dashboard)
-  return NextResponse.redirect(new URL(next, requestUrl.origin))
+  return response
 }

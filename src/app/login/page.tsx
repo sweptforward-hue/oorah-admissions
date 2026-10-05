@@ -16,6 +16,9 @@ export default function LoginPage() {
     setLoadingProvider(key)
     setError(null)
 
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+    const nextDestination = searchParams?.get('next') || (withDrive ? '/dashboard' : '/dashboard')
+
     const options: {
       redirectTo: string
       scopes?: string
@@ -24,12 +27,11 @@ export default function LoginPage() {
         prompt?: string
       }
     } = {
-      redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+      redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextDestination)}`,
     }
 
     if (provider === 'google') {
       if (withDrive) {
-        options.redirectTo = `${window.location.origin}/auth/callback?next=/admin/storage`
         // OAuth 2.0 scopes for full read, write, and store access to Google Drive
         options.scopes = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.file'
         options.queryParams = {

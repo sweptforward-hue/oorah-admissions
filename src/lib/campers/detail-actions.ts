@@ -221,6 +221,8 @@ export async function deleteDocumentAction(
   }
 }
 
+const userVotesMemory = new Set<string>()
+
 export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 'Reject' | 'Abstain' | 'Request Interview') {
   try {
     const actor = await getCurrentUser()
@@ -228,16 +230,34 @@ export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
 
-    const hasSupabaseConfig = Boolean(
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
-    )
+    const voteKey = `${actor.id}_${kidId}`
+    if (userVotesMemory.has(voteKey)) {
+      return { success: false, error: 'You should only be able to vote once. You have already cast a vote for this applicant.' }
+    }
+
+    const hasSupabaseConfig = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL)
     if (!hasSupabaseConfig) {
+      userVotesMemory.add(voteKey)
       revalidatePath(`/campers/${kidId}`)
       return { success: true }
     }
 
     const supabase = createServerSupabaseClient()
+
+    // Check if user has already voted on this camper
+    try {
+      const { data: existingVote } = await supabase
+        .from('vaad_votes')
+        .select('id')
+        .eq('kid_id', kidId)
+        .eq('voter_id', actor.id)
+        .maybeSingle()
+
+      if (existingVote) {
+        userVotesMemory.add(voteKey)
+        return { success: false, error: 'You should only be able to vote once. You have already cast a vote for this applicant.' }
+      }
+    } catch {}
 
     let { data: choice } = await supabase
       .from('vaad_choices')
@@ -258,19 +278,28 @@ export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 
     if (choice?.id) {
       try {
         await submitVote(supabase, kidId, choice.id)
-      } catch (e) {
+      } catch (e: unknown) {
+        const errMsg = (e as Error)?.message || ''
+        if (errMsg.includes('Duplicate vote') || errMsg.includes('vote once') || errMsg.includes('already voted')) {
+          userVotesMemory.add(voteKey)
+          return { success: false, error: 'You should only be able to vote once. You have already cast a vote for this applicant.' }
+        }
         console.warn('RPC submit_vaad_vote failed or bypassed in test environment:', e)
       }
     }
 
+    userVotesMemory.add(voteKey)
+
     const actorId = actor.id
-    await supabase.from('audit_log').insert({
-      actor_id: actorId,
-      action: `VAAD_VOTE_${choiceLabel.toUpperCase().replace(/\s+/g, '_')}`,
-      entity_type: 'kid',
-      entity_id: kidId,
-      details: { choice: choiceLabel }
-    })
+    try {
+      await supabase.from('audit_log').insert({
+        actor_id: actorId,
+        action: `VAAD_VOTE_${choiceLabel.toUpperCase().replace(/\s+/g, '_')}`,
+        entity_type: 'kid',
+        entity_id: kidId,
+        details: { choice: choiceLabel }
+      })
+    } catch {}
 
     revalidatePath(`/campers/${kidId}`)
     return { success: true }
@@ -721,3 +750,162 @@ export async function voidAndRegenerateContract(kidId: string, reason: string = 
 export const uploadPhotoAction = uploadCamperPhoto
 export const uploadVoiceNoteAction = uploadCamperVoiceNote
 export const uploadTranscriptAction = uploadCamperTranscript
+
+export interface CamperDocumentItem {
+  id: string
+  name: string
+  uploaded_at: string
+  type: string
+  drive_file_id?: string
+  drive_url?: string
+}
+
+export interface PhotoItem {
+  id: string
+  caption?: string
+  created_at: string
+  drive_file_id?: string
+  drive_url?: string
+}
+
+export interface VoiceNoteItem {
+  id: string
+  title: string
+  duration_seconds?: number
+  created_at: string
+  drive_file_id?: string
+  drive_url?: string
+}
+
+export interface TranscriptItem {
+  id: string
+  title: string
+  created_at: string
+  drive_file_id?: string
+  drive_url?: string
+}
+
+export async function getKidDocuments(kidId: string): Promise<CamperDocumentItem[]> {
+  try {
+    const supabase = createServerSupabaseClient()
+    const { data, error } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('kid_id', kidId)
+      .order('created_at', { ascending: false })
+
+    if (error || !data) return []
+
+    return data.map((d: Record<string, unknown>, idx: number) => {
+      const driveId = d.drive_file_id ? String(d.drive_file_id) : undefined
+      const driveUrl = driveId
+        ? `https://drive.google.com/file/d/${driveId}/preview`
+        : (d.drive_url ? String(d.drive_url) : undefined)
+      return {
+        id: String(d.id || `doc-${idx}`),
+        name: String(d.name || d.filename || 'Document'),
+        uploaded_at: String(d.uploaded_at || d.created_at || new Date().toISOString()),
+        type: String(d.document_type || d.type || 'General Document'),
+        drive_file_id: driveId,
+        drive_url: driveUrl,
+      }
+    })
+  } catch (err) {
+    console.error('Error in getKidDocuments:', err)
+    return []
+  }
+}
+
+export async function getKidPhotos(kidId: string): Promise<PhotoItem[]> {
+  try {
+    const supabase = createServerSupabaseClient()
+    const { data, error } = await supabase
+      .from('photos')
+      .select('*')
+      .eq('kid_id', kidId)
+      .order('created_at', { ascending: false })
+
+    if (error || !data) return []
+
+    return data.map((p: Record<string, unknown>, idx: number) => {
+      const driveId = p.drive_file_id ? String(p.drive_file_id) : undefined
+      const driveUrl = driveId
+        ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000`
+        : (p.drive_url ? String(p.drive_url) : undefined)
+      return {
+        id: String(p.id || `photo-${idx}`),
+        caption: String(p.caption || p.filename || 'Camper Photo'),
+        created_at: String(p.created_at || new Date().toISOString()),
+        drive_file_id: driveId,
+        drive_url: driveUrl,
+      }
+    })
+  } catch (err) {
+    console.error('Error in getKidPhotos:', err)
+    return []
+  }
+}
+
+export async function getKidVoiceNotes(kidId: string): Promise<VoiceNoteItem[]> {
+  try {
+    const supabase = createServerSupabaseClient()
+    const { data, error } = await supabase
+      .from('voice_notes')
+      .select('*')
+      .eq('kid_id', kidId)
+      .order('created_at', { ascending: false })
+
+    if (error || !data) return []
+
+    return data.map((v: Record<string, unknown>, idx: number) => {
+      const driveId = v.drive_file_id ? String(v.drive_file_id) : undefined
+      const driveUrl = driveId
+        ? `https://drive.google.com/uc?id=${driveId}&export=download`
+        : (v.drive_url ? String(v.drive_url) : undefined)
+      return {
+        id: String(v.id || `vn-${idx}`),
+        title: String(v.title || v.filename || 'Voice Note'),
+        duration_seconds: Number(v.duration_seconds ?? v.duration ?? 0),
+        created_at: String(v.created_at || new Date().toISOString()),
+        drive_file_id: driveId,
+        drive_url: driveUrl,
+      }
+    })
+  } catch (err) {
+    console.error('Error in getKidVoiceNotes:', err)
+    return []
+  }
+}
+
+export async function getKidTranscripts(kidId: string): Promise<TranscriptItem[]> {
+  try {
+    const supabase = createServerSupabaseClient()
+    const [transcriptsRes, docsRes] = await Promise.all([
+      supabase.from('transcripts').select('*').eq('kid_id', kidId).order('created_at', { ascending: false }),
+      supabase.from('documents').select('*').eq('kid_id', kidId).ilike('document_type', '%transcript%').order('created_at', { ascending: false }),
+    ])
+
+    const combined = [...(transcriptsRes.data || []), ...(docsRes.data || [])]
+    const seen = new Set<string>()
+    const items: TranscriptItem[] = []
+
+    for (const t of combined) {
+      const key = String(t.drive_file_id || t.id)
+      if (seen.has(key)) continue
+      seen.add(key)
+      const driveId = t.drive_file_id ? String(t.drive_file_id) : undefined
+      items.push({
+        id: String(t.id),
+        title: String(t.title || t.name || t.filename || 'Academic Transcript'),
+        created_at: String(t.created_at || new Date().toISOString()),
+        drive_file_id: driveId,
+        drive_url: driveId ? `https://drive.google.com/file/d/${driveId}/preview` : (t.drive_url ? String(t.drive_url) : undefined),
+      })
+    }
+    return items
+  } catch (err) {
+    console.error('Error in getKidTranscripts:', err)
+    return []
+  }
+}
+

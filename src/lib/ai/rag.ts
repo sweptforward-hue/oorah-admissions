@@ -7,7 +7,6 @@ export interface CamperContext {
   status: string;
   session?: string;
   year?: number | string;
-  gender?: string;
   grade?: string;
   school?: string;
   notes?: string;
@@ -96,7 +95,6 @@ export const DEFAULT_CAMPERS: CamperContext[] = [
     status: 'VAAD Review',
     session: 'Session A',
     year: 2025,
-    gender: 'Boy',
     grade: '7th Grade',
     school: 'Torah Academy',
     notes: 'Strong candidate; awaiting scholarship assessment by VAAD.',
@@ -109,7 +107,6 @@ export const DEFAULT_CAMPERS: CamperContext[] = [
     status: 'Accepted',
     session: 'Session B',
     year: 2025,
-    gender: 'Girl',
     grade: '6th Grade',
     school: 'Bnos Yisroel',
     notes: 'All paperwork verified. Acceptance letter issued.',
@@ -122,7 +119,6 @@ export const DEFAULT_CAMPERS: CamperContext[] = [
     status: 'Under Review',
     session: 'Session A',
     year: 2025,
-    gender: 'Boy',
     grade: '8th Grade',
     school: 'Yeshiva Day School',
     notes: 'Medical clearance pending; family interview completed.',
@@ -135,7 +131,6 @@ export const DEFAULT_CAMPERS: CamperContext[] = [
     status: 'VAAD Review',
     session: 'Session A',
     year: 2025,
-    gender: 'Boy',
     grade: '5th Grade',
     school: 'Darchei Torah',
     notes: 'Sibling in camp; recommendation letters received. Voting open.',
@@ -148,7 +143,6 @@ export const DEFAULT_CAMPERS: CamperContext[] = [
     status: 'Waitlisted',
     session: 'Session B',
     year: 2025,
-    gender: 'Girl',
     grade: '7th Grade',
     school: 'Bais Yaakov',
     notes: 'Session B bunk capacity reached; priority #2 on waitlist.',
@@ -161,7 +155,6 @@ export const DEFAULT_CAMPERS: CamperContext[] = [
     status: 'Accepted',
     session: 'Session A',
     year: 2025,
-    gender: 'Boy',
     grade: '9th Grade',
     school: 'Yeshiva High',
     notes: 'Enrolled early bird registration.',
@@ -174,7 +167,6 @@ export const DEFAULT_CAMPERS: CamperContext[] = [
     status: 'VAAD Review',
     session: 'Session B',
     year: 2025,
-    gender: 'Girl',
     grade: '8th Grade',
     school: 'Shulamith School',
     notes: 'Special dietary accommodations requested. Committee review underway.',
@@ -270,7 +262,6 @@ export async function retrieveRAGContext(query: string): Promise<RAGContext> {
             name,
             first_name,
             last_name,
-            gender,
             grade,
             school,
             session,
@@ -279,6 +270,7 @@ export async function retrieveRAGContext(query: string): Promise<RAGContext> {
             voting_open,
             statuses ( name )
           `)
+          .order('created_at', { ascending: false })
           .limit(50);
 
         if (!kidsErr && dbKids && dbKids.length > 0) {
@@ -293,7 +285,6 @@ export async function retrieveRAGContext(query: string): Promise<RAGContext> {
               status: statusName || 'New',
               session: k.session || 'Session A',
               year: k.year || 2025,
-              gender: k.gender || undefined,
               grade: k.grade || undefined,
               school: k.school || undefined,
               notes: k.notes || undefined,
@@ -301,6 +292,63 @@ export async function retrieveRAGContext(query: string): Promise<RAGContext> {
             };
           });
           sources.push('Supabase: kids');
+        }
+
+        // Targeted live search if user provided a specific search term
+        const trimmedQuery = query.trim();
+        if (trimmedQuery.length >= 2 && !trimmedQuery.includes('criteria') && !trimmedQuery.includes('stats')) {
+          try {
+            const cleanSearch = trimmedQuery.replace(/[%_,]/g, ' ').split(/\s+/).filter(w => w.length > 2).slice(0, 3).join(' ');
+            if (cleanSearch) {
+              const { data: searchKids } = await supabase
+                .from('kids')
+                .select(`
+                  id,
+                  application_number,
+                  name,
+                  first_name,
+                  last_name,
+                  grade,
+                  school,
+                  session,
+                  year,
+                  notes,
+                  voting_open,
+                  statuses ( name )
+                `)
+                .or(`name.ilike.%${cleanSearch}%,application_number.ilike.%${cleanSearch}%,first_name.ilike.%${cleanSearch}%,last_name.ilike.%${cleanSearch}%,school.ilike.%${cleanSearch}%`)
+                .limit(10);
+
+              if (searchKids && searchKids.length > 0) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const matched = (searchKids as any[]).map((k) => {
+                  const statusName = Array.isArray(k.statuses) ? k.statuses[0]?.name : k.statuses?.name;
+                  const camperName = k.name || [k.first_name, k.last_name].filter(Boolean).join(' ') || `Camper #${k.application_number}`;
+                  return {
+                    id: k.id,
+                    application_number: k.application_number || 'N/A',
+                    name: camperName,
+                    status: statusName || 'New',
+                    session: k.session || 'Session A',
+                    year: k.year || 2025,
+                    grade: k.grade || undefined,
+                    school: k.school || undefined,
+                    notes: k.notes || undefined,
+                    voting_open: k.voting_open ?? false,
+                  };
+                });
+
+                const existingIds = new Set(campers.map((c) => c.id));
+                const uniqueMatched = matched.filter((m) => !existingIds.has(m.id));
+                if (uniqueMatched.length > 0) {
+                  campers = [...uniqueMatched, ...campers];
+                  sources.push('Supabase: search_results');
+                }
+              }
+            }
+          } catch {
+            // Ignore search filter error
+          }
         }
       } catch {
         // Fallback to default
@@ -392,6 +440,15 @@ ${vaadChoiceList}
 - Rule: Campers in "VAAD Review" require committee member voting before status change to Accepted or Rejected.
 - Rule: Voting can only take place when "voting_open" is true on the camper profile.
 
+[Oorah Admissions Policies & Guidelines]
+- Application Intake: Applications start in "New" status upon receipt of parent and camper identification.
+- Document Verification: Moves to "Under Review" upon receipt of immunization records, medical clearances, birth certificates, and parent questionnaires.
+- Intake Interview: Conducted by admissions staff with camper and family to determine social, behavioral, and educational fit.
+- VAAD Committee Review: Applications requiring scholarship assistance or rabbinic evaluation enter "VAAD Review". VAAD committee members vote (Accept, Reject, Further Review, Waitlist) on profiles where voting is open.
+- Acceptance & Enrollment: Formal acceptance issues a contract; requires parent signature and deposit to reach "Enrolled" status.
+- Session Logistics: Session A (July 1 - July 28, 2025; Boys Campus) and Session B (August 1 - August 28, 2025; Girls Campus).
+- Waitlist Policy: Waitlisted applicants are ordered by submission date and sibling status, and offered enrollment as dorm spots open.
+
 [Camper Database Overview]
 Total Campers: ${context.stats.totalCampers}
 Status Breakdown:
@@ -455,8 +512,8 @@ export function generateSmartFallbackResponse(query: string, context: RAGContext
     return `### Session B Statistics & Overview\n\n- **Session Dates**: August 1 – August 28, 2025\n- **Total Applicants**: **${sessionBCampers.length}**\n- **Accepted / Enrolled**: **${acceptedCount}**\n- **In Review / VAAD**: **${reviewCount}**\n- **Waitlisted**: **${waitlistCount}**\n\n**Current Roster Sample:**\n${camperList}\n\n*Session B bunk assignments are progressing according to schedule.*`;
   }
 
-  // 4. Admissions Criteria & Rules
-  if (q.includes('criteria') || q.includes('rule') || q.includes('process') || q.includes('pipeline') || q.includes('vaad choice')) {
+  // 4. Admissions Criteria, Policies & Rules
+  if (q.includes('criteria') || q.includes('rule') || q.includes('process') || q.includes('pipeline') || q.includes('vaad choice') || q.includes('polic')) {
     const choices = context.vaadChoices.map((v) => `* **${v.label}**: Action "${v.action || 'vote'}"`).join('\n');
 
     return `### Oorah Admissions Criteria & Pipeline\n\nApplications progress through the following standardized stages:\n\n1. **New**: Fresh application submitted by family.\n2. **Under Review**: Document verification, medical form checks, and references.\n3. **Interview**: Staff intake interview with the camper and parents.\n4. **VAAD Review**: Evaluation by the rabbinic/scholarship committee for special considerations.\n5. **Accepted / Waitlisted / Rejected**: Final status determination.\n\n**VAAD Committee Voting Choices:**\n${choices}\n\n*Rule: Voting is only active when \`voting_open\` is enabled on the camper application.*`;

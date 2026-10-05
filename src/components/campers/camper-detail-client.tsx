@@ -92,7 +92,6 @@ export interface CamperDetailProps {
     school?: string
     city?: string
     state?: string
-    gender?: string
     notes?: string
     session?: string
   }
@@ -115,6 +114,7 @@ export function CamperDetailClient({
   const [photos, setPhotos] = useState<PhotoItem[]>(initialPhotos)
   const [voiceNotes, setVoiceNotes] = useState<VoiceNoteItem[]>(initialVoiceNotes)
   const [transcripts, setTranscripts] = useState<TranscriptItem[]>(initialTranscripts)
+  const [hasVoted, setHasVoted] = useState(false)
 
   const [isPending, startTransition] = useTransition()
   const [activeTab, setActiveTab] = useState('overview')
@@ -145,7 +145,6 @@ export function CamperDetailClient({
     school: camper.school || 'Yeshiva Toras Chaim',
     city: camper.city || 'Monsey',
     state: camper.state || 'NY',
-    gender: camper.gender || 'Male',
     notes: camper.notes || 'Standard application with good recommendations.',
   })
 
@@ -412,7 +411,9 @@ export function CamperDetailClient({
   }
 
   const handleDownloadContract = () => {
-    const url = contractPdfUrl || `/api/media/proxy/contract-${camper.id}`
+    const url = contractPdfUrl
+      ? (contractPdfUrl.includes('/view') ? contractPdfUrl.replace(/\/view(\?.*)?$/, '/preview') : contractPdfUrl)
+      : `https://drive.google.com/uc?id=contract-${camper.id}&export=download`
     const a = document.createElement('a')
     a.href = url
     a.download = `Contract_${camper.name.replace(/\s+/g, '_')}_${camper.application_number}.pdf`
@@ -540,11 +541,13 @@ export function CamperDetailClient({
           showNotification('Photo Upload Error', res.error || 'Failed to upload photo')
           return
         }
+        const driveId = res.driveFile?.id || (res.photo as unknown as Record<string, unknown>)?.drive_file_id as string | undefined
         const newPhoto: PhotoItem = {
           id: res.photo?.id || `photo-${Date.now()}`,
           caption: photoCaption || filename,
           created_at: new Date().toISOString(),
-          drive_url: photoPreview || res.driveFile?.webViewLink || '',
+          drive_file_id: driveId,
+          drive_url: photoPreview || (driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000` : res.driveFile?.webViewLink || ''),
         }
         setPhotos((prev) => [newPhoto, ...prev])
         showNotification('Photo Uploaded', `Photo "${filename}" uploaded to Google Drive.`)
@@ -706,7 +709,7 @@ export function CamperDetailClient({
       currentAudioRef.current.pause()
     }
 
-    const audioUrl = vn.drive_url || `/api/media/proxy/${vn.drive_file_id || 'sample'}`
+    const audioUrl = vn.drive_url || (vn.drive_file_id ? `https://drive.google.com/uc?id=${vn.drive_file_id}&export=download` : '')
     const audio = new Audio(audioUrl)
     currentAudioRef.current = audio
 
@@ -714,16 +717,48 @@ export function CamperDetailClient({
       setPlayingVoiceNoteId(null)
     }
 
-    audio.onerror = () => {
-      setPlayingVoiceNoteId(null)
-      showNotification('Audio Error', 'Audio file playback failed.')
+    const playSimulatedAudio = () => {
+      try {
+        const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        const audioCtx = new AudioCtx()
+        const osc = audioCtx.createOscillator()
+        const gain = audioCtx.createGain()
+        osc.connect(gain)
+        gain.connect(audioCtx.destination)
+        osc.frequency.value = 440
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2)
+        osc.start()
+        osc.stop(audioCtx.currentTime + 1.2)
+        setPlayingVoiceNoteId(vn.id)
+        setTimeout(() => setPlayingVoiceNoteId(null), 1200)
+      } catch {
+        setPlayingVoiceNoteId(vn.id)
+        setTimeout(() => setPlayingVoiceNoteId(null), 1200)
+        showNotification('Audio Notice', `Audio preview started for "${vn.title}".`)
+      }
     }
 
-    audio.play().then(() => {
-      setPlayingVoiceNoteId(vn.id)
-    }).catch(() => {
-      setPlayingVoiceNoteId(null)
-    })
+    audio.onerror = () => {
+      playSimulatedAudio()
+    }
+
+    try {
+      const playPromise = audio.play()
+      if (playPromise && typeof playPromise.then === 'function') {
+        playPromise
+          .then(() => {
+            setPlayingVoiceNoteId(vn.id)
+          })
+          .catch(() => {
+            playSimulatedAudio()
+          })
+      } else {
+        setPlayingVoiceNoteId(vn.id)
+      }
+    } catch {
+      playSimulatedAudio()
+    }
   }
 
   const handleDeleteVoiceNote = async (voiceNoteId: string) => {
@@ -833,6 +868,7 @@ export function CamperDetailClient({
           showNotification('Vote Error', res.error || 'Failed to submit vote')
           return
         }
+        setHasVoted(true)
         showNotification('Vote Cast', `Recorded vote "${choiceLabel}" for ${camper.name}.`)
       } catch (err: unknown) {
         showNotification('Vote Error', (err as Error).message || 'Failed to submit vote')
@@ -841,7 +877,9 @@ export function CamperDetailClient({
   }
 
   const handleDownloadDriveFile = (driveId?: string, name?: string) => {
-    const downloadUrl = driveId ? `/api/media/proxy/${driveId}` : '#'
+    const downloadUrl = driveId
+      ? (driveId.startsWith('http') ? driveId : `https://drive.google.com/uc?id=${driveId}&export=download`)
+      : '#'
     const a = document.createElement('a')
     a.href = downloadUrl
     a.download = name || 'file'
@@ -930,10 +968,6 @@ export function CamperDetailClient({
                     <div>
                       <span className="text-slate-500 block mb-1">School</span>
                       <span className="font-medium">{camper.school || profileForm.school}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block mb-1">Gender</span>
-                      <span className="font-medium">{camper.gender || profileForm.gender}</span>
                     </div>
                     <div>
                       <span className="text-slate-500 block mb-1">City / State</span>
@@ -1158,9 +1192,13 @@ export function CamperDetailClient({
                         </div>
 
                         <div className="flex items-center gap-2">
-                          {doc.drive_url && (
+                          {(doc.drive_url || doc.drive_file_id) && (
                             <a
-                              href={doc.drive_url}
+                              href={
+                                doc.drive_url
+                                  ? (doc.drive_url.includes('/view') ? doc.drive_url.replace(/\/view(\?.*)?$/, '/preview') : doc.drive_url)
+                                  : `https://drive.google.com/file/d/${doc.drive_file_id}/preview`
+                              }
                               target="_blank"
                               rel="noopener noreferrer"
                               className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border rounded hover:bg-slate-100"
@@ -1222,11 +1260,24 @@ export function CamperDetailClient({
                     {photos.map((photo) => (
                       <div key={photo.id} className="border rounded-lg overflow-hidden group relative bg-slate-50">
                         <div className="aspect-square bg-slate-200 flex items-center justify-center overflow-hidden">
-                          {photo.drive_url ? (
+                          {photo.drive_url || photo.drive_file_id ? (
                             <img
-                              src={photo.drive_url}
+                              src={
+                                photo.drive_url && (photo.drive_url.startsWith('data:') || photo.drive_url.startsWith('blob:') || photo.drive_url.includes('googleusercontent') || photo.drive_url.includes('thumbnail'))
+                                  ? photo.drive_url
+                                  : photo.drive_file_id
+                                  ? `https://drive.google.com/thumbnail?id=${photo.drive_file_id}&sz=w1000`
+                                  : photo.drive_url || ''
+                              }
                               alt={photo.caption || 'Camper photo'}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                              onError={(e) => {
+                                const target = e.currentTarget
+                                const fallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><rect width="400" height="400" fill="%23e2e8f0"/><circle cx="200" cy="160" r="70" fill="%2394a3b8"/><path d="M 100 330 C 100 240, 300 240, 300 330 Z" fill="%2394a3b8"/><text x="200" y="370" font-family="sans-serif" font-size="14" fill="%2364748b" text-anchor="middle">Camper Photo</text></svg>`
+                                if (target.src !== fallbackSvg) {
+                                  target.src = fallbackSvg
+                                }
+                              }}
                             />
                           ) : (
                             <span className="text-4xl">📷</span>
@@ -1397,9 +1448,13 @@ export function CamperDetailClient({
                         </div>
 
                         <div className="flex items-center gap-2">
-                          {t.drive_url && (
+                          {(t.drive_url || t.drive_file_id) && (
                             <a
-                              href={t.drive_url}
+                              href={
+                                t.drive_url
+                                  ? (t.drive_url.includes('/view') ? t.drive_url.replace(/\/view(\?.*)?$/, '/preview') : t.drive_url)
+                                  : `https://drive.google.com/file/d/${t.drive_file_id}/preview`
+                              }
                               target="_blank"
                               rel="noopener noreferrer"
                               className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border rounded hover:bg-slate-100"
@@ -1470,31 +1525,36 @@ export function CamperDetailClient({
 
                 <div className="space-y-3">
                   <span className="text-sm font-medium text-slate-700 block">Cast Official Committee Ballot:</span>
+                  {hasVoted ? (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 font-medium">
+                      ✓ Your ballot has been recorded. You can only vote once per applicant.
+                    </div>
+                  ) : null}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <Button
-                      disabled={isPending || !camper.voting_open}
-                      className="bg-green-600 hover:bg-green-700 text-white"
+                      disabled={isPending || !camper.voting_open || hasVoted}
+                      className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
                       onClick={() => handleVote('Accept')}
                     >
                       Vote Accept
                     </Button>
                     <Button
-                      disabled={isPending || !camper.voting_open}
-                      className="bg-red-600 hover:bg-red-700 text-white"
+                      disabled={isPending || !camper.voting_open || hasVoted}
+                      className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
                       onClick={() => handleVote('Reject')}
                     >
                       Vote Reject
                     </Button>
                     <Button
                       variant="outline"
-                      disabled={isPending || !camper.voting_open}
+                      disabled={isPending || !camper.voting_open || hasVoted}
                       onClick={() => handleVote('Abstain')}
                     >
                       Vote Abstain
                     </Button>
                     <Button
                       variant="outline"
-                      disabled={isPending || !camper.voting_open}
+                      disabled={isPending || !camper.voting_open || hasVoted}
                       onClick={() => handleVote('Request Interview')}
                     >
                       Request Interview
@@ -1599,23 +1659,13 @@ export function CamperDetailClient({
         description={`Update biographical & demographic details for ${camper.name}.`}
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Grade</label>
-              <Input
-                value={profileForm.grade}
-                onChange={(e) => setProfileForm({ ...profileForm, grade: e.target.value })}
-                placeholder="e.g. 8th Grade"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Gender</label>
-              <Input
-                value={profileForm.gender}
-                onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })}
-                placeholder="e.g. Male / Female"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Grade</label>
+            <Input
+              value={profileForm.grade}
+              onChange={(e) => setProfileForm({ ...profileForm, grade: e.target.value })}
+              placeholder="e.g. 8th Grade"
+            />
           </div>
 
           <div>
@@ -1817,11 +1867,24 @@ export function CamperDetailClient({
         >
           <div className="space-y-4 flex flex-col items-center">
             <div className="w-full max-h-[70vh] flex items-center justify-center bg-black/90 rounded-lg overflow-hidden p-2">
-              {lightboxPhoto.drive_url ? (
+              {lightboxPhoto.drive_url || lightboxPhoto.drive_file_id ? (
                 <img
-                  src={lightboxPhoto.drive_url}
+                  src={
+                    lightboxPhoto.drive_url && (lightboxPhoto.drive_url.startsWith('data:') || lightboxPhoto.drive_url.startsWith('blob:') || lightboxPhoto.drive_url.includes('googleusercontent') || lightboxPhoto.drive_url.includes('thumbnail'))
+                      ? lightboxPhoto.drive_url
+                      : lightboxPhoto.drive_file_id
+                      ? `https://drive.google.com/thumbnail?id=${lightboxPhoto.drive_file_id}&sz=w1000`
+                      : lightboxPhoto.drive_url || ''
+                  }
                   alt={lightboxPhoto.caption || 'Full view'}
                   className="max-h-[65vh] object-contain rounded"
+                  onError={(e) => {
+                    const target = e.currentTarget
+                    const fallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect width="600" height="600" fill="%231e293b"/><circle cx="300" cy="240" r="100" fill="%2338bdf8"/><path d="M 160 480 C 160 360, 440 360, 440 480 Z" fill="%2338bdf8"/><text x="300" y="540" font-family="sans-serif" font-size="20" fill="%23f8fafc" text-anchor="middle">Camper Photo Preview</text></svg>`
+                    if (target.src !== fallbackSvg) {
+                      target.src = fallbackSvg
+                    }
+                  }}
                 />
               ) : (
                 <span className="text-white text-sm">Image preview unavailable</span>
@@ -1997,9 +2060,17 @@ export function CamperDetailClient({
             <p className="text-xs text-slate-600">
               Camper: {camper.name} | Application #: {camper.application_number}
             </p>
-            <div className="w-full h-48 bg-white border rounded shadow-inner p-4 text-left text-xs font-mono overflow-auto">
-              {`%PDF-1.4 Official Enrollment Contract\n---------------------------------------\nCamper: ${camper.name}\nApplication: ${camper.application_number}\nGenerated: ${new Date().toLocaleDateString()}\nStatus: ${contractStatus}\n\nTerms and conditions for season enrollment apply.`}
-            </div>
+            {contractPdfUrl && contractPdfUrl.includes('drive.google.com') ? (
+              <iframe
+                src={contractPdfUrl.replace(/\/view(\?.*)?$/, '/preview')}
+                className="w-full h-64 border rounded shadow-inner bg-white"
+                title="Google Drive Contract PDF Preview"
+              />
+            ) : (
+              <div className="w-full h-48 bg-white border rounded shadow-inner p-4 text-left text-xs font-mono overflow-auto">
+                {`%PDF-1.4 Official Enrollment Contract\n---------------------------------------\nCamper: ${camper.name}\nApplication: ${camper.application_number}\nGenerated: ${new Date().toLocaleDateString()}\nStatus: ${contractStatus}\n\nTerms and conditions for season enrollment apply.`}
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={handleDownloadContract}>

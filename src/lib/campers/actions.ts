@@ -146,7 +146,6 @@ export async function updateCamperProfile(
     school?: string
     city?: string
     state?: string
-    gender?: string
     notes?: string
     name?: string
   }
@@ -197,11 +196,24 @@ export async function assignCamperCohortBunk(
     }
     const supabase = createServerSupabaseClient()
 
-    const { error } = await supabase.from('kids').update({
+    const { data: currentKid } = await supabase.from('kids').select('notes').eq('id', camperId).maybeSingle()
+    const assignmentText = `Assigned to ${sessionName}, Bunk: ${bunk}`
+    const updatedNotes = currentKid?.notes ? `${currentKid.notes}\n${assignmentText}` : assignmentText
+
+    let { error } = await supabase.from('kids').update({
       session: sessionName,
-      notes: `Assigned to ${sessionName}, Bunk: ${bunk}`,
+      bunk: bunk,
+      notes: updatedNotes,
       updated_at: new Date().toISOString()
     }).eq('id', camperId)
+
+    if (error && (error.message.includes("'notes'") || error.message.includes("'bunk'"))) {
+      const res = await supabase.from('kids').update({
+        session: sessionName,
+        updated_at: new Date().toISOString()
+      }).eq('id', camperId)
+      error = res.error
+    }
 
     if (error) {
       return { success: false, error: `Failed to assign cohort and bunk: ${error.message}` }
@@ -225,15 +237,10 @@ export async function assignCamperCohortBunk(
 
 export async function getAdminCampers() {
   const hasSupabaseConfig = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
+    process.env.NEXT_PUBLIC_SUPABASE_URL
   )
   if (!hasSupabaseConfig) {
-    return [
-      { id: '1', name: 'John Smith', appNum: '1042', status: 'VAAD Review', statusColor: '#f59e0b', votingOpen: true, createdDate: '2025-01-15' },
-      { id: '2', name: 'Sarah Cohen', appNum: '1043', status: 'Accepted', statusColor: '#22c55e', votingOpen: false, createdDate: '2025-01-16' },
-      { id: '3', name: 'David Levy', appNum: '1044', status: 'Under Review', statusColor: '#3b82f6', votingOpen: true, createdDate: '2025-01-18' }
-    ]
+    return []
   }
 
   const supabase = createServerSupabaseClient()

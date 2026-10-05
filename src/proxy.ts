@@ -24,6 +24,30 @@ export async function proxy(request: NextRequest) {
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   )
 
+  if (pathname === '/login') {
+    const devAuth = request.cookies.get('oorah_dev_auth')?.value
+    if (devAuth === 'admin' || devAuth === 'staff') {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321'
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key'
+    try {
+      const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll() {},
+        },
+      })
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+    } catch {}
+    return response
+  }
+
   if (isProtected) {
     const devAuth = request.cookies.get('oorah_dev_auth')?.value
     if (devAuth === 'admin' || devAuth === 'staff') {
@@ -107,6 +131,7 @@ export default proxy
 
 export const config = {
   matcher: [
+    '/login',
     '/admin/:path*',
     '/dashboard/:path*',
     '/dashboard',

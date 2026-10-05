@@ -38,28 +38,7 @@ export default async function CampersDashboard() {
     process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
   );
 
-  const fallbackCampers: Kid[] = [
-    {
-      id: "1",
-      application_number: "1042",
-      name: "John Smith",
-      status: "VAAD Review",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      last_activity: "Today",
-    },
-    {
-      id: "2",
-      application_number: "1043",
-      name: "Sarah Cohen",
-      status: "Accepted",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      last_activity: "Yesterday",
-    },
-  ];
-
-  let campers: Kid[] = fallbackCampers;
+  let campers: Kid[] = [];
 
   if (hasSupabaseConfig) {
     try {
@@ -76,7 +55,7 @@ export default async function CampersDashboard() {
         `)
         .order('created_at', { ascending: false });
 
-      if (!error && campersData && campersData.length > 0) {
+      if (!error && campersData) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         campers = (campersData as any[]).map((c: any) => {
           const statusName = Array.isArray(c.statuses) ? c.statuses[0]?.name : c.statuses?.name;
@@ -92,7 +71,7 @@ export default async function CampersDashboard() {
         });
       }
     } catch {
-      // Fallback to demo data
+      // No data available — empty state will be shown
     }
   }
 

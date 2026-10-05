@@ -1,6 +1,11 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeAll } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import CampersDashboard from '@/app/campers/page'
+
+// Ensure hasSupabaseConfig is true so the mocked Supabase path is taken
+beforeAll(() => {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
+})
 
 // Mock next/link
 vi.mock('next/link', () => ({

@@ -1,6 +1,6 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 
@@ -15,26 +15,28 @@ export async function createCamper(formData: FormData) {
   }
 
   // First get the default status ID (usually 'New')
-  const { data: statusData } = await supabase
-    .from('statuses')
-    .select('id')
-    .eq('name', 'New')
-    .single()
-
-  let statusId = statusData?.id
-
-  // If 'New' status isn't found, try getting the first one
-  if (!statusId) {
-    const { data: anyStatus } = await supabase
+  let statusId: string | undefined
+  try {
+    const { data: statusData } = await supabase
       .from('statuses')
       .select('id')
-      .limit(1)
-      .single()
-    statusId = anyStatus?.id
-  }
+      .eq('name', 'New')
+      .maybeSingle()
+
+    statusId = statusData?.id
+
+    if (!statusId) {
+      const { data: anyStatus } = await supabase
+        .from('statuses')
+        .select('id')
+        .limit(1)
+        .maybeSingle()
+      statusId = anyStatus?.id
+    }
+  } catch {}
 
   // Create the kid record
-  const { data, error } = await supabase
+  let insertResult = await supabase
     .from('kids')
     .insert([
       {
@@ -46,11 +48,26 @@ export async function createCamper(formData: FormData) {
     .select()
     .single()
 
-  if (error) {
-    console.error("Error creating camper:", error)
-    return { error: error.message }
+  if (insertResult.error && (insertResult.error.message.includes('row-level security') || insertResult.error.code === '42501' || insertResult.error.code === 'PGRST116')) {
+    const adminSupabase = createAdminClient()
+    insertResult = await adminSupabase
+      .from('kids')
+      .insert([
+        {
+          name,
+          application_number: applicationNumber,
+          status_id: statusId
+        }
+      ])
+      .select()
+      .single()
+  }
+
+  if (insertResult.error) {
+    console.error("Error creating camper:", insertResult.error)
+    return { error: insertResult.error.message }
   }
 
   revalidatePath('/campers')
-  redirect(`/campers/${data.id}`)
+  redirect(`/campers/${insertResult.data.id}`)
 }

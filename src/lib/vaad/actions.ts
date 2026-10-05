@@ -22,8 +22,13 @@ export async function submitVote(
     if (error.message.includes('Invalid or inactive voting choice')) {
       throw new Error('Invalid or inactive choice');
     }
-    if (error.message.includes('duplicate key value violates unique constraint')) {
-      throw new Error('Duplicate vote');
+    if (
+      error.message.includes('duplicate key value violates unique constraint') ||
+      error.message.includes('already voted') ||
+      error.message.includes('Duplicate vote') ||
+      error.message.includes('vote once')
+    ) {
+      throw new Error('Duplicate vote: you should only be able to vote once');
     }
     throw new Error(error.message);
   }
