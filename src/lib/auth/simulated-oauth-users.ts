@@ -44,7 +44,6 @@ export const SIMULATED_OAUTH_USERS: Record<string, SimulatedOAuthUser> = {
       scopes: [
         'https://www.googleapis.com/auth/userinfo.email',
         'https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/drive',
         'https://www.googleapis.com/auth/drive.file',
       ],
       idTokenClaims: {
