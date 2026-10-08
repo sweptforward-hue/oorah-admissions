@@ -196,6 +196,7 @@ describe('Camper Media Management (Photos, Voice Notes, Transcript)', () => {
           disconnect() {}
         }
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       window.Audio = class {
         src = ''
         play = vi.fn().mockResolvedValue(undefined)
