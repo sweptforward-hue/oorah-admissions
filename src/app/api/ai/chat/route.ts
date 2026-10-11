@@ -25,17 +25,17 @@ export async function POST(req: NextRequest) {
     // 1. Retrieve RAG context from Supabase or grounded fallback
     const context = await retrieveRAGContext(trimmedMessage);
 
-    // 2. Build grounded context system prompt for Gemini gemini-3.8-flash
+    // 2. Build grounded context system prompt for Gemini gemini-2.5-flash
     const systemPrompt = buildGroundedSystemPrompt(context);
 
     const apiKey = process.env.GEMINI_API_KEY;
 
-    // 3. If GEMINI_API_KEY is present, query Gemini gemini-3.8-flash
+    // 3. If GEMINI_API_KEY is present, query Gemini gemini-2.5-flash
     if (apiKey) {
       try {
         const ai = new GoogleGenAI({ apiKey });
         const geminiResponse = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: 'gemini-2.5-flash',
           contents: trimmedMessage,
           config: {
             systemInstruction: systemPrompt,
