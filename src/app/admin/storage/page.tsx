@@ -4,7 +4,6 @@ import { useState, useTransition } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { updateDriveFolder, testDriveConnection } from '@/lib/admin/actions'
-import { createBrowserClient } from '@/lib/supabase/client'
 
 export default function AdminStoragePage() {
   const [folderId, setFolderId] = useState('1A2B3C4D5E6F7G8H9I0J')
@@ -40,24 +39,15 @@ export default function AdminStoragePage() {
   const handleAuthorizeGoogleDrive = async () => {
     try {
       setIsAuthorizing(true)
-      const supabase = createBrowserClient()
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/admin/storage`,
-          scopes: 'https://www.googleapis.com/auth/drive.file',
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      })
-      if (error) {
-        alert(`OAuth error: ${error.message}`)
-        setIsAuthorizing(false)
+      const res = await testDriveConnection()
+      if (res.success) {
+        alert(res.message || 'Google Drive service connection verified successfully.')
+      } else {
+        alert(res.message || 'Connection verification failed')
       }
     } catch (err: unknown) {
-      alert((err as Error).message || 'Failed to initiate Google Drive OAuth')
+      alert((err as Error).message || 'Failed to verify Google Drive connection')
+    } finally {
       setIsAuthorizing(false)
     }
   }

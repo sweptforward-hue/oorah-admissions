@@ -72,18 +72,8 @@ export default function LoginPage() {
 
     const options: {
       redirectTo: string
-      scopes?: string
-      queryParams?: {
-        access_type?: string
-        prompt?: string
-      }
     } = {
       redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextDestination)}`,
-    }
-
-    if (provider === 'google') {
-      // Standard user sign-in: only needs email, profile, openid (Zero verification required)
-      options.scopes = 'email profile openid'
     }
 
     const { error: signInError } = await supabase.auth.signInWithOAuth({
