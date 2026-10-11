@@ -27,7 +27,8 @@ export default function LoginPage() {
     const urlError = params.get('error')
     const urlErrorDesc = params.get('error_description')
     if (urlError || urlErrorDesc) {
-      setError(urlErrorDesc || urlError)
+      const errMessage = urlErrorDesc || urlError
+      queueMicrotask(() => setError(errMessage))
     }
 
     // 2. Check for OAuth hash parameters (implicit flow)
@@ -35,7 +36,7 @@ export default function LoginPage() {
       const hashParams = new URLSearchParams(window.location.hash.substring(1))
       const hashError = hashParams.get('error_description') || hashParams.get('error')
       if (hashError) {
-        setError(hashError)
+        queueMicrotask(() => setError(hashError))
       } else if (hashParams.get('access_token')) {
         const accessToken = hashParams.get('access_token')!
         const refreshToken = hashParams.get('refresh_token') || ''
