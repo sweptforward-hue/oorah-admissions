@@ -1,0 +1,29 @@
+
+> oorah-admissions@0.1.0 dev
+> next dev
+
+▲ Next.js 16.3.5 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 559ms
+✓ Running next.config.ts took 47ms
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+
+○ Compiling /login ...
+ GET /login 200 in 5.1s (next.js: 4.4s, proxy.ts: 10ms, application-code: 630ms)
+ GET /login 200 in 80ms (next.js: 13ms, proxy.ts: 9ms, application-code: 58ms)
+ GET /dashboard 200 in 1353ms (next.js: 1236ms, proxy.ts: 12ms, application-code: 105ms)
+ GET /dashboard 200 in 76ms (next.js: 18ms, proxy.ts: 14ms, application-code: 44ms)
+ POST /dashboard 200 in 85ms (next.js: 9ms, proxy.ts: 11ms, application-code: 65ms)
+  └─ ƒ getCurrentUser() in 3ms src/lib/auth/authorization.ts
+ POST /dashboard 200 in 39ms (next.js: 5ms, proxy.ts: 12ms, application-code: 22ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ GET /admin/campers 200 in 1113ms (next.js: 990ms, proxy.ts: 11ms, application-code: 112ms)
+ POST /admin/campers 200 in 44ms (next.js: 4ms, proxy.ts: 11ms, application-code: 29ms)
+  └─ ƒ getAdminCampers() in 0ms src/lib/campers/actions.ts
+ POST /admin/campers 200 in 72ms (next.js: 11ms, proxy.ts: 14ms, application-code: 48ms)
+  └─ ƒ getAdminCampers() in 0ms src/lib/campers/actions.ts

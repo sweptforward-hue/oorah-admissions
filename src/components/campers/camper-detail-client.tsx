@@ -308,7 +308,8 @@ export function CamperDetailClient({
           return
         }
         showNotification('Camper Deleted', `Camper ${camper.name} deleted successfully.`)
-        router.push('/campers')
+        router.push('/admin/campers')
+        router.refresh()
       } catch (err: unknown) {
         showNotification('Delete Error', (err as Error).message || 'Failed to delete camper')
       }

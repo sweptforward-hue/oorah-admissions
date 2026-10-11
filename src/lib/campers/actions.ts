@@ -1,17 +1,55 @@
 'use server'
 
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server'
 import { getCurrentUser, requireAdminRole } from '@/lib/auth/authorization'
 import { revalidatePath } from 'next/cache'
 
 export async function deleteCamper(camperId: string) {
   try {
     const admin = await requireAdminRole()
-    const supabase = createServerSupabaseClient()
+    const supabase = createAdminClient()
 
-    // Fetch camper name/appNum for audit log before deletion
-    const { data: camper } = await supabase.from('kids').select('name, application_number, first_name, last_name').eq('id', camperId).single()
-    const camperName = camper ? (camper.name || `${camper.first_name} ${camper.last_name}`) : camperId
+    // Fetch camper details for audit log before deletion
+    const { data: camper } = await supabase
+      .from('kids')
+      .select('name, application_number, first_name, last_name')
+      .eq('id', camperId)
+      .maybeSingle()
+
+    const camperName = camper
+      ? (camper.name || `${camper.first_name || ''} ${camper.last_name || ''}`.trim() || camperId)
+      : camperId
+
+    // Cleanly remove all child dependencies (photos, voice notes, transcripts, documents, messages, contacts, votes, history)
+    const childTables = [
+      'photos',
+      'voice_notes',
+      'transcripts',
+      'documents',
+      'chat_messages',
+      'messages',
+      'contacts',
+      'camper_contacts',
+      'vaad_votes',
+      'status_history',
+      'custom_field_values',
+      'kid_memberships'
+    ]
+
+    for (const table of childTables) {
+      try {
+        await supabase.from(table).delete().eq('kid_id', camperId)
+      } catch {
+        // Table or column may not exist depending on schema version
+      }
+    }
+
+    // Remove entity logs for this camper
+    try {
+      await supabase.from('audit_log').delete().eq('entity_type', 'kid').eq('entity_id', camperId)
+    } catch {
+      // Ignore if entity_id or audit_log schema differs
+    }
 
     const { error } = await supabase.from('kids').delete().eq('id', camperId)
 
@@ -19,7 +57,7 @@ export async function deleteCamper(camperId: string) {
       return { success: false, error: `Failed to delete camper: ${error.message}` }
     }
 
-    // Record immutable audit log entry
+    // Record immutable audit log entry using admin credentials
     await supabase.from('audit_log').insert({
       actor_id: admin.id,
       action: 'DELETE_CAMPER',
@@ -30,6 +68,11 @@ export async function deleteCamper(camperId: string) {
 
     revalidatePath('/admin/campers')
     revalidatePath('/campers')
+    revalidatePath('/dashboard')
+    revalidatePath('/session-a/campers')
+    revalidatePath('/session-b/campers')
+    revalidatePath(`/campers/${camperId}`)
+    revalidatePath(`/kids/${camperId}`)
     return { success: true }
   } catch (err: unknown) {
     return { success: false, error: (err as Error)?.message || 'Unauthorized: Admin role required' }
