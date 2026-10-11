@@ -29,22 +29,27 @@ export default function AdminStoragePage() {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isPending, startTransition] = useTransition()
 
-  const loadStorageConfig = async () => {
-    try {
-      setIsLoading(true)
-      const config = await getDriveStorageConfig()
-      setFolderId(config.folderId)
-      setConnectionStatus(config.connection)
-      setHealthStatus(config.folderHealth)
-    } catch (err: unknown) {
-      alert((err as Error).message || 'Failed to load storage configuration')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   useEffect(() => {
-    loadStorageConfig()
+    let isMounted = true
+    getDriveStorageConfig()
+      .then((config) => {
+        if (!isMounted) return
+        setFolderId(config.folderId)
+        setConnectionStatus(config.connection)
+        setHealthStatus(config.folderHealth)
+      })
+      .catch((err: unknown) => {
+        if (!isMounted) return
+        alert((err as Error).message || 'Failed to load storage configuration')
+      })
+      .finally(() => {
+        if (!isMounted) return
+        setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   const handleUpdateFolder = () => {
