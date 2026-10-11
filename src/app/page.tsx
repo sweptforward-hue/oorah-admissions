@@ -38,61 +38,47 @@ export default async function Home({ searchParams }: PageProps) {
             </p>
           </div>
 
-          {/* Quick Access Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+          {/* Main Action Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
             <Link
               href="/dashboard"
-              className="p-6 bg-white rounded-2xl border border-slate-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all hover:border-green-300 group relative overflow-hidden"
+              className="p-8 bg-white rounded-2xl border border-slate-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all hover:border-green-300 group relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-green-100 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-bl-3xl"></div>
               <div className="text-4xl mb-4 transform group-hover:scale-110 transition-transform origin-bottom-left">📊</div>
-              <h2 className="text-xl font-bold text-slate-900 group-hover:text-green-700">
+              <h2 className="text-2xl font-bold text-slate-900 group-hover:text-green-700">
                 Dashboard
               </h2>
               <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-                View circular status graphs, acceptance rates, and overall admissions analytics.
+                View status graphs, acceptance rates, and overall admissions analytics.
               </p>
             </Link>
 
             <Link
-              href="/session-a/campers"
-              className="p-6 bg-white rounded-2xl border border-slate-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all hover:border-green-300 group relative overflow-hidden"
+              href="/campers"
+              className="p-8 bg-white rounded-2xl border border-slate-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all hover:border-green-300 group relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-green-100 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-bl-3xl"></div>
               <div className="text-4xl mb-4 transform group-hover:scale-110 transition-transform origin-bottom-left">🏕️</div>
-              <h2 className="text-xl font-bold text-slate-900 group-hover:text-green-700">
-                Session A
+              <h2 className="text-2xl font-bold text-slate-900 group-hover:text-green-700">
+                Campers Directory
               </h2>
               <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-                Manage campers, bunk assignments, and staff roster for Session A.
+                Search applicants, review status histories, and inspect camper document files.
               </p>
             </Link>
 
             <Link
-              href="/session-b/campers"
-              className="p-6 bg-white rounded-2xl border border-slate-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all hover:border-green-300 group relative overflow-hidden"
+              href="/campers/new"
+              className="p-8 bg-white rounded-2xl border border-slate-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all hover:border-green-300 group relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-green-100 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-bl-3xl"></div>
-              <div className="text-4xl mb-4 transform group-hover:scale-110 transition-transform origin-bottom-left">🌲</div>
-              <h2 className="text-xl font-bold text-slate-900 group-hover:text-green-700">
-                Session B
+              <div className="text-4xl mb-4 transform group-hover:scale-110 transition-transform origin-bottom-left">➕</div>
+              <h2 className="text-2xl font-bold text-slate-900 group-hover:text-green-700">
+                New Application
               </h2>
               <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-                Manage campers, bunk assignments, and staff roster for Session B.
-              </p>
-            </Link>
-
-            <Link
-              href="/admin"
-              className="p-6 bg-white rounded-2xl border border-slate-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all hover:border-red-300 group relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-red-100 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-bl-3xl"></div>
-              <div className="text-4xl mb-4 transform group-hover:scale-110 transition-transform origin-bottom-left">⚙️</div>
-              <h2 className="text-xl font-bold text-slate-900 group-hover:text-red-700">
-                Admin Center
-              </h2>
-              <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-                Users, years, sessions, voting choices, custom fields, and audit log.
+                Register a new camper applicant with document checklist and VAAD assignment.
               </p>
             </Link>
           </div>
@@ -102,21 +88,15 @@ export default async function Home({ searchParams }: PageProps) {
             <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
             
             <div className="relative z-10">
-              <h3 className="text-3xl font-extrabold tracking-tight">Ready to register a new applicant?</h3>
+              <h3 className="text-3xl font-extrabold tracking-tight">Need assistance or system guidance?</h3>
               <p className="text-green-100 text-base mt-2 max-w-xl">
-                Start an application workspace with automatic document checklist and VAAD assignment.
+                Access documentation and user guides for admissions procedures, VAAD workflows, and administrative controls.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 relative z-10 w-full md:w-auto">
               <Link
-                href="/campers/new"
-                className="px-8 py-4 bg-white text-green-900 font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 hover:bg-green-50 transition-all text-center flex items-center justify-center gap-2 group"
-              >
-                <span className="text-xl group-hover:rotate-90 transition-transform duration-300">+</span> Create New Camper
-              </Link>
-              <Link
                 href="/help"
-                className="px-8 py-4 bg-green-900/40 border border-green-700/50 text-white font-semibold rounded-xl hover:bg-green-800/60 transition-all text-center backdrop-blur-sm"
+                className="px-8 py-4 bg-white text-green-900 font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 hover:bg-green-50 transition-all text-center backdrop-blur-sm"
               >
                 View User Guide
               </Link>
