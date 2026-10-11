@@ -709,7 +709,7 @@ export function CamperDetailClient({
       currentAudioRef.current.pause()
     }
 
-    const audioUrl = vn.drive_url || (vn.drive_file_id ? `https://drive.google.com/uc?id=${vn.drive_file_id}&export=download` : '')
+    const audioUrl = vn.drive_file_id ? `/api/media/proxy/${vn.drive_file_id}` : (vn.drive_url || '')
     const audio = new Audio(audioUrl)
     currentAudioRef.current = audio
 
@@ -878,7 +878,7 @@ export function CamperDetailClient({
 
   const handleDownloadDriveFile = (driveId?: string, name?: string) => {
     const downloadUrl = driveId
-      ? (driveId.startsWith('http') ? driveId : `https://drive.google.com/uc?id=${driveId}&export=download`)
+      ? (driveId.startsWith('http') || driveId.startsWith('/') ? driveId : `/api/media/proxy/${driveId}`)
       : '#'
     const a = document.createElement('a')
     a.href = downloadUrl

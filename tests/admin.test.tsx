@@ -4,6 +4,7 @@ import AdminYearsPage from '@/app/admin/years/page'
 import AdminSessionsPage from '@/app/admin/sessions/page'
 import AdminCustomFieldsPage from '@/app/admin/custom-fields/page'
 import AdminExportsPage from '@/app/admin/exports/page'
+import AdminStoragePage from '@/app/admin/storage/page'
 
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: React.ReactNode, href: string }) => <a href={href}>{children}</a>
@@ -34,5 +35,12 @@ describe('Admin Management Modules', () => {
     expect(screen.getByText('Data Exports')).toBeInTheDocument()
     expect(screen.getByText('Google Sheets Sync')).toBeInTheDocument()
     expect(screen.getByText('CSV Download')).toBeInTheDocument()
+  })
+
+  it('renders Storage page with Server-Side Service Account details', () => {
+    render(<AdminStoragePage />)
+    expect(screen.getByText('Google Drive & Document Storage')).toBeInTheDocument()
+    expect(screen.getByText('Server-Side Service Account Authentication')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Verify Service Account Credentials' })).toBeInTheDocument()
   })
 })

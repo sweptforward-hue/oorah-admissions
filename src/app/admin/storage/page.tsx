@@ -74,9 +74,9 @@ export default function AdminStoragePage() {
 
           <div className="flex items-center justify-between border-b pb-3">
             <div>
-              <div className="font-semibold text-slate-800">OAuth 2.0 Google Drive Access</div>
+              <div className="font-semibold text-slate-800">Server-Side Service Account Authentication</div>
               <div className="text-xs text-slate-500">
-                Grant OAuth 2.0 read, write, and store permissions for admissions documents & media
+                Server-side Google Service Account handles all admissions document & media operations directly, eliminating unverified client OAuth scope prompts
               </div>
             </div>
             <Button
@@ -86,17 +86,17 @@ export default function AdminStoragePage() {
               onClick={handleAuthorizeGoogleDrive}
               disabled={isAuthorizing}
             >
-              {isAuthorizing ? 'Connecting...' : 'Authorize with Google (Read/Write/Store)'}
+              {isAuthorizing ? 'Verifying...' : 'Verify Service Account Credentials'}
             </Button>
           </div>
 
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-semibold text-slate-800">OAuth Service Connection</div>
-              <div className="text-xs text-green-600">● Connected (Google Cloud Platform)</div>
+              <div className="font-semibold text-slate-800">Service Account Connection Status</div>
+              <div className="text-xs text-green-600">● Connected (Server-Side Google Cloud Platform)</div>
             </div>
             <Button variant="outline" size="sm" onClick={handleTestConnection} disabled={isPending}>
-              Test Connection
+              Test Drive API Connection
             </Button>
           </div>
         </CardContent>
