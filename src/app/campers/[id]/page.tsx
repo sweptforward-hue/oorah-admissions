@@ -128,46 +128,40 @@ export default async function CamperDetailPage({ params }: PageProps) {
     voting_open: camper.voting_open ?? true,
   };
 
-  const initialDocuments: CamperDocument[] = docsData && docsData.length > 0
-    ? docsData.map((d: Record<string, unknown>, idx: number) => {
-        const driveId = d.drive_file_id ? String(d.drive_file_id) : undefined;
-        return {
-          id: String(d.id || `doc-${idx}`),
-          name: String(d.name || d.filename || 'Document'),
-          uploaded_at: String(d.uploaded_at || d.created_at || '2025-01-01T00:00:00Z'),
-          type: String(d.document_type || d.type || 'General'),
-          drive_file_id: driveId,
-          drive_url: driveId ? `https://drive.google.com/file/d/${driveId}/preview` : (d.drive_url ? String(d.drive_url) : undefined),
-        };
-      })
-    : [];
+  const initialDocuments: CamperDocument[] = (docsData || []).map((d: Record<string, unknown>, idx: number) => {
+    const driveId = d.drive_file_id ? String(d.drive_file_id) : undefined;
+    return {
+      id: String(d.id || `doc-${idx}`),
+      name: String(d.name || d.filename || 'Document'),
+      uploaded_at: String(d.uploaded_at || d.created_at || new Date().toISOString()),
+      type: String(d.document_type || d.type || 'General'),
+      drive_file_id: driveId,
+      drive_url: driveId ? `https://drive.google.com/file/d/${driveId}/preview` : (d.drive_url ? String(d.drive_url) : undefined),
+    };
+  });
 
-  const initialPhotos: PhotoItem[] = photosData && photosData.length > 0
-    ? photosData.map((p: Record<string, unknown>, idx: number) => {
-        const driveId = p.drive_file_id ? String(p.drive_file_id) : undefined;
-        return {
-          id: String(p.id || `photo-${idx}`),
-          caption: String(p.caption || p.filename || 'Camper Photo'),
-          created_at: String(p.created_at || new Date().toISOString()),
-          drive_file_id: driveId,
-          drive_url: driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000` : (p.drive_url ? String(p.drive_url) : undefined),
-        };
-      })
-    : [];
+  const initialPhotos: PhotoItem[] = (photosData || []).map((p: Record<string, unknown>, idx: number) => {
+    const driveId = p.drive_file_id ? String(p.drive_file_id) : undefined;
+    return {
+      id: String(p.id || `photo-${idx}`),
+      caption: String(p.caption || p.filename || 'Camper Photo'),
+      created_at: String(p.created_at || new Date().toISOString()),
+      drive_file_id: driveId,
+      drive_url: driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000` : (p.drive_url ? String(p.drive_url) : undefined),
+    };
+  });
 
-  const initialVoiceNotes: VoiceNoteItem[] = voiceData && voiceData.length > 0
-    ? voiceData.map((v: Record<string, unknown>, idx: number) => {
-        const driveId = v.drive_file_id ? String(v.drive_file_id) : undefined;
-        return {
-          id: String(v.id || `vn-${idx}`),
-          title: String(v.title || v.filename || 'Voice Note'),
-          duration_seconds: Number(v.duration_seconds ?? v.duration ?? 0),
-          created_at: String(v.created_at || new Date().toISOString()),
-          drive_file_id: driveId,
-          drive_url: driveId ? `https://drive.google.com/uc?id=${driveId}&export=download` : (v.drive_url ? String(v.drive_url) : undefined),
-        };
-      })
-    : [];
+  const initialVoiceNotes: VoiceNoteItem[] = (voiceData || []).map((v: Record<string, unknown>, idx: number) => {
+    const driveId = v.drive_file_id ? String(v.drive_file_id) : undefined;
+    return {
+      id: String(v.id || `vn-${idx}`),
+      title: String(v.title || v.filename || 'Voice Note'),
+      duration_seconds: Number(v.duration_seconds ?? v.duration ?? 0),
+      created_at: String(v.created_at || new Date().toISOString()),
+      drive_file_id: driveId,
+      drive_url: driveId ? `https://drive.google.com/uc?id=${driveId}&export=download` : (v.drive_url ? String(v.drive_url) : undefined),
+    };
+  });
 
   // Combine direct transcripts table and documents categorized as transcripts
   const docTranscripts = (docsData || []).filter(
@@ -176,18 +170,16 @@ export default async function CamperDetailPage({ params }: PageProps) {
   );
   const combinedTranscripts = [...(transcriptsData || []), ...docTranscripts];
 
-  const initialTranscripts: TranscriptItem[] = combinedTranscripts.length > 0
-    ? combinedTranscripts.map((t: Record<string, unknown>, idx: number) => {
-        const driveId = t.drive_file_id ? String(t.drive_file_id) : undefined;
-        return {
-          id: String(t.id || `tr-${idx}`),
-          title: String(t.title || t.name || t.filename || 'Academic Transcript'),
-          created_at: String(t.created_at || new Date().toISOString()),
-          drive_file_id: driveId,
-          drive_url: driveId ? `https://drive.google.com/file/d/${driveId}/preview` : (t.drive_url ? String(t.drive_url) : undefined),
-        };
-      })
-    : [];
+  const initialTranscripts: TranscriptItem[] = combinedTranscripts.map((t: Record<string, unknown>, idx: number) => {
+    const driveId = t.drive_file_id ? String(t.drive_file_id) : undefined;
+    return {
+      id: String(t.id || `tr-${idx}`),
+      title: String(t.title || t.name || t.filename || 'Academic Transcript'),
+      created_at: String(t.created_at || new Date().toISOString()),
+      drive_file_id: driveId,
+      drive_url: driveId ? `https://drive.google.com/file/d/${driveId}/preview` : (t.drive_url ? String(t.drive_url) : undefined),
+    };
+  });
 
   return (
     <CamperDetailClient

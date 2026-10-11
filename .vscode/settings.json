@@ -1,0 +1,9 @@
+{
+  "remote.portsAttributes": {
+    "6080": {
+      "label": "noVNC Antigravity Desktop",
+      "onAutoForward": "openBrowser",
+      "elevateIfNeeded": true
+    }
+  }
+}
