@@ -17,25 +17,23 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    const params = new URLSearchParams(window.location.search)
+    return params.get('error_description') || params.get('error') || null
+  })
 
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    // 1. Check for error parameters in query string
     const params = new URLSearchParams(window.location.search)
-    const urlError = params.get('error')
-    const urlErrorDesc = params.get('error_description')
-    if (urlError || urlErrorDesc) {
-      setError(urlErrorDesc || urlError)
-    }
 
-    // 2. Check for OAuth hash parameters (implicit flow)
+    // Check for OAuth hash parameters (implicit flow)
     if (window.location.hash) {
       const hashParams = new URLSearchParams(window.location.hash.substring(1))
       const hashError = hashParams.get('error_description') || hashParams.get('error')
       if (hashError) {
-        setError(hashError)
+        queueMicrotask(() => setError(hashError))
         if (window.history && window.history.replaceState) {
           window.history.replaceState(null, '', window.location.pathname + window.location.search)
         }
