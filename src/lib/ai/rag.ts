@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 
 export interface CamperContext {
   id: string;
@@ -177,186 +177,186 @@ export const DEFAULT_CAMPERS: CamperContext[] = [
 /**
  * Retrieve grounded context from Supabase tables:
  * kids, statuses, sessions, years, vaad_choices
- * Gracefully falls back to default grounded data if DB is unavailable.
+ * Uses createAdminClient to perform background queries without request cookie constraints.
  */
 export async function retrieveRAGContext(query: string): Promise<RAGContext> {
   const sources: string[] = [];
-  let campers: CamperContext[] = [...DEFAULT_CAMPERS];
-  let statuses: StatusContext[] = [...DEFAULT_STATUSES];
-  let sessions: SessionContext[] = [...DEFAULT_SESSIONS];
-  let years: YearContext[] = [...DEFAULT_YEARS];
-  let vaadChoices: VaadChoiceContext[] = [...DEFAULT_VAAD_CHOICES];
+  let campers: CamperContext[] = [];
+  let statuses: StatusContext[] = [];
+  let sessions: SessionContext[] = [];
+  let years: YearContext[] = [];
+  let vaadChoices: VaadChoiceContext[] = [];
 
-  const hasConfig = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
-  );
+  try {
+    const supabase = createAdminClient();
 
-  if (hasConfig) {
+    // Fetch statuses
     try {
-      const supabase = createServerSupabaseClient();
-
-      // Fetch statuses
-      try {
-        const { data: dbStatuses, error: stErr } = await supabase
-          .from('statuses')
-          .select('id, name, category, color, is_terminal')
-          .order('sort_order', { ascending: true });
-        if (!stErr && dbStatuses && dbStatuses.length > 0) {
-          statuses = dbStatuses as StatusContext[];
-          sources.push('Supabase: statuses');
-        }
-      } catch {
-        // Fallback to default
-      }
-
-      // Fetch sessions
-      try {
-        const { data: dbSessions, error: sessErr } = await supabase
-          .from('sessions')
-          .select('id, name, start_date, end_date, active')
-          .order('name', { ascending: true });
-        if (!sessErr && dbSessions && dbSessions.length > 0) {
-          sessions = dbSessions as SessionContext[];
-          sources.push('Supabase: sessions');
-        }
-      } catch {
-        // Fallback to default
-      }
-
-      // Fetch years
-      try {
-        const { data: dbYears, error: yrErr } = await supabase
-          .from('years')
-          .select('id, year, is_active')
-          .order('year', { ascending: false });
-        if (!yrErr && dbYears && dbYears.length > 0) {
-          years = dbYears as YearContext[];
-          sources.push('Supabase: years');
-        }
-      } catch {
-        // Fallback to default
-      }
-
-      // Fetch vaad choices
-      try {
-        const { data: dbVaadChoices, error: vcErr } = await supabase
-          .from('vaad_choices')
-          .select('id, label, action, color, active')
-          .order('sort_order', { ascending: true });
-        if (!vcErr && dbVaadChoices && dbVaadChoices.length > 0) {
-          vaadChoices = dbVaadChoices as VaadChoiceContext[];
-          sources.push('Supabase: vaad_choices');
-        }
-      } catch {
-        // Fallback to default
-      }
-
-      // Fetch kids
-      try {
-        const { data: dbKids, error: kidsErr } = await supabase
-          .from('kids')
-          .select(`
-            id,
-            application_number,
-            name,
-            first_name,
-            last_name,
-            grade,
-            school,
-            session,
-            year,
-            notes,
-            voting_open,
-            statuses ( name )
-          `)
-          .order('created_at', { ascending: false })
-          .limit(50);
-
-        if (!kidsErr && dbKids && dbKids.length > 0) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          campers = (dbKids as any[]).map((k) => {
-            const statusName = Array.isArray(k.statuses) ? k.statuses[0]?.name : k.statuses?.name;
-            const camperName = k.name || [k.first_name, k.last_name].filter(Boolean).join(' ') || `Camper #${k.application_number}`;
-            return {
-              id: k.id,
-              application_number: k.application_number || 'N/A',
-              name: camperName,
-              status: statusName || 'New',
-              session: k.session || 'Session A',
-              year: k.year || 2025,
-              grade: k.grade || undefined,
-              school: k.school || undefined,
-              notes: k.notes || undefined,
-              voting_open: k.voting_open ?? false,
-            };
-          });
-          sources.push('Supabase: kids');
-        }
-
-        // Targeted live search if user provided a specific search term
-        const trimmedQuery = query.trim();
-        if (trimmedQuery.length >= 2 && !trimmedQuery.includes('criteria') && !trimmedQuery.includes('stats')) {
-          try {
-            const cleanSearch = trimmedQuery.replace(/[%_,]/g, ' ').split(/\s+/).filter(w => w.length > 2).slice(0, 3).join(' ');
-            if (cleanSearch) {
-              const { data: searchKids } = await supabase
-                .from('kids')
-                .select(`
-                  id,
-                  application_number,
-                  name,
-                  first_name,
-                  last_name,
-                  grade,
-                  school,
-                  session,
-                  year,
-                  notes,
-                  voting_open,
-                  statuses ( name )
-                `)
-                .or(`name.ilike.%${cleanSearch}%,application_number.ilike.%${cleanSearch}%,first_name.ilike.%${cleanSearch}%,last_name.ilike.%${cleanSearch}%,school.ilike.%${cleanSearch}%`)
-                .limit(10);
-
-              if (searchKids && searchKids.length > 0) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const matched = (searchKids as any[]).map((k) => {
-                  const statusName = Array.isArray(k.statuses) ? k.statuses[0]?.name : k.statuses?.name;
-                  const camperName = k.name || [k.first_name, k.last_name].filter(Boolean).join(' ') || `Camper #${k.application_number}`;
-                  return {
-                    id: k.id,
-                    application_number: k.application_number || 'N/A',
-                    name: camperName,
-                    status: statusName || 'New',
-                    session: k.session || 'Session A',
-                    year: k.year || 2025,
-                    grade: k.grade || undefined,
-                    school: k.school || undefined,
-                    notes: k.notes || undefined,
-                    voting_open: k.voting_open ?? false,
-                  };
-                });
-
-                const existingIds = new Set(campers.map((c) => c.id));
-                const uniqueMatched = matched.filter((m) => !existingIds.has(m.id));
-                if (uniqueMatched.length > 0) {
-                  campers = [...uniqueMatched, ...campers];
-                  sources.push('Supabase: search_results');
-                }
-              }
-            }
-          } catch {
-            // Ignore search filter error
-          }
-        }
-      } catch {
-        // Fallback to default
+      const { data: dbStatuses, error: stErr } = await supabase
+        .from('statuses')
+        .select('id, name, category, color, is_terminal')
+        .order('sort_order', { ascending: true });
+      if (!stErr && dbStatuses && dbStatuses.length > 0) {
+        statuses = dbStatuses as StatusContext[];
+        sources.push('Supabase: statuses');
       }
     } catch {
-      // In case of any unexpected supabase client error
+      // Ignore
     }
+
+    // Fetch sessions
+    try {
+      const { data: dbSessions, error: sessErr } = await supabase
+        .from('sessions')
+        .select('id, name, start_date, end_date, active')
+        .order('name', { ascending: true });
+      if (!sessErr && dbSessions && dbSessions.length > 0) {
+        sessions = dbSessions as SessionContext[];
+        sources.push('Supabase: sessions');
+      }
+    } catch {
+      // Ignore
+    }
+
+    // Fetch years
+    try {
+      const { data: dbYears, error: yrErr } = await supabase
+        .from('years')
+        .select('id, year, is_active')
+        .order('year', { ascending: false });
+      if (!yrErr && dbYears && dbYears.length > 0) {
+        years = dbYears as YearContext[];
+        sources.push('Supabase: years');
+      }
+    } catch {
+      // Ignore
+    }
+
+    // Fetch vaad choices
+    try {
+      const { data: dbVaadChoices, error: vcErr } = await supabase
+        .from('vaad_choices')
+        .select('id, label, action, color, active')
+        .order('sort_order', { ascending: true });
+      if (!vcErr && dbVaadChoices && dbVaadChoices.length > 0) {
+        vaadChoices = dbVaadChoices as VaadChoiceContext[];
+        sources.push('Supabase: vaad_choices');
+      }
+    } catch {
+      // Ignore
+    }
+
+    // Fetch kids
+    try {
+      const { data: dbKids, error: kidsErr } = await supabase
+        .from('kids')
+        .select(`
+          id,
+          application_number,
+          name,
+          first_name,
+          last_name,
+          grade,
+          school,
+          session,
+          year,
+          notes,
+          voting_open,
+          statuses ( name )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (!kidsErr && dbKids && dbKids.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        campers = (dbKids as any[]).map((k) => {
+          const statusName = Array.isArray(k.statuses) ? k.statuses[0]?.name : k.statuses?.name;
+          const camperName = k.name || [k.first_name, k.last_name].filter(Boolean).join(' ') || `Camper #${k.application_number}`;
+          return {
+            id: k.id,
+            application_number: k.application_number || 'N/A',
+            name: camperName,
+            status: statusName || 'New',
+            session: k.session || 'Session A',
+            year: k.year || 2025,
+            grade: k.grade || undefined,
+            school: k.school || undefined,
+            notes: k.notes || undefined,
+            voting_open: k.voting_open ?? false,
+          };
+        });
+        sources.push('Supabase: kids');
+      }
+
+      // Targeted live search if user provided a specific search term
+      const trimmedQuery = query.trim();
+      if (trimmedQuery.length >= 2 && !trimmedQuery.includes('criteria') && !trimmedQuery.includes('stats')) {
+        try {
+          const cleanSearch = trimmedQuery.replace(/[%_,]/g, ' ').split(/\s+/).filter(w => w.length > 2).slice(0, 3).join(' ');
+          if (cleanSearch) {
+            const { data: searchKids } = await supabase
+              .from('kids')
+              .select(`
+                id,
+                application_number,
+                name,
+                first_name,
+                last_name,
+                grade,
+                school,
+                session,
+                year,
+                notes,
+                voting_open,
+                statuses ( name )
+              `)
+              .or(`name.ilike.%${cleanSearch}%,application_number.ilike.%${cleanSearch}%,first_name.ilike.%${cleanSearch}%,last_name.ilike.%${cleanSearch}%,school.ilike.%${cleanSearch}%`)
+              .limit(10);
+
+            if (searchKids && searchKids.length > 0) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const matched = (searchKids as any[]).map((k) => {
+                const statusName = Array.isArray(k.statuses) ? k.statuses[0]?.name : k.statuses?.name;
+                const camperName = k.name || [k.first_name, k.last_name].filter(Boolean).join(' ') || `Camper #${k.application_number}`;
+                return {
+                  id: k.id,
+                  application_number: k.application_number || 'N/A',
+                  name: camperName,
+                  status: statusName || 'New',
+                  session: k.session || 'Session A',
+                  year: k.year || 2025,
+                  grade: k.grade || undefined,
+                  school: k.school || undefined,
+                  notes: k.notes || undefined,
+                  voting_open: k.voting_open ?? false,
+                };
+              });
+
+              const existingIds = new Set(campers.map((c) => c.id));
+              const uniqueMatched = matched.filter((m) => !existingIds.has(m.id));
+              if (uniqueMatched.length > 0) {
+                campers = [...uniqueMatched, ...campers];
+                sources.push('Supabase: search_results');
+              }
+            }
+          }
+        } catch {
+          // Ignore search filter error
+        }
+      }
+    } catch {
+      // Ignore
+    }
+  } catch {
+    // Ignore
   }
+
+  // Fall back to defaults only if DB returned empty results (e.g. unseeded environment)
+  if (statuses.length === 0) statuses = [...DEFAULT_STATUSES];
+  if (sessions.length === 0) sessions = [...DEFAULT_SESSIONS];
+  if (years.length === 0) years = [...DEFAULT_YEARS];
+  if (vaadChoices.length === 0) vaadChoices = [...DEFAULT_VAAD_CHOICES];
+  if (campers.length === 0) campers = [...DEFAULT_CAMPERS];
 
   // Ensure default sources if not retrieved from Supabase
   if (sources.length === 0) {
@@ -394,7 +394,7 @@ export async function retrieveRAGContext(query: string): Promise<RAGContext> {
 }
 
 /**
- * Builds a grounded system prompt for Gemini gemini-3.8-flash
+ * Builds a grounded system prompt for Gemini gemini-2.5-flash / gemini-1.5-flash
  */
 export function buildGroundedSystemPrompt(context: RAGContext): string {
   const statusList = context.statuses.map((s) => `- ${s.name} (${s.category || 'admissions'}${s.is_terminal ? ', terminal' : ''})`).join('\n');

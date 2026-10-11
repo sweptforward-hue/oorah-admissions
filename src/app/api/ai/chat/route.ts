@@ -22,25 +22,37 @@ export async function POST(req: NextRequest) {
 
     const trimmedMessage = message.trim();
 
-    // 1. Retrieve RAG context from Supabase or grounded fallback
+    // 1. Retrieve RAG context from live Supabase database tables
     const context = await retrieveRAGContext(trimmedMessage);
 
-    // 2. Build grounded context system prompt for Gemini gemini-3.8-flash
+    // 2. Build grounded context system prompt for Gemini
     const systemPrompt = buildGroundedSystemPrompt(context);
 
     const apiKey = process.env.GEMINI_API_KEY;
 
-    // 3. If GEMINI_API_KEY is present, query Gemini gemini-3.8-flash
+    // 3. If GEMINI_API_KEY is present, query Google Gemini API
     if (apiKey) {
       try {
         const ai = new GoogleGenAI({ apiKey });
-        const geminiResponse = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: trimmedMessage,
-          config: {
-            systemInstruction: systemPrompt,
-          },
-        });
+        // Use gemini-2.5-flash as default, with fallback model names if needed
+        let geminiResponse;
+        try {
+          geminiResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: trimmedMessage,
+            config: {
+              systemInstruction: systemPrompt,
+            },
+          });
+        } catch {
+          geminiResponse = await ai.models.generateContent({
+            model: 'gemini-1.5-flash',
+            contents: trimmedMessage,
+            config: {
+              systemInstruction: systemPrompt,
+            },
+          });
+        }
 
         const reply = geminiResponse.text || generateSmartFallbackResponse(trimmedMessage, context);
 
@@ -58,7 +70,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. If GEMINI_API_KEY is not configured: smart contextual RAG fallback
+    // 4. If GEMINI_API_KEY is not configured (e.g. dev or test environment without key):
+    // generate contextual response grounded strictly on live database RAG context.
     const fallbackText = generateSmartFallbackResponse(trimmedMessage, context);
 
     return NextResponse.json({
