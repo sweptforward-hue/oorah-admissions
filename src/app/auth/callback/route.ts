@@ -10,14 +10,20 @@ export async function GET(request: NextRequest) {
   const error = requestUrl.searchParams.get('error')
   const errorDescription = requestUrl.searchParams.get('error_description')
 
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const forwardedProto = request.headers.get('x-forwarded-proto') || 'https'
+  const origin = forwardedHost
+    ? `${forwardedProto}://${forwardedHost}`
+    : requestUrl.origin
+
   if (error) {
     console.error('OAuth callback error from provider:', error, errorDescription)
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(errorDescription || error)}`, requestUrl.origin)
+      new URL(`/login?error=${encodeURIComponent(errorDescription || error)}`, origin)
     )
   }
 
-  const redirectUrl = new URL(next.startsWith('/') ? next : '/dashboard', requestUrl.origin)
+  const redirectUrl = new URL(next.startsWith('/') ? next : '/dashboard', origin)
   const response = NextResponse.redirect(redirectUrl)
 
   if (code) {
@@ -60,7 +66,7 @@ export async function GET(request: NextRequest) {
     if (exchangeError) {
       console.error('Supabase exchangeCodeForSession error:', exchangeError)
       return NextResponse.redirect(
-        new URL(`/login?error=${encodeURIComponent(exchangeError.message)}`, requestUrl.origin)
+        new URL(`/login?error=${encodeURIComponent(exchangeError.message)}`, origin)
       )
     }
 
