@@ -14,22 +14,15 @@ interface CamperItem {
   votingOpen: boolean
 }
 
-const DEFAULT_ADMIN_CAMPERS: CamperItem[] = [
-  { id: '1', name: 'John Smith', appNum: '1042', status: 'VAAD Review', votingOpen: true },
-  { id: '2', name: 'Sarah Cohen', appNum: '1043', status: 'Accepted', votingOpen: false },
-]
-
 export default function AdminCampersPage() {
-  const [campers, setCampers] = useState<CamperItem[]>(DEFAULT_ADMIN_CAMPERS)
+  const [campers, setCampers] = useState<CamperItem[]>([])
   const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
     async function loadData() {
       try {
         const data = await getAdminCampers()
-        if (data && data.length > 0) {
-          setCampers(data)
-        }
+        setCampers(data || [])
       } catch (e) {
         console.error(e)
       }
@@ -114,31 +107,39 @@ export default function AdminCampersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {campers.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell className="font-semibold text-slate-900">{c.name}</TableCell>
-                <TableCell className="text-slate-500">{c.appNum}</TableCell>
-                <TableCell><Badge variant="secondary">{c.status}</Badge></TableCell>
-                <TableCell>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={isPending}
-                    onClick={() => handleToggleVoting(c.id, c.votingOpen)}
-                  >
-                    {c.votingOpen ? 'Voting Open' : 'Voting Closed'}
-                  </Button>
-                </TableCell>
-                <TableCell className="text-right space-x-2">
-                  <Button size="sm" variant="outline" disabled={isPending} onClick={() => handleManualStatusChange(c.id)}>
-                    Override Status
-                  </Button>
-                  <Button size="sm" variant="destructive" disabled={isPending} onClick={() => handleDeleteCamper(c.id, c.name)}>
-                    Delete
-                  </Button>
+            {campers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-32 text-center text-slate-500">
+                  No camper records found.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              campers.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell className="font-semibold text-slate-900">{c.name}</TableCell>
+                  <TableCell className="text-slate-500">{c.appNum}</TableCell>
+                  <TableCell><Badge variant="secondary">{c.status}</Badge></TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isPending}
+                      onClick={() => handleToggleVoting(c.id, c.votingOpen)}
+                    >
+                      {c.votingOpen ? 'Voting Open' : 'Voting Closed'}
+                    </Button>
+                  </TableCell>
+                  <TableCell className="text-right space-x-2">
+                    <Button size="sm" variant="outline" disabled={isPending} onClick={() => handleManualStatusChange(c.id)}>
+                      Override Status
+                    </Button>
+                    <Button size="sm" variant="destructive" disabled={isPending} onClick={() => handleDeleteCamper(c.id, c.name)}>
+                      Delete
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

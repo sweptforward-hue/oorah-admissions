@@ -380,12 +380,12 @@ describe('Camper Media Management (Photos, Voice Notes, Transcript)', () => {
 })
 
 describe('CamperDetailPage Server Component Media Loading', () => {
-  it('loads camper detail page with fallback media when no database is configured', async () => {
+  it('loads camper detail page with media from database', async () => {
     const CamperDetailPage = (await import('@/app/campers/[id]/page')).default
-    const pageElement = await CamperDetailPage({ params: Promise.resolve({ id: '1' }) })
+    const pageElement = await CamperDetailPage({ params: Promise.resolve({ id: 'kid-real-1' }) })
     render(pageElement)
 
-    expect(screen.getByText('John Smith')).toBeInTheDocument()
+    expect(screen.getByText('Chaim Goldberg')).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Photos' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Documents' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Voice Notes' })).toBeInTheDocument()
@@ -444,4 +444,3 @@ describe('Detail Actions Drive URL Formats', () => {
     expect(transcripts[0].drive_url).toBe('https://drive.google.com/file/d/drive-tr-666/preview')
   })
 })
-
