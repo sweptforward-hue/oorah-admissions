@@ -115,10 +115,10 @@ export async function uploadDocumentToDrive(
     let fileBuffer: Buffer
     if (Buffer.isBuffer(fileData)) {
       fileBuffer = fileData
-    } else if (typeof fileData === 'string') {
+    } else if (typeof fileData === 'string' && fileData.trim()) {
       fileBuffer = Buffer.from(fileData, 'base64')
     } else {
-      fileBuffer = Buffer.from(`Sample content for document: ${fileName}`, 'utf-8')
+      return { success: false, error: 'Document file content or buffer is required' }
     }
 
     const actorId = actor.id
@@ -357,7 +357,7 @@ export async function generateContractPdf(kidId: string) {
   }
 }
 
-export async function uploadSignedContract(kidId: string, signedCopyName?: string) {
+export async function uploadSignedContract(kidId: string, signedCopyName?: string, fileData?: Buffer | string) {
   try {
     const actor = await getCurrentUser()
     if (!actor) {
@@ -369,15 +369,23 @@ export async function uploadSignedContract(kidId: string, signedCopyName?: strin
     const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : 'Camper')
     const appNum = kid?.application_number || kidId
 
+    let fileBuffer: Buffer
+    if (Buffer.isBuffer(fileData)) {
+      fileBuffer = fileData
+    } else if (typeof fileData === 'string' && fileData.trim()) {
+      fileBuffer = Buffer.from(fileData, 'base64')
+    } else {
+      return { success: false, error: 'Signed contract file data is required' }
+    }
+
     const filename = signedCopyName || `Signed_Contract_${kidName.replace(/\s+/g, '_')}_${appNum}.pdf`
-    const dummyBuffer = Buffer.from(`Signed Contract for ${kidName}`, 'utf-8')
 
     const actorId = actor.id
     const uploadResult = await uploadKidMediaAsset({
       kidId,
       kidName,
       category: 'Documents',
-      fileBuffer: dummyBuffer,
+      fileBuffer,
       filename,
       mimeType: 'application/pdf',
       uploadedBy: actorId,
@@ -424,10 +432,10 @@ export async function uploadCamperPhoto(
     const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
 
     let fileBuffer: Buffer
-    if (fileBase64) {
+    if (fileBase64 && fileBase64.trim()) {
       fileBuffer = Buffer.from(fileBase64, 'base64')
     } else {
-      fileBuffer = Buffer.from(`Photo content for ${filename}`, 'utf-8')
+      return { success: false, error: 'Photo file data is required' }
     }
 
     const actorId = actor.id
@@ -529,10 +537,10 @@ export async function uploadCamperVoiceNote(
     const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
 
     let fileBuffer: Buffer
-    if (audioBase64) {
+    if (audioBase64 && audioBase64.trim()) {
       fileBuffer = Buffer.from(audioBase64, 'base64')
     } else {
-      fileBuffer = Buffer.from(`Voice note content for ${filename}`, 'utf-8')
+      return { success: false, error: 'Voice note audio data is required' }
     }
 
     const actorId = actor.id
@@ -633,10 +641,10 @@ export async function uploadCamperTranscript(
     const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
 
     let fileBuffer: Buffer
-    if (fileBase64) {
+    if (fileBase64 && fileBase64.trim()) {
       fileBuffer = Buffer.from(fileBase64, 'base64')
     } else {
-      fileBuffer = Buffer.from(`Transcript content for ${filename}`, 'utf-8')
+      return { success: false, error: 'Transcript file data is required' }
     }
 
     const actorId = actor.id

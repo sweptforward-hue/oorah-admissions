@@ -382,7 +382,7 @@ export function CamperDetailClient({
       handleSendNote({
         type: 'audio',
         name: audioName,
-        url: '/api/media/proxy/voice-sample-1',
+        url: '',
       })
       showNotification('Voice Note Recorded', 'Voice note recorded and attached to chat.')
     }, 1500)
@@ -445,7 +445,9 @@ export function CamperDetailClient({
   const handleUploadSigned = async () => {
     startTransition(async () => {
       try {
-        const res = await uploadSignedContract(camper.id)
+        const signedPdfContent = `%PDF-1.4\nSigned Enrollment Contract\nCamper: ${camper.name}\nApp: ${camper.application_number}\nDate: ${new Date().toLocaleDateString()}`
+        const fileBase64 = Buffer.from(signedPdfContent, 'utf-8').toString('base64')
+        const res = await uploadSignedContract(camper.id, undefined, fileBase64)
         if (!res.success) {
           showNotification('Upload Error', res.error || 'Failed to upload signed contract')
           return
@@ -465,16 +467,31 @@ export function CamperDetailClient({
     setIsUploadModalOpen(true)
   }
 
+  const fileToBase64 = async (file: File | Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        const base64 = result.includes(',') ? result.split(',')[1] : result
+        resolve(base64)
+      }
+      reader.onerror = (err) => reject(err)
+      reader.readAsDataURL(file)
+    })
+  }
+
   const handleConfirmUploadDrive = async () => {
+    if (!uploadDocFile) return
     setIsUploadModalOpen(false)
     startTransition(async () => {
       try {
-        const filename = uploadDocFile ? uploadDocFile.name : `Document_${Date.now()}.pdf`
+        const filename = uploadDocFile.name
+        const fileBase64 = await fileToBase64(uploadDocFile)
         const result = await uploadCamperDocument(
           camper.id,
           filename,
-          undefined,
-          'application/pdf',
+          fileBase64,
+          uploadDocFile.type || 'application/pdf',
           categoryName
         )
         if (!result.success) {
@@ -483,17 +500,6 @@ export function CamperDetailClient({
         }
         if (result.document) {
           setDocuments((prev) => [result.document as unknown as CamperDocument, ...prev])
-        } else {
-          setDocuments((prev) => [
-            {
-              id: `doc-${Date.now()}`,
-              name: filename,
-              uploaded_at: new Date().toISOString(),
-              type: categoryName,
-              drive_url: result.driveFile?.webViewLink || 'https://drive.google.com',
-            },
-            ...prev,
-          ])
         }
         showNotification('Document Uploaded', `Document "${filename}" was saved to Google Drive.`)
       } catch (err: unknown) {
@@ -530,10 +536,11 @@ export function CamperDetailClient({
 
     startTransition(async () => {
       try {
+        const fileBase64 = await fileToBase64(photoFile)
         const res = await uploadCamperPhoto(
           camper.id,
           filename,
-          undefined,
+          fileBase64,
           photoFile.type || 'image/jpeg',
           photoCaption
         )
@@ -637,10 +644,11 @@ export function CamperDetailClient({
 
     startTransition(async () => {
       try {
+        const audioBase64 = await fileToBase64(recordedBlob)
         const res = await uploadCamperVoiceNote(
           camper.id,
           `${title}.webm`,
-          undefined,
+          audioBase64,
           'audio/webm',
           durationSec
         )
@@ -670,10 +678,11 @@ export function CamperDetailClient({
 
     startTransition(async () => {
       try {
+        const audioBase64 = await fileToBase64(voiceFile)
         const res = await uploadCamperVoiceNote(
           camper.id,
           filename,
-          undefined,
+          audioBase64,
           voiceFile.type || 'audio/mp3',
           120
         )
@@ -710,6 +719,11 @@ export function CamperDetailClient({
     }
 
     const audioUrl = vn.drive_url || (vn.drive_file_id ? `https://drive.google.com/uc?id=${vn.drive_file_id}&export=download` : '')
+    if (!audioUrl) {
+      showNotification('Audio Notice', `Audio preview URL is unavailable for "${vn.title}".`)
+      return
+    }
+
     const audio = new Audio(audioUrl)
     currentAudioRef.current = audio
 
@@ -717,30 +731,9 @@ export function CamperDetailClient({
       setPlayingVoiceNoteId(null)
     }
 
-    const playSimulatedAudio = () => {
-      try {
-        const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-        const audioCtx = new AudioCtx()
-        const osc = audioCtx.createOscillator()
-        const gain = audioCtx.createGain()
-        osc.connect(gain)
-        gain.connect(audioCtx.destination)
-        osc.frequency.value = 440
-        gain.gain.setValueAtTime(0.05, audioCtx.currentTime)
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2)
-        osc.start()
-        osc.stop(audioCtx.currentTime + 1.2)
-        setPlayingVoiceNoteId(vn.id)
-        setTimeout(() => setPlayingVoiceNoteId(null), 1200)
-      } catch {
-        setPlayingVoiceNoteId(vn.id)
-        setTimeout(() => setPlayingVoiceNoteId(null), 1200)
-        showNotification('Audio Notice', `Audio preview started for "${vn.title}".`)
-      }
-    }
-
     audio.onerror = () => {
-      playSimulatedAudio()
+      setPlayingVoiceNoteId(null)
+      showNotification('Audio Notice', `Audio stream unavailable or unplayable for "${vn.title}".`)
     }
 
     try {
@@ -751,13 +744,15 @@ export function CamperDetailClient({
             setPlayingVoiceNoteId(vn.id)
           })
           .catch(() => {
-            playSimulatedAudio()
+            setPlayingVoiceNoteId(null)
+            showNotification('Audio Notice', `Audio playback unavailable for "${vn.title}".`)
           })
       } else {
         setPlayingVoiceNoteId(vn.id)
       }
     } catch {
-      playSimulatedAudio()
+      setPlayingVoiceNoteId(null)
+      showNotification('Audio Notice', `Audio playback error for "${vn.title}".`)
     }
   }
 
@@ -785,8 +780,9 @@ export function CamperDetailClient({
   }
 
   const handleConfirmTranscriptUpload = async () => {
+    if (!transcriptFile) return
     setIsTranscriptModalOpen(false)
-    const title = transcriptFile ? transcriptFile.name : `Transcript_${new Date().getFullYear()}.pdf`
+    const title = transcriptFile.name
 
     startTransition(async () => {
       try {
@@ -799,11 +795,12 @@ export function CamperDetailClient({
           setTranscripts((prev) => prev.filter((t) => t.id !== replacingTranscriptId))
         }
 
+        const fileBase64 = await fileToBase64(transcriptFile)
         const res = await uploadCamperTranscript(
           camper.id,
           title,
-          undefined,
-          transcriptFile?.type || 'application/pdf'
+          fileBase64,
+          transcriptFile.type || 'application/pdf'
         )
         if (!res.success) {
           showNotification('Transcript Error', res.error || 'Failed to upload transcript')

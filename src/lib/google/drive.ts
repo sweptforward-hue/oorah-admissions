@@ -232,8 +232,8 @@ export async function verifyDriveConnection(): Promise<{ success: boolean; messa
   const token = await getAccessToken()
   if (!token) {
     return {
-      success: true,
-      message: 'Google Cloud Platform OAuth connection simulated (dev/test environment).',
+      success: false,
+      message: 'Google Drive credentials missing or invalid: GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_PRIVATE_KEY required.',
     }
   }
 
@@ -310,23 +310,13 @@ export async function ensureKidFolderHierarchy(
   kidName: string
 ): Promise<FolderHierarchy> {
   const token = await getAccessToken()
-  const rootConfiguredId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID || 'mock_root'
 
   if (!token) {
-    return {
-      rootFolderId: rootConfiguredId,
-      kidFolderId: `mock_kid_${kidId}`,
-      subfolders: {
-        Photos: `mock_photos_${kidId}`,
-        'Voice Notes': `mock_voice_${kidId}`,
-        Documents: `mock_docs_${kidId}`,
-        Transcripts: `mock_transcripts_${kidId}`,
-        'Chat Exports': `mock_chat_${kidId}`,
-      },
-    }
+    throw new Error('Google Drive access token unavailable. Configure Google Service Account credentials.')
   }
 
-  const rootFolderId = rootConfiguredId !== 'mock_root'
+  const rootConfiguredId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID
+  const rootFolderId = rootConfiguredId
     ? rootConfiguredId
     : await getOrCreateFolder(token, 'Oorah Admissions')
 
@@ -371,16 +361,7 @@ export async function uploadFileToDrive({
   const token = await getAccessToken()
 
   if (!token) {
-    const fakeId = `drive_${Date.now()}_${Math.random().toString(36).substring(7)}`
-    return {
-      id: fakeId,
-      name: filename,
-      mimeType,
-      size: String(fileBuffer.length),
-      webViewLink: `https://drive.google.com/file/d/${fakeId}/view`,
-      webContentLink: `https://drive.google.com/uc?id=${fakeId}&export=download`,
-      thumbnailLink: `https://drive.google.com/thumbnail?id=${fakeId}&sz=w1000`,
-    }
+    throw new Error('Google Drive upload failed: Service Account access token unavailable.')
   }
 
   const boundary = `-------314159265358979323846`
@@ -404,57 +385,33 @@ export async function uploadFileToDrive({
     Buffer.from(closeDelimiter),
   ])
 
-  try {
-    const res = await fetch(
-      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': `multipart/related; boundary=${boundary}`,
-          'Content-Length': String(multipartBody.length),
-        },
-        body: multipartBody,
-      }
-    )
+  const res = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': `multipart/related; boundary=${boundary}`,
+        'Content-Length': String(multipartBody.length),
+      },
+      body: multipartBody,
+    }
+  )
 
-    if (!res.ok) {
-      const errText = await res.text()
-      console.warn(`Google Drive upload returned ${res.status}: ${errText}. Using fallback file metadata.`)
-      const fallbackId = `drive_${Date.now()}_${Math.random().toString(36).substring(7)}`
-      return {
-        id: fallbackId,
-        name: filename,
-        mimeType,
-        size: String(fileBuffer.length),
-        webViewLink: `https://drive.google.com/file/d/${fallbackId}/view`,
-        webContentLink: `https://drive.google.com/uc?id=${fallbackId}&export=download`,
-        thumbnailLink: `https://drive.google.com/thumbnail?id=${fallbackId}&sz=w1000`,
-      }
-    }
+  if (!res.ok) {
+    const errText = await res.text()
+    throw new Error(`Google Drive upload failed (${res.status}): ${errText}`)
+  }
 
-    const data = await res.json()
-    return {
-      id: data.id,
-      name: data.name || filename,
-      mimeType: data.mimeType || mimeType,
-      size: data.size || String(fileBuffer.length),
-      webViewLink: data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`,
-      webContentLink: data.webContentLink || `https://drive.google.com/uc?id=${data.id}&export=download`,
-      thumbnailLink: data.thumbnailLink || `https://drive.google.com/thumbnail?id=${data.id}&sz=w1000`,
-    }
-  } catch (err: unknown) {
-    console.warn('Google Drive direct upload exception:', err)
-    const fallbackId = `drive_${Date.now()}_${Math.random().toString(36).substring(7)}`
-    return {
-      id: fallbackId,
-      name: filename,
-      mimeType,
-      size: String(fileBuffer.length),
-      webViewLink: `https://drive.google.com/file/d/${fallbackId}/view`,
-      webContentLink: `https://drive.google.com/uc?id=${fallbackId}&export=download`,
-      thumbnailLink: `https://drive.google.com/thumbnail?id=${fallbackId}&sz=w1000`,
-    }
+  const data = await res.json()
+  return {
+    id: data.id,
+    name: data.name || filename,
+    mimeType: data.mimeType || mimeType,
+    size: data.size || String(fileBuffer.length),
+    webViewLink: data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`,
+    webContentLink: data.webContentLink || `https://drive.google.com/uc?id=${data.id}&export=download`,
+    thumbnailLink: data.thumbnailLink || `https://drive.google.com/thumbnail?id=${data.id}&sz=w1000`,
   }
 }
 

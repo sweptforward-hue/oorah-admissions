@@ -141,12 +141,8 @@ function headerToKey(header: string): string {
 export async function createGoogleSpreadsheet(title: string, data: ExportData): Promise<{ spreadsheetId: string; spreadsheetUrl: string }> {
   const token = await getAccessToken()
 
-  if (token === 'mock-access-token') {
-    const mockId = `sheet_${Date.now()}`
-    return {
-      spreadsheetId: mockId,
-      spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${mockId}/edit`,
-    }
+  if (!token) {
+    throw new Error('Google Sheets export failed: Google access token unavailable.')
   }
 
   const payload = buildSheetPayload(title, data)
