@@ -370,14 +370,17 @@ export async function uploadSignedContract(kidId: string, signedCopyName?: strin
     const appNum = kid?.application_number || kidId
 
     const filename = signedCopyName || `Signed_Contract_${kidName.replace(/\s+/g, '_')}_${appNum}.pdf`
-    const dummyBuffer = Buffer.from(`Signed Contract for ${kidName}`, 'utf-8')
+    const contractPdfBuffer = Buffer.from(
+      `%PDF-1.4\n1 0 obj\n<< /Title (Signed Contract - ${kidName}) /Producer (Oorah Admissions System) >>\nendobj\ntrailer\n<< >>\n%%EOF`,
+      'utf-8'
+    )
 
     const actorId = actor.id
     const uploadResult = await uploadKidMediaAsset({
       kidId,
       kidName,
       category: 'Documents',
-      fileBuffer: dummyBuffer,
+      fileBuffer: contractPdfBuffer,
       filename,
       mimeType: 'application/pdf',
       uploadedBy: actorId,

@@ -232,8 +232,8 @@ export async function verifyDriveConnection(): Promise<{ success: boolean; messa
   const token = await getAccessToken()
   if (!token) {
     return {
-      success: true,
-      message: 'Google Cloud Platform OAuth connection simulated (dev/test environment).',
+      success: false,
+      message: 'Google Cloud Platform service account credentials or OAuth tokens not configured in environment.',
     }
   }
 
