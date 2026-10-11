@@ -22,7 +22,7 @@ export default async function SessionBCampersPage() {
     const supabase = await createServerSupabaseClient()
     const { data } = await supabase
       .from('kids')
-      .select('id, name, first_name, last_name, application_number, created_at, session, statuses(name)')
+      .select('id, name, first_name, last_name, application_number, created_at, session, bunk, statuses(name)')
       .or('session.eq.Session B,session.is.null')
       .order('created_at', { ascending: false })
 
@@ -37,7 +37,7 @@ export default async function SessionBCampersPage() {
           name: fullName,
           appNum: c.application_number || 'N/A',
           status: statusName || 'New',
-          bunk: 'Unassigned',
+          bunk: c.bunk || 'Unassigned',
           activity: new Date(c.created_at).toLocaleDateString(),
         }
       })

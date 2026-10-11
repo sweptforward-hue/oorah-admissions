@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { createSession, updateSessionSchedule } from '@/lib/admin/actions'
+import { createSession, updateSessionSchedule, getSessions } from '@/lib/admin/actions'
 
 interface SessionItem {
   id: string
@@ -20,6 +20,27 @@ export default function AdminSessionsPage() {
     { id: '2', name: 'Session B', yearName: 'Summer 2025', startDate: '2025-07-30', endDate: '2025-08-26' },
   ])
 
+  useEffect(() => {
+    async function loadSessions() {
+      try {
+        const dbSessions = await getSessions()
+        if (dbSessions && dbSessions.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setSessions(dbSessions.map((s: any) => ({
+            id: String(s.id),
+            name: String(s.name),
+            yearName: 'Summer 2025',
+            startDate: s.start_date || '2025-07-01',
+            endDate: s.end_date || '2025-07-28',
+          })))
+        }
+      } catch (err) {
+        console.error('Failed to load sessions:', err)
+      }
+    }
+    loadSessions()
+  }, [])
+
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [name, setName] = useState('')
   const [startDate, setStartDate] = useState('2026-07-01')
@@ -32,15 +53,19 @@ export default function AdminSessionsPage() {
 
     startTransition(async () => {
       try {
-        await createSession({
+        const newSession = await createSession({
           name: name.trim(),
           start_date: startDate,
           end_date: endDate
         })
-        setSessions([
-          ...sessions,
-          { id: String(Date.now()), name: name.trim(), yearName: 'Summer 2026', startDate, endDate }
-        ])
+        const addedItem: SessionItem = {
+          id: newSession?.id ? String(newSession.id) : String(Date.now()),
+          name: name.trim(),
+          yearName: 'Summer 2026',
+          startDate,
+          endDate
+        }
+        setSessions(prev => [...prev, addedItem])
         setIsAddOpen(false)
         setName('')
       } catch (err: unknown) {
