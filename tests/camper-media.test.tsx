@@ -201,7 +201,7 @@ describe('Camper Media Management (Photos, Voice Notes, Transcript)', () => {
         play = vi.fn().mockResolvedValue(undefined)
         pause = vi.fn()
         onerror: (() => void) | null = null
-      } as any
+      } as unknown as typeof Audio
     }
   })
 
