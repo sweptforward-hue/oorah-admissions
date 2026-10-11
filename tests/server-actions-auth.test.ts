@@ -25,6 +25,11 @@ import {
   updateDriveFolder,
   testDriveConnection
 } from '@/lib/admin/actions'
+import {
+  getUsersWithVaadInfo,
+  updateUser,
+  updateVaadPermissions
+} from '@/lib/users/actions'
 import { createCustomField, updateCustomField } from '@/lib/custom-fields/actions'
 
 vi.mock('@/lib/auth/authorization', async (importOriginal) => {
@@ -213,6 +218,21 @@ describe('Server Actions Authorization Checks', () => {
     it('testDriveConnection calls requireAdminRole', async () => {
       vi.mocked(auth.requireAdminRole).mockRejectedValue(new Error('Unauthorized: Admin role required'))
       await expect(testDriveConnection()).rejects.toThrow('Unauthorized: Admin role required')
+    })
+
+    it('getUsersWithVaadInfo calls requireAdminRole', async () => {
+      vi.mocked(auth.requireAdminRole).mockRejectedValue(new Error('Unauthorized: Admin role required'))
+      await expect(getUsersWithVaadInfo()).rejects.toThrow('Unauthorized: Admin role required')
+    })
+
+    it('updateUser calls requireAdminRole', async () => {
+      vi.mocked(auth.requireAdminRole).mockRejectedValue(new Error('Unauthorized: Admin role required'))
+      await expect(updateUser('u-1', { role: 'admin' })).rejects.toThrow('Unauthorized: Admin role required')
+    })
+
+    it('updateVaadPermissions calls requireAdminRole', async () => {
+      vi.mocked(auth.requireAdminRole).mockRejectedValue(new Error('Unauthorized: Admin role required'))
+      await expect(updateVaadPermissions('u-1', { isVaadMember: true, canContribute: true, canVote: true })).rejects.toThrow('Unauthorized: Admin role required')
     })
   })
 

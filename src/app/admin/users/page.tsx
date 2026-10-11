@@ -35,12 +35,20 @@ export default function StaffPage() {
   }, [fetchUsers])
 
   const handleRoleChange = async (userId: string, role: string) => {
-    await updateUser(userId, { role })
+    setError(null)
+    const result = await updateUser(userId, { role })
+    if (result && 'error' in result && result.error) {
+      setError(result.error)
+    }
     fetchUsers()
   }
 
   const handleToggleActive = async (userId: string, currentActive: boolean) => {
-    await updateUser(userId, { active: !currentActive })
+    setError(null)
+    const result = await updateUser(userId, { active: !currentActive })
+    if (result && 'error' in result && result.error) {
+      setError(result.error)
+    }
     fetchUsers()
   }
 
@@ -50,15 +58,19 @@ export default function StaffPage() {
     value: boolean,
     currentUserInfo: UserWithVaadInfo
   ) => {
+    setError(null)
     const isVaadMember = field === 'isVaadMember' ? value : (currentUserInfo.vaad_member?.is_active ?? false)
     const canContribute = field === 'canContribute' ? value : (currentUserInfo.vaad_member?.can_contribute ?? false)
     const canVote = field === 'canVote' ? value : (currentUserInfo.vaad_member?.can_vote ?? false)
 
-    await updateVaadPermissions(userId, {
+    const result = await updateVaadPermissions(userId, {
       isVaadMember,
       canContribute,
       canVote,
     })
+    if (result && 'error' in result && result.error) {
+      setError(result.error)
+    }
     fetchUsers()
   }
 

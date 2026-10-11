@@ -2,8 +2,8 @@ import puppeteer from 'puppeteer-core';
 import fs from 'fs';
 import path from 'path';
 
-const VERCEL_URL = 'https://oorah-admissions-bzfrontdesk.vercel.app';
-const EVIDENCE_DIR = '/workspaces/oorah-admissions/audit_evidence';
+const VERCEL_URL = process.env.BASE_URL || process.env.APP_URL || 'http://localhost:3000';
+const EVIDENCE_DIR = path.join(process.cwd(), 'audit_evidence');
 
 if (!fs.existsSync(EVIDENCE_DIR)) {
   fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
@@ -51,15 +51,18 @@ async function run() {
   await page.screenshot({ path: path.join(EVIDENCE_DIR, '01_auth_login.png') });
   console.log(`[SAVED] 01_auth_login.png (URL: ${page.url()})`);
 
+  const targetDomain = new URL(VERCEL_URL).hostname;
+  const isSecure = VERCEL_URL.startsWith('https');
+
   // 2. Access Denied (Staff role attempting admin)
   console.log('\n--- 2. Access Denied ---');
   await page.setCookie({
     name: 'oorah_dev_auth',
     value: 'staff',
-    domain: 'oorah-admissions-bzfrontdesk.vercel.app',
+    domain: targetDomain,
     path: '/',
     httpOnly: false,
-    secure: true,
+    secure: isSecure,
   });
   await page.goto(`${VERCEL_URL}/access-denied?reason=admin_required`, { waitUntil: 'networkidle2' });
   await page.screenshot({ path: path.join(EVIDENCE_DIR, '02_auth_access_denied.png') });
@@ -70,10 +73,10 @@ async function run() {
   await page.setCookie({
     name: 'oorah_dev_auth',
     value: 'admin',
-    domain: 'oorah-admissions-bzfrontdesk.vercel.app',
+    domain: targetDomain,
     path: '/',
     httpOnly: false,
-    secure: true,
+    secure: isSecure,
   });
 
   const routes = [

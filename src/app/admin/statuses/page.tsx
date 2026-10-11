@@ -13,19 +13,20 @@ interface Status {
   color_hex: string | null
 }
 
+const FALLBACK_STATUSES: Status[] = [
+  { id: '1', name: 'New', description: 'Application initiated', display_order: 10, active: true, is_default: true, color_hex: '#64748b' },
+  { id: '2', name: 'Under Review', description: 'Staff reviewing documents', display_order: 20, active: true, is_default: false, color_hex: '#3b82f6' },
+  { id: '3', name: 'Interview', description: 'Interview scheduled or prep', display_order: 30, active: true, is_default: false, color_hex: '#8b5cf6' },
+  { id: '4', name: 'VAAD Review', description: 'In committee voting', display_order: 40, active: true, is_default: false, color_hex: '#f59e0b' },
+  { id: '5', name: 'Accepted', description: 'Admitted to camp', display_order: 50, active: true, is_default: false, color_hex: '#22c55e' },
+  { id: '6', name: 'Rejected / Withdrawn', description: 'Declined or withdrawn', display_order: 60, active: true, is_default: false, color_hex: '#ef4444' },
+]
+
 export default function StatusesPage() {
   const [statuses, setStatuses] = useState<Status[]>([])
   const [loading, setLoading] = useState(true)
   const [isAdding, setIsAdding] = useState(false)
   const [newStatusName, setNewStatusName] = useState('')
-  const fallbackStatuses: Status[] = [
-    { id: '1', name: 'New', description: 'Application initiated', display_order: 10, active: true, is_default: true, color_hex: '#64748b' },
-    { id: '2', name: 'Under Review', description: 'Staff reviewing documents', display_order: 20, active: true, is_default: false, color_hex: '#3b82f6' },
-    { id: '3', name: 'Interview', description: 'Interview scheduled or prep', display_order: 30, active: true, is_default: false, color_hex: '#8b5cf6' },
-    { id: '4', name: 'VAAD Review', description: 'In committee voting', display_order: 40, active: true, is_default: false, color_hex: '#f59e0b' },
-    { id: '5', name: 'Accepted', description: 'Admitted to camp', display_order: 50, active: true, is_default: false, color_hex: '#22c55e' },
-    { id: '6', name: 'Rejected / Withdrawn', description: 'Declined or withdrawn', display_order: 60, active: true, is_default: false, color_hex: '#ef4444' },
-  ]
 
   useEffect(() => {
     async function fetchStatuses() {
@@ -36,7 +37,7 @@ export default function StatusesPage() {
       )
 
       if (!hasSupabaseConfig && process.env.NODE_ENV !== 'test') {
-        setStatuses(fallbackStatuses)
+        setStatuses(FALLBACK_STATUSES)
         setLoading(false)
         return
       }
@@ -50,10 +51,10 @@ export default function StatusesPage() {
         if (!error && data && data.length > 0) {
           setStatuses(data)
         } else {
-          setStatuses(fallbackStatuses)
+          setStatuses(FALLBACK_STATUSES)
         }
       } catch {
-        setStatuses(fallbackStatuses)
+        setStatuses(FALLBACK_STATUSES)
       } finally {
         setLoading(false)
       }

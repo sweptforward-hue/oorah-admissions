@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 
 interface VaadChoice {
@@ -12,6 +12,13 @@ interface VaadChoice {
   sort_order: number
 }
 
+const FALLBACK_CHOICES: VaadChoice[] = [
+  { id: '1', label: 'Accept', color: '#22c55e', action: 'accept', active: true, sort_order: 10 },
+  { id: '2', label: 'Reject', color: '#ef4444', action: 'reject', active: true, sort_order: 20 },
+  { id: '3', label: 'Abstain', color: '#64748b', action: 'abstain', active: true, sort_order: 30 },
+  { id: '4', label: 'Request Interview', color: '#8b5cf6', action: 'request_interview', active: true, sort_order: 40 },
+]
+
 export default function VaadChoicesPage() {
   const [choices, setChoices] = useState<VaadChoice[]>([])
   const [loading, setLoading] = useState(true)
@@ -21,18 +28,7 @@ export default function VaadChoicesPage() {
   const [editName, setEditName] = useState('')
   const [editOrder, setEditOrder] = useState<number>(0)
 
-  const fallbackChoices: VaadChoice[] = [
-    { id: '1', label: 'Accept', color: '#22c55e', action: 'accept', active: true, sort_order: 10 },
-    { id: '2', label: 'Reject', color: '#ef4444', action: 'reject', active: true, sort_order: 20 },
-    { id: '3', label: 'Abstain', color: '#64748b', action: 'abstain', active: true, sort_order: 30 },
-    { id: '4', label: 'Request Interview', color: '#8b5cf6', action: 'request_interview', active: true, sort_order: 40 },
-  ]
-
-  useEffect(() => {
-    fetchChoices()
-  }, [])
-
-  async function fetchChoices() {
+  const fetchChoices = useCallback(async () => {
     setLoading(true)
     const hasSupabaseConfig = Boolean(
       process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -40,7 +36,7 @@ export default function VaadChoicesPage() {
     )
 
     if (!hasSupabaseConfig) {
-      setChoices(fallbackChoices)
+      setChoices(FALLBACK_CHOICES)
       setLoading(false)
       return
     }
@@ -62,14 +58,26 @@ export default function VaadChoicesPage() {
           sort_order: c.sort_order ?? c.display_order ?? 0,
         })))
       } else {
-        setChoices(fallbackChoices)
+        setChoices(FALLBACK_CHOICES)
       }
     } catch {
-      setChoices(fallbackChoices)
+      setChoices(FALLBACK_CHOICES)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+    Promise.resolve().then(() => {
+      if (isMounted) {
+        fetchChoices()
+      }
+    })
+    return () => {
+      isMounted = false
+    }
+  }, [fetchChoices])
 
   async function toggleActive(id: string, currentStatus: boolean) {
     if (!currentStatus && !window.confirm('Are you sure you want to reactivate this choice?')) return;
