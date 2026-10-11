@@ -128,63 +128,6 @@ export default async function CamperDetailPage({ params }: PageProps) {
     voting_open: camper.voting_open ?? true,
   };
 
-  const fallbackDocs: CamperDocument[] = [
-    {
-      id: 'doc-demo-1',
-      name: `${camper.name}_Application_Form.pdf`,
-      uploaded_at: camper.created_at,
-      type: 'Application Forms',
-      drive_file_id: 'drive_demo_app_1',
-      drive_url: 'https://drive.google.com/file/d/drive_demo_app_1/preview',
-    },
-    {
-      id: 'doc-demo-2',
-      name: `${camper.name}_Parent_Questionnaire.pdf`,
-      uploaded_at: camper.created_at,
-      type: 'Parent Questionnaire',
-      drive_file_id: 'drive_demo_parent_2',
-      drive_url: 'https://drive.google.com/file/d/drive_demo_parent_2/preview',
-    },
-  ];
-
-  const fallbackPhotos: PhotoItem[] = [
-    {
-      id: 'photo-demo-1',
-      caption: `${camper.name} - Official Headshot`,
-      created_at: camper.created_at,
-      drive_file_id: 'photo_demo_headshot_1',
-      drive_url: 'https://drive.google.com/thumbnail?id=photo_demo_headshot_1&sz=w1000',
-    },
-    {
-      id: 'photo-demo-2',
-      caption: `${camper.name} - Family Group Photo`,
-      created_at: camper.created_at,
-      drive_file_id: 'photo_demo_family_2',
-      drive_url: 'https://drive.google.com/thumbnail?id=photo_demo_family_2&sz=w1000',
-    },
-  ];
-
-  const fallbackVoiceNotes: VoiceNoteItem[] = [
-    {
-      id: 'voice-demo-1',
-      title: 'Parent Intake Phone Interview',
-      duration_seconds: 145,
-      created_at: camper.created_at,
-      drive_file_id: 'voice_demo_interview_1',
-      drive_url: 'https://drive.google.com/uc?id=voice_demo_interview_1&export=download',
-    },
-  ];
-
-  const fallbackTranscripts: TranscriptItem[] = [
-    {
-      id: 'transcript-demo-1',
-      title: `${camper.name}_Academic_Report_Card_2024.pdf`,
-      created_at: camper.created_at,
-      drive_file_id: 'transcript_demo_school_1',
-      drive_url: 'https://drive.google.com/file/d/transcript_demo_school_1/preview',
-    },
-  ];
-
   const initialDocuments: CamperDocument[] = docsData && docsData.length > 0
     ? docsData.map((d: Record<string, unknown>, idx: number) => {
         const driveId = d.drive_file_id ? String(d.drive_file_id) : undefined;
@@ -197,7 +140,7 @@ export default async function CamperDetailPage({ params }: PageProps) {
           drive_url: driveId ? `https://drive.google.com/file/d/${driveId}/preview` : (d.drive_url ? String(d.drive_url) : undefined),
         };
       })
-    : fallbackDocs;
+    : [];
 
   const initialPhotos: PhotoItem[] = photosData && photosData.length > 0
     ? photosData.map((p: Record<string, unknown>, idx: number) => {
@@ -210,7 +153,7 @@ export default async function CamperDetailPage({ params }: PageProps) {
           drive_url: driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000` : (p.drive_url ? String(p.drive_url) : undefined),
         };
       })
-    : fallbackPhotos;
+    : [];
 
   const initialVoiceNotes: VoiceNoteItem[] = voiceData && voiceData.length > 0
     ? voiceData.map((v: Record<string, unknown>, idx: number) => {
@@ -224,7 +167,7 @@ export default async function CamperDetailPage({ params }: PageProps) {
           drive_url: driveId ? `https://drive.google.com/uc?id=${driveId}&export=download` : (v.drive_url ? String(v.drive_url) : undefined),
         };
       })
-    : fallbackVoiceNotes;
+    : [];
 
   // Combine direct transcripts table and documents categorized as transcripts
   const docTranscripts = (docsData || []).filter(
@@ -244,7 +187,7 @@ export default async function CamperDetailPage({ params }: PageProps) {
           drive_url: driveId ? `https://drive.google.com/file/d/${driveId}/preview` : (t.drive_url ? String(t.drive_url) : undefined),
         };
       })
-    : fallbackTranscripts;
+    : [];
 
   return (
     <CamperDetailClient
