@@ -131,4 +131,14 @@ describe('StaffPage', () => {
       canVote: false
     })
   })
+
+  it('renders empty state when no users are returned', async () => {
+    vi.mocked(getUsersWithVaadInfo).mockResolvedValue([])
+
+    render(<StaffPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('No users found')).toBeInTheDocument()
+    })
+  })
 })

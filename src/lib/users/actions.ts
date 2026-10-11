@@ -5,65 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { UserWithVaadInfo } from '@/types/users'
 import { requireAdminRole } from '@/lib/auth/authorization'
 
-const DEFAULT_USERS: UserWithVaadInfo[] = [
-  {
-    id: 'u1',
-    name: 'Rabbi Michael Klein',
-    email: 'michael@oorah.org',
-    role: 'staff',
-    active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    vaad_member: {
-      id: 'vm1',
-      user_id: 'u1',
-      is_active: true,
-      can_contribute: true,
-      can_vote: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-  },
-  {
-    id: 'u2',
-    name: 'David Stern',
-    email: 'dstern@oorah.org',
-    role: 'admin',
-    active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    vaad_member: {
-      id: 'vm2',
-      user_id: 'u2',
-      is_active: true,
-      can_contribute: true,
-      can_vote: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-  },
-  {
-    id: 'u3',
-    name: 'Sarah Levy',
-    email: 'slevy@oorah.org',
-    role: 'staff',
-    active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    vaad_member: null
-  }
-]
-
 export async function getUsersWithVaadInfo(): Promise<UserWithVaadInfo[]> {
   await requireAdminRole()
-  const hasSupabaseConfig = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
-  )
-
-  if (!hasSupabaseConfig && process.env.NODE_ENV !== 'test') {
-    return DEFAULT_USERS
-  }
 
   const supabase = createServerSupabaseClient()
 
@@ -84,8 +27,11 @@ export async function getUsersWithVaadInfo(): Promise<UserWithVaadInfo[]> {
     `)
     .order('name')
 
-  if (error || !data || data.length === 0) {
-    return DEFAULT_USERS
+  if (error || !data) {
+    if (error) {
+      console.error('Error fetching users with VAAD info:', error)
+    }
+    return []
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -104,15 +50,6 @@ export async function updateUser(
   data: { role?: string; active?: boolean }
 ) {
   await requireAdminRole()
-  const hasSupabaseConfig = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
-  )
-
-  if (!hasSupabaseConfig) {
-    revalidatePath('/admin/users')
-    return { success: true }
-  }
 
   const supabase = createServerSupabaseClient()
 
@@ -126,7 +63,7 @@ export async function updateUser(
     .eq('id', userId)
 
   if (error) {
-    return { error: error.message }
+    return { success: false, error: error.message }
   }
 
   revalidatePath('/admin/users')
@@ -138,15 +75,6 @@ export async function updateVaadPermissions(
   data: { isVaadMember: boolean; canContribute: boolean; canVote: boolean }
 ) {
   await requireAdminRole()
-  const hasSupabaseConfig = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
-  )
-
-  if (!hasSupabaseConfig) {
-    revalidatePath('/admin/users')
-    return { success: true }
-  }
 
   const supabase = createServerSupabaseClient()
 
@@ -159,6 +87,7 @@ export async function updateVaadPermissions(
 
     if (error) {
        console.error("Error updating vaad member", error)
+       return { success: false, error: error.message }
     }
 
   } else {
@@ -174,7 +103,7 @@ export async function updateVaadPermissions(
       }, { onConflict: 'user_id' })
 
     if (error) {
-      return { error: error.message }
+      return { success: false, error: error.message }
     }
   }
 
