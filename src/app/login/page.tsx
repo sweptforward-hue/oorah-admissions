@@ -47,19 +47,22 @@ export default function LoginPage() {
           access_token: accessToken,
           refresh_token: refreshToken,
         }).then(() => {
+          const params = new URLSearchParams(window.location.search)
           const next = params.get('next') || '/dashboard'
           router.push(next)
           router.refresh()
         }).catch(() => {
+          const params = new URLSearchParams(window.location.search)
           const next = params.get('next') || '/dashboard'
           router.push(next)
         })
       }
     }
 
-    // 3. Listen for auth state changes (e.g. if OAuth finishes on client)
+    // Listen for auth state changes (e.g. if OAuth finishes on client)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+        const params = new URLSearchParams(window.location.search)
         const next = params.get('next') || '/dashboard'
         router.push(next)
         router.refresh()
