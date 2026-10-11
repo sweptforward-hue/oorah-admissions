@@ -41,7 +41,7 @@ import {
   deleteTranscriptAction,
 } from '@/lib/campers/detail-actions'
 import { triggerExport } from '@/lib/admin/actions'
-import { KidStatus } from '@/types/campers'
+import { KidStatus, VaadVote } from '@/types'
 
 export type { KidStatus }
 
@@ -99,6 +99,7 @@ export interface CamperDetailProps {
   initialPhotos?: PhotoItem[]
   initialVoiceNotes?: VoiceNoteItem[]
   initialTranscripts?: TranscriptItem[]
+  initialVotes?: VaadVote[]
 }
 
 export function CamperDetailClient({
@@ -107,6 +108,7 @@ export function CamperDetailClient({
   initialPhotos = [],
   initialVoiceNotes = [],
   initialTranscripts = [],
+  initialVotes = [],
 }: CamperDetailProps) {
   const router = useRouter()
   const [camper, setCamper] = useState(initialCamper)
@@ -114,6 +116,7 @@ export function CamperDetailClient({
   const [photos, setPhotos] = useState<PhotoItem[]>(initialPhotos)
   const [voiceNotes, setVoiceNotes] = useState<VoiceNoteItem[]>(initialVoiceNotes)
   const [transcripts, setTranscripts] = useState<TranscriptItem[]>(initialTranscripts)
+  const [votes, setVotes] = useState<VaadVote[]>(initialVotes)
   const [hasVoted, setHasVoted] = useState(false)
 
   const [isPending, startTransition] = useTransition()
@@ -860,6 +863,11 @@ export function CamperDetailClient({
     })
   }
 
+  const acceptVotesCount = votes.filter((v) => {
+    const label = v.choice?.label || v.choice?.name || ''
+    return label.toLowerCase() === 'accept'
+  }).length
+
   const handleVote = async (choiceLabel: 'Accept' | 'Reject' | 'Abstain' | 'Request Interview') => {
     startTransition(async () => {
       try {
@@ -869,7 +877,47 @@ export function CamperDetailClient({
           return
         }
         setHasVoted(true)
-        showNotification('Vote Cast', `Recorded vote "${choiceLabel}" for ${camper.name}.`)
+        const newVote: VaadVote = {
+          id: `v-${Date.now()}`,
+          kid_id: camper.id,
+          vaad_member_id: 'current-member',
+          choice_id: `c-${choiceLabel.toLowerCase()}`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          choice: {
+            id: `c-${choiceLabel.toLowerCase()}`,
+            label: choiceLabel,
+            is_active: true,
+            display_order: 1,
+          },
+          member: {
+            id: 'current-member',
+            user_id: 'current-user',
+            is_active: true,
+            can_contribute: true,
+            can_vote: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            user: {
+              name: 'You',
+              email: 'voter@oorah.org',
+            },
+          },
+        }
+        const updatedVotes = [...votes, newVote]
+        setVotes(updatedVotes)
+
+        const newAcceptCount = updatedVotes.filter((v) => {
+          const l = v.choice?.label || v.choice?.name || ''
+          return l.toLowerCase() === 'accept'
+        }).length
+
+        if (newAcceptCount >= 2) {
+          setCamper((prev) => ({ ...prev, status: 'Accepted' }))
+          showNotification('Consensus Reached!', `Vote "${choiceLabel}" recorded. Camper ${camper.name} has accumulated ${newAcceptCount} Accept votes and automatically advanced to "Accepted".`)
+        } else {
+          showNotification('Vote Cast', `Recorded vote "${choiceLabel}" for ${camper.name}.`)
+        }
       } catch (err: unknown) {
         showNotification('Vote Error', (err as Error).message || 'Failed to submit vote')
       }
@@ -1509,18 +1557,34 @@ export function CamperDetailClient({
                 </Button>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="p-4 bg-slate-50 border rounded-lg flex items-center justify-between">
-                  <div>
-                    <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">
-                      Voting Status
-                    </span>
-                    <span className="text-lg font-bold text-slate-900">
-                      {camper.voting_open ? 'Voting Open' : 'Voting Locked'}
-                    </span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-slate-50 border rounded-lg flex items-center justify-between">
+                    <div>
+                      <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">
+                        Voting Status
+                      </span>
+                      <span className="text-lg font-bold text-slate-900">
+                        {camper.voting_open ? 'Voting Open' : 'Voting Locked'}
+                      </span>
+                    </div>
+                    <Badge variant={camper.voting_open ? 'default' : 'secondary'}>
+                      {camper.voting_open ? 'Ballots Active' : 'Decision Finalized'}
+                    </Badge>
                   </div>
-                  <Badge variant={camper.voting_open ? 'default' : 'secondary'}>
-                    {camper.voting_open ? 'Ballots Active' : 'Decision Finalized'}
-                  </Badge>
+
+                  <div className="p-4 bg-slate-50 border rounded-lg flex items-center justify-between">
+                    <div>
+                      <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider block">
+                        Consensus Progress
+                      </span>
+                      <span className="text-lg font-bold text-slate-900">
+                        {acceptVotesCount} / 2 Accept Votes
+                      </span>
+                    </div>
+                    <Badge variant={acceptVotesCount >= 2 ? 'default' : 'outline'}>
+                      {acceptVotesCount >= 2 ? 'Consensus Reached' : 'In Progress'}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
@@ -1560,6 +1624,36 @@ export function CamperDetailClient({
                       Request Interview
                     </Button>
                   </div>
+                </div>
+
+                {/* Recorded Votes Summary */}
+                <div className="pt-4 border-t space-y-3">
+                  <span className="text-sm font-semibold text-slate-800 block">
+                    Recorded Votes ({votes.length})
+                  </span>
+                  {votes.length === 0 ? (
+                    <p className="text-xs text-slate-500 italic">No votes cast for this applicant yet.</p>
+                  ) : (
+                    <div className="divide-y border rounded-lg">
+                      {votes.map((v) => {
+                        const voterName = v.member?.user?.name || 'VAAD Member'
+                        const choiceLabel = v.choice?.label || v.choice?.name || 'Vote'
+                        return (
+                          <div key={v.id} className="p-3 flex items-center justify-between text-xs">
+                            <div>
+                              <span className="font-semibold text-slate-800 block">{voterName}</span>
+                              <span className="text-slate-400">{new Date(v.created_at).toLocaleString()}</span>
+                            </div>
+                            <Badge
+                              variant={choiceLabel.toLowerCase() === 'accept' ? 'default' : 'secondary'}
+                            >
+                              {choiceLabel}
+                            </Badge>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

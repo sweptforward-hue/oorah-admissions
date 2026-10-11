@@ -7,7 +7,7 @@ import {
   VoiceNoteItem,
   TranscriptItem,
 } from '@/components/campers/camper-detail-client';
-import { Kid, KidStatus } from '@/types';
+import { Kid, KidStatus, VaadVote } from '@/types';
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -27,6 +27,7 @@ export default async function CamperDetailPage({ params }: PageProps) {
   let photosData: Array<Record<string, unknown>> | null = null;
   let voiceData: Array<Record<string, unknown>> | null = null;
   let transcriptsData: Array<Record<string, unknown>> | null = null;
+  let votesData: VaadVote[] = [];
 
   if (!hasSupabaseConfig) {
     camper = {
@@ -92,7 +93,7 @@ export default async function CamperDetailPage({ params }: PageProps) {
       };
     }
 
-    const [fetchedDocsRes, fetchedPhotosRes, fetchedVoiceRes, fetchedTranscriptsRes] = await Promise.all([
+    const [fetchedDocsRes, fetchedPhotosRes, fetchedVoiceRes, fetchedTranscriptsRes, fetchedVotesRes] = await Promise.all([
       supabase
         .from('documents')
         .select('*')
@@ -113,12 +114,21 @@ export default async function CamperDetailPage({ params }: PageProps) {
         .select('*')
         .eq('kid_id', id)
         .order('created_at', { ascending: false }),
+      supabase
+        .from('vaad_votes')
+        .select(`
+          *,
+          choice:vaad_choices(*),
+          member:vaad_members(*, user:users(name, email))
+        `)
+        .eq('kid_id', id),
     ]);
 
     docsData = fetchedDocsRes.data || null;
     photosData = fetchedPhotosRes.data || null;
     voiceData = fetchedVoiceRes.data || null;
     transcriptsData = fetchedTranscriptsRes.data || null;
+    votesData = (fetchedVotesRes.data as VaadVote[]) || [];
   }
 
   if (!camper) return notFound();
@@ -253,6 +263,7 @@ export default async function CamperDetailPage({ params }: PageProps) {
       initialPhotos={initialPhotos}
       initialVoiceNotes={initialVoiceNotes}
       initialTranscripts={initialTranscripts}
+      initialVotes={votesData}
     />
   );
 }

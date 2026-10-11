@@ -221,8 +221,6 @@ export async function deleteDocumentAction(
   }
 }
 
-const userVotesMemory = new Set<string>()
-
 export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 'Reject' | 'Abstain' | 'Request Interview') {
   try {
     const actor = await getCurrentUser()
@@ -230,65 +228,44 @@ export async function castVaadVoteAction(kidId: string, choiceLabel: 'Accept' | 
       return { success: false, error: 'Unauthorized: Authentication required' }
     }
 
-    const voteKey = `${actor.id}_${kidId}`
-    if (userVotesMemory.has(voteKey)) {
-      return { success: false, error: 'You should only be able to vote once. You have already cast a vote for this applicant.' }
-    }
-
-    const hasSupabaseConfig = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL)
-    if (!hasSupabaseConfig) {
-      userVotesMemory.add(voteKey)
-      revalidatePath(`/campers/${kidId}`)
-      return { success: true }
-    }
-
     const supabase = createServerSupabaseClient()
-
-    // Check if user has already voted on this camper
-    try {
-      const { data: existingVote } = await supabase
-        .from('vaad_votes')
-        .select('id')
-        .eq('kid_id', kidId)
-        .eq('voter_id', actor.id)
-        .maybeSingle()
-
-      if (existingVote) {
-        userVotesMemory.add(voteKey)
-        return { success: false, error: 'You should only be able to vote once. You have already cast a vote for this applicant.' }
-      }
-    } catch {}
 
     let { data: choice } = await supabase
       .from('vaad_choices')
       .select('id')
-      .ilike('label', `%${choiceLabel}%`)
+      .ilike('label', choiceLabel)
       .limit(1)
-      .single()
+      .maybeSingle()
 
     if (!choice) {
-      const { data: newChoice } = await supabase
+      const { data: fallbackChoice } = await supabase
+        .from('vaad_choices')
+        .select('id')
+        .ilike('label', `%${choiceLabel}%`)
+        .limit(1)
+        .maybeSingle()
+      choice = fallbackChoice
+    }
+
+    if (!choice) {
+      const { data: newChoice, error: createChoiceError } = await supabase
         .from('vaad_choices')
         .insert({ label: choiceLabel, action: choiceLabel.toLowerCase().replace(/\s+/g, '_'), active: true })
         .select('id')
         .single()
+
+      if (createChoiceError || !newChoice) {
+        return { success: false, error: 'Failed to locate or initialize VAAD voting choice' }
+      }
       choice = newChoice
     }
 
-    if (choice?.id) {
-      try {
-        await submitVote(supabase, kidId, choice.id)
-      } catch (e: unknown) {
-        const errMsg = (e as Error)?.message || ''
-        if (errMsg.includes('Duplicate vote') || errMsg.includes('vote once') || errMsg.includes('already voted')) {
-          userVotesMemory.add(voteKey)
-          return { success: false, error: 'You should only be able to vote once. You have already cast a vote for this applicant.' }
-        }
-        console.warn('RPC submit_vaad_vote failed or bypassed in test environment:', e)
-      }
+    try {
+      await submitVote(supabase, kidId, choice.id)
+    } catch (e: unknown) {
+      const errMsg = (e as Error)?.message || 'Failed to submit vote'
+      return { success: false, error: errMsg }
     }
-
-    userVotesMemory.add(voteKey)
 
     const actorId = actor.id
     try {
@@ -911,4 +888,3 @@ export async function getKidTranscripts(kidId: string): Promise<TranscriptItem[]
     return []
   }
 }
-

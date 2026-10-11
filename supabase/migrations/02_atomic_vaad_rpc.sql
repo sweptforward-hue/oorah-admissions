@@ -11,6 +11,7 @@ SECURITY DEFINER
 AS $$
 DECLARE
     v_voter_id UUID;
+    v_member_id UUID;
     v_is_voter BOOLEAN;
     v_accept_choice_id UUID;
     v_accepted_status_id UUID;
@@ -23,28 +24,34 @@ BEGIN
     END IF;
 
     -- Verify voter is an active VAAD member
-    SELECT can_vote INTO v_is_voter
+    SELECT id, COALESCE(can_vote, true) INTO v_member_id, v_is_voter
     FROM public.vaad_members
-    WHERE user_id = v_voter_id AND active = true;
+    WHERE user_id = v_voter_id AND (active = true OR is_active = true) LIMIT 1;
 
-    IF v_is_voter IS NOT TRUE THEN
-        RAISE EXCEPTION 'Caller is not authorized to cast VAAD votes';
+    IF v_member_id IS NULL OR v_is_voter IS NOT TRUE THEN
+        RAISE EXCEPTION 'User is not an active VAAD voter';
+    END IF;
+
+    -- Verify choice is active
+    PERFORM 1 FROM public.vaad_choices WHERE id = p_choice_id AND (active = true OR is_active = true);
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Invalid or inactive voting choice';
     END IF;
 
     -- Concurrency row lock on kids table
     PERFORM 1 FROM public.kids WHERE id = p_kid_id FOR UPDATE;
 
     -- Upsert vote
-    INSERT INTO public.vaad_votes (kid_id, voter_id, choice_id, comments, updated_at)
-    VALUES (p_kid_id, v_voter_id, p_choice_id, p_comments, now())
-    ON CONFLICT (kid_id, voter_id)
+    INSERT INTO public.vaad_votes (kid_id, voter_id, vaad_member_id, choice_id, comments, updated_at)
+    VALUES (p_kid_id, v_voter_id, v_member_id, p_choice_id, p_comments, now())
+    ON CONFLICT (kid_id, vaad_member_id)
     DO UPDATE SET
         choice_id = EXCLUDED.choice_id,
         comments = EXCLUDED.comments,
         updated_at = now();
 
     -- Count total 'Accept' votes
-    SELECT id INTO v_accept_choice_id FROM public.vaad_choices WHERE label = 'Accept' LIMIT 1;
+    SELECT id INTO v_accept_choice_id FROM public.vaad_choices WHERE lower(label) = 'accept' LIMIT 1;
     
     SELECT COUNT(*) INTO v_accept_count
     FROM public.vaad_votes
@@ -52,7 +59,7 @@ BEGIN
 
     -- If >= 2 Accept votes, automatically transition status to Accepted
     IF v_accept_count >= 2 THEN
-        SELECT id INTO v_accepted_status_id FROM public.statuses WHERE name = 'Accepted' LIMIT 1;
+        SELECT id INTO v_accepted_status_id FROM public.statuses WHERE lower(name) = 'accepted' LIMIT 1;
         SELECT status_id INTO v_current_status_id FROM public.kids WHERE id = p_kid_id;
 
         IF v_accepted_status_id IS NOT NULL AND (v_current_status_id IS NULL OR v_current_status_id != v_accepted_status_id) THEN
