@@ -1,0 +1,50 @@
+
+> oorah-admissions@0.1.0 dev
+> next dev
+
+▲ Next.js 16.3.5 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 579ms
+✓ Running next.config.ts took 47ms
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+
+○ Compiling /login ...
+ GET /login 200 in 5.1s (next.js: 4.5s, proxy.ts: 9ms, application-code: 679ms)
+ GET /login 200 in 182ms (next.js: 8ms, proxy.ts: 24ms, application-code: 150ms)
+ GET /login 200 in 82ms (next.js: 11ms, proxy.ts: 12ms, application-code: 58ms)
+ GET /dashboard 200 in 1378ms (next.js: 1226ms, proxy.ts: 16ms, application-code: 137ms)
+ GET /dashboard 200 in 72ms (next.js: 12ms, proxy.ts: 11ms, application-code: 49ms)
+ GET /kids/1 404 in 595ms (next.js: 513ms, proxy.ts: 8ms, application-code: 74ms)
+⨯ Error: aborted
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+⨯ Error: aborted
+    at ignore-listed frames {
+  code: 'ECONNRESET'
+}
+ GET /login 200 in 85ms (next.js: 14ms, proxy.ts: 10ms, application-code: 61ms)
+ GET /dashboard 200 in 65ms (next.js: 10ms, proxy.ts: 12ms, application-code: 43ms)
+ GET /dashboard 200 in 65ms (next.js: 8ms, proxy.ts: 12ms, application-code: 45ms)
+ POST /dashboard 200 in 88ms (next.js: 16ms, proxy.ts: 8ms, application-code: 64ms)
+  └─ ƒ getCurrentUser() in 3ms src/lib/auth/authorization.ts
+ POST /dashboard 200 in 29ms (next.js: 4ms, proxy.ts: 8ms, application-code: 17ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ GET /campers 200 in 1099ms (next.js: 876ms, proxy.ts: 5ms, application-code: 218ms)
+ POST /campers 200 in 32ms (next.js: 5ms, proxy.ts: 9ms, application-code: 18ms)
+  └─ ƒ getCurrentUser() in 4ms src/lib/auth/authorization.ts
+ POST /campers 200 in 23ms (next.js: 4ms, proxy.ts: 7ms, application-code: 11ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ GET /login 200 in 71ms (next.js: 6ms, proxy.ts: 7ms, application-code: 58ms)
+ GET /dashboard 200 in 39ms (next.js: 5ms, proxy.ts: 6ms, application-code: 27ms)
+ GET /dashboard 200 in 65ms (next.js: 10ms, proxy.ts: 10ms, application-code: 46ms)
+ POST /dashboard 200 in 33ms (next.js: 7ms, proxy.ts: 11ms, application-code: 15ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ POST /dashboard 200 in 56ms (next.js: 24ms, proxy.ts: 16ms, application-code: 16ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ GET /admin/storage 200 in 785ms (next.js: 685ms, proxy.ts: 4ms, application-code: 96ms)

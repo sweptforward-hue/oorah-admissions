@@ -115,10 +115,10 @@ export async function uploadDocumentToDrive(
     let fileBuffer: Buffer
     if (Buffer.isBuffer(fileData)) {
       fileBuffer = fileData
-    } else if (typeof fileData === 'string') {
+    } else if (typeof fileData === 'string' && fileData.trim() !== '') {
       fileBuffer = Buffer.from(fileData, 'base64')
     } else {
-      fileBuffer = Buffer.from(`Sample content for document: ${fileName}`, 'utf-8')
+      return { success: false, error: 'File data is required for document upload' }
     }
 
     const actorId = actor.id
@@ -426,12 +426,10 @@ export async function uploadCamperPhoto(
     const { data: kid } = await supabase.from('kids').select('name, first_name, last_name').eq('id', kidId).single()
     const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
 
-    let fileBuffer: Buffer
-    if (fileBase64) {
-      fileBuffer = Buffer.from(fileBase64, 'base64')
-    } else {
-      fileBuffer = Buffer.from(`Photo content for ${filename}`, 'utf-8')
+    if (!fileBase64 || !fileBase64.trim()) {
+      return { success: false, error: 'Photo base64 content is required' }
     }
+    const fileBuffer = Buffer.from(fileBase64, 'base64')
 
     const actorId = actor.id
     const uploadResult = await uploadKidMediaAsset({
@@ -531,12 +529,10 @@ export async function uploadCamperVoiceNote(
     const { data: kid } = await supabase.from('kids').select('name, first_name, last_name').eq('id', kidId).single()
     const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
 
-    let fileBuffer: Buffer
-    if (audioBase64) {
-      fileBuffer = Buffer.from(audioBase64, 'base64')
-    } else {
-      fileBuffer = Buffer.from(`Voice note content for ${filename}`, 'utf-8')
+    if (!audioBase64 || !audioBase64.trim()) {
+      return { success: false, error: 'Voice note audio base64 content is required' }
     }
+    const fileBuffer = Buffer.from(audioBase64, 'base64')
 
     const actorId = actor.id
     const uploadResult = await uploadKidMediaAsset({
@@ -635,12 +631,10 @@ export async function uploadCamperTranscript(
     const { data: kid } = await supabase.from('kids').select('name, first_name, last_name').eq('id', kidId).single()
     const kidName = kid?.name || (kid?.first_name && kid?.last_name ? `${kid.first_name} ${kid.last_name}` : `Kid_${kidId}`)
 
-    let fileBuffer: Buffer
-    if (fileBase64) {
-      fileBuffer = Buffer.from(fileBase64, 'base64')
-    } else {
-      fileBuffer = Buffer.from(`Transcript content for ${filename}`, 'utf-8')
+    if (!fileBase64 || !fileBase64.trim()) {
+      return { success: false, error: 'Transcript base64 content is required' }
     }
+    const fileBuffer = Buffer.from(fileBase64, 'base64')
 
     const actorId = actor.id
     const uploadResult = await uploadKidMediaAsset({
@@ -911,4 +905,3 @@ export async function getKidTranscripts(kidId: string): Promise<TranscriptItem[]
     return []
   }
 }
-

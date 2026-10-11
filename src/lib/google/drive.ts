@@ -310,23 +310,12 @@ export async function ensureKidFolderHierarchy(
   kidName: string
 ): Promise<FolderHierarchy> {
   const token = await getAccessToken()
-  const rootConfiguredId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID || 'mock_root'
-
   if (!token) {
-    return {
-      rootFolderId: rootConfiguredId,
-      kidFolderId: `mock_kid_${kidId}`,
-      subfolders: {
-        Photos: `mock_photos_${kidId}`,
-        'Voice Notes': `mock_voice_${kidId}`,
-        Documents: `mock_docs_${kidId}`,
-        Transcripts: `mock_transcripts_${kidId}`,
-        'Chat Exports': `mock_chat_${kidId}`,
-      },
-    }
+    throw new Error('Google Drive access token unavailable. Real Drive authentication required.')
   }
 
-  const rootFolderId = rootConfiguredId !== 'mock_root'
+  const rootConfiguredId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID
+  const rootFolderId = rootConfiguredId
     ? rootConfiguredId
     : await getOrCreateFolder(token, 'Oorah Admissions')
 
@@ -371,16 +360,7 @@ export async function uploadFileToDrive({
   const token = await getAccessToken()
 
   if (!token) {
-    const fakeId = `drive_${Date.now()}_${Math.random().toString(36).substring(7)}`
-    return {
-      id: fakeId,
-      name: filename,
-      mimeType,
-      size: String(fileBuffer.length),
-      webViewLink: `https://drive.google.com/file/d/${fakeId}/view`,
-      webContentLink: `https://drive.google.com/uc?id=${fakeId}&export=download`,
-      thumbnailLink: `https://drive.google.com/thumbnail?id=${fakeId}&sz=w1000`,
-    }
+    throw new Error('Google Drive access token unavailable. Real Drive authentication required.')
   }
 
   const boundary = `-------314159265358979323846`
@@ -404,57 +384,33 @@ export async function uploadFileToDrive({
     Buffer.from(closeDelimiter),
   ])
 
-  try {
-    const res = await fetch(
-      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': `multipart/related; boundary=${boundary}`,
-          'Content-Length': String(multipartBody.length),
-        },
-        body: multipartBody,
-      }
-    )
+  const res = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': `multipart/related; boundary=${boundary}`,
+        'Content-Length': String(multipartBody.length),
+      },
+      body: multipartBody,
+    }
+  )
 
-    if (!res.ok) {
-      const errText = await res.text()
-      console.warn(`Google Drive upload returned ${res.status}: ${errText}. Using fallback file metadata.`)
-      const fallbackId = `drive_${Date.now()}_${Math.random().toString(36).substring(7)}`
-      return {
-        id: fallbackId,
-        name: filename,
-        mimeType,
-        size: String(fileBuffer.length),
-        webViewLink: `https://drive.google.com/file/d/${fallbackId}/view`,
-        webContentLink: `https://drive.google.com/uc?id=${fallbackId}&export=download`,
-        thumbnailLink: `https://drive.google.com/thumbnail?id=${fallbackId}&sz=w1000`,
-      }
-    }
+  if (!res.ok) {
+    const errText = await res.text()
+    throw new Error(`Google Drive upload failed with status ${res.status}: ${errText}`)
+  }
 
-    const data = await res.json()
-    return {
-      id: data.id,
-      name: data.name || filename,
-      mimeType: data.mimeType || mimeType,
-      size: data.size || String(fileBuffer.length),
-      webViewLink: data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`,
-      webContentLink: data.webContentLink || `https://drive.google.com/uc?id=${data.id}&export=download`,
-      thumbnailLink: data.thumbnailLink || `https://drive.google.com/thumbnail?id=${data.id}&sz=w1000`,
-    }
-  } catch (err: unknown) {
-    console.warn('Google Drive direct upload exception:', err)
-    const fallbackId = `drive_${Date.now()}_${Math.random().toString(36).substring(7)}`
-    return {
-      id: fallbackId,
-      name: filename,
-      mimeType,
-      size: String(fileBuffer.length),
-      webViewLink: `https://drive.google.com/file/d/${fallbackId}/view`,
-      webContentLink: `https://drive.google.com/uc?id=${fallbackId}&export=download`,
-      thumbnailLink: `https://drive.google.com/thumbnail?id=${fallbackId}&sz=w1000`,
-    }
+  const data = await res.json()
+  return {
+    id: data.id,
+    name: data.name || filename,
+    mimeType: data.mimeType || mimeType,
+    size: data.size || String(fileBuffer.length),
+    webViewLink: data.webViewLink || `https://drive.google.com/file/d/${data.id}/view`,
+    webContentLink: data.webContentLink || `https://drive.google.com/uc?id=${data.id}&export=download`,
+    thumbnailLink: data.thumbnailLink || `https://drive.google.com/thumbnail?id=${data.id}&sz=w1000`,
   }
 }
 
@@ -507,266 +463,60 @@ export async function uploadKidMediaAsset(params: UploadKidMediaAssetParams) {
   const supabase = createServerSupabaseClient()
   let dbRecord: DbMediaRecord | null = null
 
-async function insertMediaWithFallbacks(
-  supabase: ReturnType<typeof createServerSupabaseClient>,
-  table: string,
-  primaryPayload: Record<string, unknown>,
-  fallbackPayloads: Record<string, unknown>[],
-  syntheticFallback: DbMediaRecord
-): Promise<DbMediaRecord> {
-  try {
+  if (category === 'Transcripts' || category === 'Documents') {
+    const docType = category === 'Transcripts' ? 'Transcript' : (documentType || 'General')
     const { data, error } = await supabase
-      .from(table)
-      .insert(primaryPayload)
+      .from('documents')
+      .insert({
+        kid_id: kidId,
+        name: filename,
+        file_type: mimeType,
+        file_size: fileBuffer.length,
+        drive_file_id: driveFile.id,
+        uploader_id: uploadedBy || null,
+        document_type: docType,
+      })
       .select()
       .single()
 
-    if (!error && data) return data as unknown as DbMediaRecord
-  } catch {
-    // continue to fallbacks
-  }
-
-  for (const payload of fallbackPayloads) {
-    try {
-      const { data, error } = await supabase
-        .from(table)
-        .insert(payload)
-        .select()
-        .single()
-
-      if (!error && data) return data as unknown as DbMediaRecord
-    } catch {
-      // continue
+    if (error) {
+      throw new Error(`Failed to insert document record into database: ${error.message}`)
     }
-  }
-
-  return syntheticFallback
-}
-
-  if (category === 'Transcripts') {
-    dbRecord = await insertMediaWithFallbacks(
-      supabase,
-      'documents',
-      {
-        kid_id: kidId,
-        name: filename,
-        filename: filename,
-        file_type: mimeType,
-        mime_type: mimeType,
-        file_size: fileBuffer.length,
-        drive_file_id: driveFile.id,
-        uploader_id: uploadedBy || null,
-        uploaded_by: uploadedBy || null,
-        document_type: 'Transcript',
-      },
-      [
-        {
-          kid_id: kidId,
-          filename: filename,
-          mime_type: mimeType,
-          drive_file_id: driveFile.id,
-          uploaded_by: uploadedBy || null,
-          document_type: 'Transcript',
-        },
-        {
-          kid_id: kidId,
-          name: filename,
-          file_type: mimeType,
-          file_size: fileBuffer.length,
-          drive_file_id: driveFile.id,
-          uploader_id: uploadedBy || null,
-          document_type: 'Transcript',
-        },
-        {
-          kid_id: kidId,
-          name: filename,
-          drive_file_id: driveFile.id,
-        },
-        {
-          kid_id: kidId,
-          filename: filename,
-          drive_file_id: driveFile.id,
-        },
-      ],
-      {
-        id: `doc_${Date.now()}`,
-        kid_id: kidId,
-        name: filename,
-        filename: filename,
-        document_type: 'Transcript',
-        file_type: mimeType,
-        mime_type: mimeType,
-        file_size: fileBuffer.length,
-        drive_file_id: driveFile.id,
-        uploader_id: uploadedBy || null,
-        uploaded_by: uploadedBy || null,
-        created_at: new Date().toISOString(),
-      }
-    )
-  } else if (category === 'Documents') {
-    dbRecord = await insertMediaWithFallbacks(
-      supabase,
-      'documents',
-      {
-        kid_id: kidId,
-        name: filename,
-        filename: filename,
-        file_type: mimeType,
-        mime_type: mimeType,
-        file_size: fileBuffer.length,
-        drive_file_id: driveFile.id,
-        uploader_id: uploadedBy || null,
-        uploaded_by: uploadedBy || null,
-        document_type: documentType || 'General',
-      },
-      [
-        {
-          kid_id: kidId,
-          filename: filename,
-          mime_type: mimeType,
-          drive_file_id: driveFile.id,
-          uploaded_by: uploadedBy || null,
-          document_type: documentType || 'General',
-        },
-        {
-          kid_id: kidId,
-          name: filename,
-          file_type: mimeType,
-          file_size: fileBuffer.length,
-          drive_file_id: driveFile.id,
-          uploader_id: uploadedBy || null,
-          document_type: documentType || 'General',
-        },
-        {
-          kid_id: kidId,
-          name: filename,
-          drive_file_id: driveFile.id,
-        },
-        {
-          kid_id: kidId,
-          filename: filename,
-          drive_file_id: driveFile.id,
-        },
-      ],
-      {
-        id: `doc_${Date.now()}`,
-        kid_id: kidId,
-        name: filename,
-        filename: filename,
-        document_type: documentType || 'General',
-        file_type: mimeType,
-        mime_type: mimeType,
-        file_size: fileBuffer.length,
-        drive_file_id: driveFile.id,
-        uploader_id: uploadedBy || null,
-        uploaded_by: uploadedBy || null,
-        created_at: new Date().toISOString(),
-      }
-    )
+    dbRecord = data as unknown as DbMediaRecord
   } else if (category === 'Photos') {
     const photoCaption = caption || filename
-    dbRecord = await insertMediaWithFallbacks(
-      supabase,
-      'photos',
-      {
+    const { data, error } = await supabase
+      .from('photos')
+      .insert({
         kid_id: kidId,
-        filename: filename,
         caption: photoCaption,
         drive_file_id: driveFile.id,
         uploader_id: uploadedBy || null,
-        uploaded_by: uploadedBy || null,
-      },
-      [
-        {
-          kid_id: kidId,
-          filename: filename,
-          caption: photoCaption,
-          drive_file_id: driveFile.id,
-          uploaded_by: uploadedBy || null,
-        },
-        {
-          kid_id: kidId,
-          caption: photoCaption,
-          drive_file_id: driveFile.id,
-          uploader_id: uploadedBy || null,
-        },
-        {
-          kid_id: kidId,
-          caption: photoCaption,
-          drive_file_id: driveFile.id,
-        },
-        {
-          kid_id: kidId,
-          filename: filename,
-          drive_file_id: driveFile.id,
-        },
-      ],
-      {
-        id: `photo_${Date.now()}`,
-        kid_id: kidId,
-        filename: filename,
-        caption: photoCaption,
-        drive_file_id: driveFile.id,
-        uploader_id: uploadedBy || null,
-        uploaded_by: uploadedBy || null,
-        created_at: new Date().toISOString(),
-      }
-    )
+      })
+      .select()
+      .single()
+
+    if (error) {
+      throw new Error(`Failed to insert photo record into database: ${error.message}`)
+    }
+    dbRecord = data as unknown as DbMediaRecord
   } else if (category === 'Voice Notes') {
-    dbRecord = await insertMediaWithFallbacks(
-      supabase,
-      'voice_notes',
-      {
+    const { data, error } = await supabase
+      .from('voice_notes')
+      .insert({
         kid_id: kidId,
         title: filename,
-        filename: filename,
-        caption: filename,
-        duration: duration || 0,
         duration_seconds: duration || 0,
         drive_file_id: driveFile.id,
         uploader_id: uploadedBy || null,
-        uploaded_by: uploadedBy || null,
-      },
-      [
-        {
-          kid_id: kidId,
-          filename: filename,
-          caption: filename,
-          duration: duration || 0,
-          drive_file_id: driveFile.id,
-          uploaded_by: uploadedBy || null,
-        },
-        {
-          kid_id: kidId,
-          title: filename,
-          duration_seconds: duration || 0,
-          drive_file_id: driveFile.id,
-          uploader_id: uploadedBy || null,
-        },
-        {
-          kid_id: kidId,
-          title: filename,
-          drive_file_id: driveFile.id,
-        },
-        {
-          kid_id: kidId,
-          filename: filename,
-          drive_file_id: driveFile.id,
-        },
-      ],
-      {
-        id: `vn_${Date.now()}`,
-        kid_id: kidId,
-        title: filename,
-        filename: filename,
-        duration: duration || 0,
-        duration_seconds: duration || 0,
-        drive_file_id: driveFile.id,
-        uploader_id: uploadedBy || null,
-        uploaded_by: uploadedBy || null,
-        created_at: new Date().toISOString(),
-      }
-    )
+      })
+      .select()
+      .single()
+
+    if (error) {
+      throw new Error(`Failed to insert voice note record into database: ${error.message}`)
+    }
+    dbRecord = data as unknown as DbMediaRecord
   }
 
   // Record audit log entry
