@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Navbar } from "@/components/layout/Navbar";
 import Link from "next/link";
 import { createCamper } from "./actions";
 
@@ -28,7 +27,6 @@ export default function NewCamperPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar />
       <div className="container mx-auto py-12 px-4 max-w-2xl">
         <Card>
           <CardHeader>

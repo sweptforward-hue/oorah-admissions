@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Navbar } from '@/components/layout/Navbar'
 
 interface PageProps {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
@@ -21,7 +20,6 @@ export default async function Home({ searchParams }: PageProps) {
       </div>
 
       <div className="relative z-10 flex flex-col min-h-screen">
-        <Navbar />
         <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
           {/* Hero Section with Animation */}
           <div className="text-center mb-16 pt-10">

@@ -10,7 +10,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Navbar } from "@/components/layout/Navbar";
 import { Kid, KidStatus } from "@/types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -77,7 +76,6 @@ export default async function CampersDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar />
       <div className="container mx-auto py-8 px-4 max-w-6xl">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>

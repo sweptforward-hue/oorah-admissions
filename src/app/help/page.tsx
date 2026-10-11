@@ -1,11 +1,9 @@
 // import Link from 'next/link'
-import { Navbar } from '@/components/layout/Navbar'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 
 export default function HelpPage() {
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-12">
         <h1 className="text-3xl font-extrabold text-slate-900 mb-2">Admissions & Platform Guide</h1>
         <p className="text-slate-600 mb-8">Standard operating procedures and workflow instructions for staff and VAAD members.</p>

@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { Navbar } from '@/components/layout/Navbar'
 
 export default function AdminDashboard() {
   const sections = [
@@ -20,7 +19,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar />
       <div className="p-8 max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Admin Control Center</h1>

@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { Navbar } from '@/components/layout/Navbar'
 
 export default function SessionALayout({
   children,
@@ -8,8 +7,7 @@ export default function SessionALayout({
 }) {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Navbar />
-      <div className="bg-emerald-800 text-white py-3 px-4 shadow-inner">
+      <div className="bg-emerald-800 text-white py-3 px-4 shadow-inner sticky top-16 z-40">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-xl">🏕️</span>
