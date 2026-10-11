@@ -37,12 +37,20 @@ export async function proxy(request: NextRequest) {
           getAll() {
             return request.cookies.getAll()
           },
-          setAll() {},
+          setAll(cookiesToSet: Array<{ name: string; value: string; options?: Parameters<typeof response.cookies.set>[2] }>) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+            response = NextResponse.next({ request })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            )
+          },
         },
       })
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
+        const redirectResponse = NextResponse.redirect(new URL('/dashboard', request.url))
+        response.cookies.getAll().forEach((c) => redirectResponse.cookies.set(c))
+        return redirectResponse
       }
     } catch {}
     return response
@@ -91,7 +99,13 @@ export async function proxy(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url))
+      const loginUrl = new URL('/login', request.url)
+      if (pathname !== '/dashboard') {
+        loginUrl.searchParams.set('next', pathname + request.nextUrl.search)
+      }
+      const redirectResponse = NextResponse.redirect(loginUrl)
+      response.cookies.getAll().forEach((c) => redirectResponse.cookies.set(c))
+      return redirectResponse
     }
 
     if (pathname.startsWith('/admin')) {
@@ -112,13 +126,17 @@ export async function proxy(request: NextRequest) {
         .single()
 
       if (dbUser && dbUser.active === false) {
-        return NextResponse.redirect(new URL('/access-denied?reason=deactivated', request.url))
+        const redirectResponse = NextResponse.redirect(new URL('/access-denied?reason=deactivated', request.url))
+        response.cookies.getAll().forEach((c) => redirectResponse.cookies.set(c))
+        return redirectResponse
       }
 
       const isMasterAdmin = user.email?.toLowerCase() === 'azrielcohenca@gmail.com'
       const role = isMasterAdmin ? 'admin' : (dbUser?.role || 'staff')
       if (role !== 'admin') {
-        return NextResponse.redirect(new URL('/access-denied?reason=admin_required', request.url))
+        const redirectResponse = NextResponse.redirect(new URL('/access-denied?reason=admin_required', request.url))
+        response.cookies.getAll().forEach((c) => redirectResponse.cookies.set(c))
+        return redirectResponse
       }
     }
   }

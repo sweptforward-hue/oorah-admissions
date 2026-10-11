@@ -6,7 +6,13 @@ const mockGetUser = vi.fn()
 const mockFromSelect = vi.fn()
 
 vi.mock('@supabase/ssr', () => ({
-  createServerClient: vi.fn(() => {
+  createServerClient: vi.fn((_url, _key, options) => {
+    // Simulate setAll being called during auth/token refresh
+    if (options?.cookies?.setAll) {
+      options.cookies.setAll([
+        { name: 'sb-refreshed-token', value: 'refreshed-val-123', options: { path: '/' } },
+      ])
+    }
     return {
       auth: {
         getUser: mockGetUser,
@@ -27,14 +33,31 @@ describe('Edge Middleware Security & Access Control', () => {
     vi.clearAllMocks()
   })
 
-  it('redirects unauthenticated request to /admin to /login', async () => {
+  it('redirects unauthenticated request to /admin to /login with next query param and preserves cookies', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null }, error: null })
 
     const request = new NextRequest('http://localhost:3000/admin/users')
     const response = await middleware(request)
 
     expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe('http://localhost:3000/login')
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/login?next=%2Fadmin%2Fusers'
+    )
+    expect(response.cookies.get('sb-refreshed-token')?.value).toBe('refreshed-val-123')
+  })
+
+  it('redirects authenticated user visiting /login to /dashboard and preserves cookies', async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: 'user-logged-in-123', email: 'user@oorah.org' } },
+      error: null,
+    })
+
+    const request = new NextRequest('http://localhost:3000/login')
+    const response = await middleware(request)
+
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('http://localhost:3000/dashboard')
+    expect(response.cookies.get('sb-refreshed-token')?.value).toBe('refreshed-val-123')
   })
 
   it('redirects unauthenticated request to /admin even if user_role=admin cookie is spoofed', async () => {
@@ -48,7 +71,7 @@ describe('Edge Middleware Security & Access Control', () => {
     const response = await middleware(request)
 
     expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toBe('http://localhost:3000/login')
+    expect(response.headers.get('location')).toBe('http://localhost:3000/login?next=%2Fadmin%2Fusers')
   })
 
   it('redirects deactivated user to /access-denied?reason=deactivated', async () => {

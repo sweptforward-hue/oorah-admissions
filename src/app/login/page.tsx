@@ -36,19 +36,28 @@ export default function LoginPage() {
       const hashError = hashParams.get('error_description') || hashParams.get('error')
       if (hashError) {
         setError(hashError)
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search)
+        }
       } else if (hashParams.get('access_token')) {
         const accessToken = hashParams.get('access_token')!
         const refreshToken = hashParams.get('refresh_token') || ''
         supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
-        }).then(() => {
-          const next = params.get('next') || '/dashboard'
-          router.push(next)
-          router.refresh()
-        }).catch(() => {
-          const next = params.get('next') || '/dashboard'
-          router.push(next)
+        }).then(({ error: setSessionError }) => {
+          if (setSessionError) {
+            setError(setSessionError.message)
+          } else {
+            if (window.history && window.history.replaceState) {
+              window.history.replaceState(null, '', window.location.pathname + window.location.search)
+            }
+            const next = params.get('next') || '/dashboard'
+            router.push(next)
+            router.refresh()
+          }
+        }).catch((err: unknown) => {
+          setError((err as Error).message || 'Failed to establish session')
         })
       }
     }
