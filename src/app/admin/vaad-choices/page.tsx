@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 
 interface VaadChoice {
@@ -21,19 +21,14 @@ export default function VaadChoicesPage() {
   const [editName, setEditName] = useState('')
   const [editOrder, setEditOrder] = useState<number>(0)
 
-  const fallbackChoices: VaadChoice[] = [
-    { id: '1', label: 'Accept', color: '#22c55e', action: 'accept', active: true, sort_order: 10 },
-    { id: '2', label: 'Reject', color: '#ef4444', action: 'reject', active: true, sort_order: 20 },
-    { id: '3', label: 'Abstain', color: '#64748b', action: 'abstain', active: true, sort_order: 30 },
-    { id: '4', label: 'Request Interview', color: '#8b5cf6', action: 'request_interview', active: true, sort_order: 40 },
-  ]
+  const loadChoices = useCallback(async () => {
+    const fallbackChoices: VaadChoice[] = [
+      { id: '1', label: 'Accept', color: '#22c55e', action: 'accept', active: true, sort_order: 10 },
+      { id: '2', label: 'Reject', color: '#ef4444', action: 'reject', active: true, sort_order: 20 },
+      { id: '3', label: 'Abstain', color: '#64748b', action: 'abstain', active: true, sort_order: 30 },
+      { id: '4', label: 'Request Interview', color: '#8b5cf6', action: 'request_interview', active: true, sort_order: 40 },
+    ]
 
-  useEffect(() => {
-    fetchChoices()
-  }, [])
-
-  async function fetchChoices() {
-    setLoading(true)
     const hasSupabaseConfig = Boolean(
       process.env.NEXT_PUBLIC_SUPABASE_URL &&
       process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
@@ -69,7 +64,14 @@ export default function VaadChoicesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    async function init() {
+      await loadChoices()
+    }
+    init()
+  }, [loadChoices])
 
   async function toggleActive(id: string, currentStatus: boolean) {
     if (!currentStatus && !window.confirm('Are you sure you want to reactivate this choice?')) return;
@@ -81,7 +83,7 @@ export default function VaadChoicesPage() {
       .eq('id', id)
 
     if (!error) {
-      fetchChoices()
+      loadChoices()
     }
   }
 
@@ -104,7 +106,7 @@ export default function VaadChoicesPage() {
 
     if (!error) {
       setEditingId(null)
-      fetchChoices()
+      loadChoices()
     }
   }
 
@@ -126,7 +128,7 @@ export default function VaadChoicesPage() {
     if (!error) {
       setNewChoiceName('')
       setIsAdding(false)
-      fetchChoices()
+      loadChoices()
     }
   }
 

@@ -9,7 +9,7 @@ if (!fs.existsSync(EVIDENCE_DIR)) {
   fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
 }
 
-function captureScreenshot(url, filename, cookieHeader = 'oorah_dev_auth=admin', width = 1280, height = 800) {
+function captureScreenshot(url, filename, width = 1280, height = 800) {
   const outputPath = path.join(EVIDENCE_DIR, filename);
   try {
     // Add cookie via chrome custom flags or curl verification

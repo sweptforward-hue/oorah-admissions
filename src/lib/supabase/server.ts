@@ -2,7 +2,13 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export async function createClient() {
-  const cookieStore = await cookies()
+  let cookieStore: Awaited<ReturnType<typeof cookies>> | undefined
+  try {
+    cookieStore = await cookies()
+  } catch {
+    // Invoked outside request store context (e.g., during tests or client component renders)
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321'
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key'
 
@@ -20,9 +26,10 @@ export async function createClient() {
     },
     cookies: {
       getAll() {
-        return cookieStore.getAll()
+        return cookieStore ? cookieStore.getAll() : []
       },
       setAll(cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
+        if (!cookieStore) return
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
             cookieStore.set(name, value, {

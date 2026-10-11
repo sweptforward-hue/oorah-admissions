@@ -17,31 +17,30 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null
-    const params = new URLSearchParams(window.location.search)
-    const urlError = params.get('error')
-    const urlErrorDesc = params.get('error_description')
-    if (urlError || urlErrorDesc) {
-      return urlErrorDesc || urlError
-    }
-    if (window.location.hash) {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1))
-      const hashError = hashParams.get('error_description') || hashParams.get('error')
-      if (hashError) {
-        return hashError
-      }
-    }
-    return null
-  })
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    // Check for OAuth hash parameters (implicit flow)
+    // 1. Check for error parameters in query string
+    const params = new URLSearchParams(window.location.search)
+    const urlError = params.get('error')
+    const urlErrorDesc = params.get('error_description')
+    if (urlError || urlErrorDesc) {
+      queueMicrotask(() => {
+        setError(urlErrorDesc || urlError)
+      })
+    }
+
+    // 2. Check for OAuth hash parameters (implicit flow)
     if (window.location.hash) {
       const hashParams = new URLSearchParams(window.location.hash.substring(1))
-      if (hashParams.get('access_token')) {
+      const hashError = hashParams.get('error_description') || hashParams.get('error')
+      if (hashError) {
+        queueMicrotask(() => {
+          setError(hashError)
+        })
+      } else if (hashParams.get('access_token')) {
         const accessToken = hashParams.get('access_token')!
         const refreshToken = hashParams.get('refresh_token') || ''
         supabase.auth.setSession({
