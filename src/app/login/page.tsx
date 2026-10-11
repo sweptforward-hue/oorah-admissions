@@ -82,12 +82,8 @@ export default function LoginPage() {
     }
 
     if (provider === 'google') {
-      // Use drive.file to grant app access to only files it creates/opens, avoiding full brand verification
-      options.scopes = 'email profile openid https://www.googleapis.com/auth/drive.file'
-      options.queryParams = {
-        access_type: 'offline',
-        prompt: 'consent',
-      }
+      // Standard user sign-in: only needs email, profile, openid (Zero verification required)
+      options.scopes = 'email profile openid'
     }
 
     const { error: signInError } = await supabase.auth.signInWithOAuth({
@@ -280,9 +276,9 @@ export default function LoginPage() {
             </div>
 
             <div className="p-3 bg-slate-50 border rounded-lg text-xs text-slate-500 space-y-1">
-              <div className="font-semibold text-slate-700">Google Drive Access Note:</div>
+              <div className="font-semibold text-slate-700">Google Authentication Note:</div>
               <p>
-                Signing in with Google requests <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-800">drive.file</code> scope, granting access only to admissions documents, photos, voice notes, and contracts created or managed by this portal without requiring Google brand verification.
+                Staff sign-in uses standard Google authentication (profile & email) with zero verification barriers. Document and contract storage is securely handled via the backend service integration scoped to <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-800">drive.file</code>.
               </p>
             </div>
           </CardContent>
