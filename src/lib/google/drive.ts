@@ -228,7 +228,11 @@ export async function fetchDriveFileMedia(
 /**
  * Verifies connectivity to Google Drive API.
  */
-export async function verifyDriveConnection(): Promise<{ success: boolean; message: string }> {
+export async function verifyDriveConnection(): Promise<{
+  success: boolean
+  message: string
+  user?: { displayName?: string; emailAddress?: string }
+}> {
   const token = await getAccessToken()
   if (!token) {
     return {
@@ -247,10 +251,71 @@ export async function verifyDriveConnection(): Promise<{ success: boolean; messa
       return { success: false, message: `Drive verification failed: ${errText}` }
     }
 
-    return { success: true, message: 'Google Cloud Platform OAuth connection verified successfully.' }
+    const data = await res.json()
+    const userEmail = data.user?.emailAddress || data.user?.displayName || 'Service Account'
+    return {
+      success: true,
+      message: `Google Cloud Platform OAuth connection verified successfully (${userEmail}).`,
+      user: data.user,
+    }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
     return { success: false, message: `Drive connection error: ${message}` }
+  }
+}
+
+/**
+ * Verifies existence and health status of a Google Drive folder.
+ */
+export async function checkDriveFolderHealth(folderId: string): Promise<{
+  success: boolean
+  message: string
+  folder?: { id: string; name: string; mimeType: string; trashed?: boolean }
+}> {
+  if (!folderId || folderId.trim() === '') {
+    return { success: false, message: 'No folder ID specified.' }
+  }
+
+  const token = await getAccessToken()
+  if (!token) {
+    return {
+      success: false,
+      message: 'Google Cloud Platform service account credentials not configured in environment.',
+    }
+  }
+
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(folderId)}?fields=id,name,mimeType,trashed`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    )
+
+    if (!res.ok) {
+      if (res.status === 404) {
+        return { success: false, message: `Folder ID '${folderId}' was not found on Google Drive or service account lacks permission.` }
+      }
+      const errText = await res.text()
+      return { success: false, message: `Folder health check failed (${res.status}): ${errText}` }
+    }
+
+    const data = await res.json()
+    if (data.mimeType !== 'application/vnd.google-apps.folder') {
+      return { success: false, message: `Target ID exists but is a file (${data.mimeType}), not a folder.`, folder: data }
+    }
+    if (data.trashed) {
+      return { success: false, message: `Folder '${data.name}' is in Google Drive Trash.`, folder: data }
+    }
+
+    return {
+      success: true,
+      message: `Folder '${data.name}' (ID: ${data.id}) is active and accessible.`,
+      folder: data,
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { success: false, message: `Folder health check error: ${message}` }
   }
 }
 

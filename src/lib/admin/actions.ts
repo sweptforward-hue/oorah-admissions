@@ -3,7 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requireAdminRole } from '@/lib/auth/authorization'
 import { revalidatePath } from 'next/cache'
-import { verifyDriveConnection, uploadFileToDrive } from '@/lib/google/drive'
+import { verifyDriveConnection, uploadFileToDrive, checkDriveFolderHealth } from '@/lib/google/drive'
 import { generateCSVString } from '@/lib/exports/csv'
 import { createGoogleSpreadsheet, ExportData } from '@/lib/google/sheets'
 
@@ -243,6 +243,49 @@ export async function triggerExport(exportType: 'Sheets' | 'CSV' | 'Drive Archiv
 }
 
 // Document Storage / Google Drive
+export async function getDriveStorageConfig() {
+  await requireAdminRole()
+  const supabase = createServerSupabaseClient()
+
+  let folderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID || ''
+
+  try {
+    const { data } = await supabase
+      .from('audit_log')
+      .select('details')
+      .eq('action', 'UPDATE_STORAGE_FOLDER')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (data?.details && typeof data.details === 'object' && 'drive_folder_id' in data.details) {
+      folderId = String((data.details as { drive_folder_id: string }).drive_folder_id)
+    }
+  } catch (err) {
+    console.warn('Could not fetch storage folder from audit log:', err)
+  }
+
+  const connection = await verifyDriveConnection()
+  let folderHealth: {
+    success: boolean
+    message: string
+    folder?: { id: string; name: string; mimeType: string; trashed?: boolean }
+  } = {
+    success: false,
+    message: 'Folder ID not configured.',
+  }
+
+  if (folderId) {
+    folderHealth = await checkDriveFolderHealth(folderId)
+  }
+
+  return {
+    folderId,
+    connection,
+    folderHealth,
+  }
+}
+
 export async function updateDriveFolder(folderId: string) {
   const actor = await requireAdminRole()
   const actorId = actor.id
@@ -257,6 +300,11 @@ export async function updateDriveFolder(folderId: string) {
 
   revalidatePath('/admin/storage')
   return { success: true }
+}
+
+export async function checkDriveFolderHealthAction(folderId: string) {
+  await requireAdminRole()
+  return await checkDriveFolderHealth(folderId)
 }
 
 export async function testDriveConnection() {
