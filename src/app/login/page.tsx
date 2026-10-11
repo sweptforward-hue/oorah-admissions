@@ -17,45 +17,53 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    // 1. Check for error parameters in query string
+  const [error, setError] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
     const params = new URLSearchParams(window.location.search)
     const urlError = params.get('error')
     const urlErrorDesc = params.get('error_description')
     if (urlError || urlErrorDesc) {
-      setError(urlErrorDesc || urlError)
+      return urlErrorDesc || urlError
     }
-
-    // 2. Check for OAuth hash parameters (implicit flow)
     if (window.location.hash) {
       const hashParams = new URLSearchParams(window.location.hash.substring(1))
       const hashError = hashParams.get('error_description') || hashParams.get('error')
       if (hashError) {
-        setError(hashError)
-      } else if (hashParams.get('access_token')) {
+        return hashError
+      }
+    }
+    return null
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    // Check for OAuth hash parameters (implicit flow)
+    if (window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
+      if (hashParams.get('access_token')) {
         const accessToken = hashParams.get('access_token')!
         const refreshToken = hashParams.get('refresh_token') || ''
         supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         }).then(() => {
+          const params = new URLSearchParams(window.location.search)
           const next = params.get('next') || '/dashboard'
           router.push(next)
           router.refresh()
         }).catch(() => {
+          const params = new URLSearchParams(window.location.search)
           const next = params.get('next') || '/dashboard'
           router.push(next)
         })
       }
     }
 
-    // 3. Listen for auth state changes (e.g. if OAuth finishes on client)
+    // Listen for auth state changes (e.g. if OAuth finishes on client)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+        const params = new URLSearchParams(window.location.search)
         const next = params.get('next') || '/dashboard'
         router.push(next)
         router.refresh()
