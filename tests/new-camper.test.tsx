@@ -16,24 +16,54 @@ vi.mock('@/app/campers/new/actions', () => ({
   createCamper: vi.fn().mockResolvedValue({})
 }))
 
-describe('New Camper Page', () => {
-  it('renders the creation form correctly', () => {
+describe('New Camper Page - End-to-End Intake Form', () => {
+  it('renders all 4 intake sections correctly', () => {
     render(<NewCamperPage />)
-    expect(screen.getByText('Create New Camper')).toBeInTheDocument()
-    expect(screen.getByLabelText(/Camper Name/i)).toBeInTheDocument()
+    expect(screen.getByText('Camper Intake & Registration Form')).toBeInTheDocument()
+
+    // 1. Personal Information
+    expect(screen.getByText('1. Personal Information')).toBeInTheDocument()
+    expect(screen.getByLabelText(/First Name/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Last Name/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Application Number/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Create Camper/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/Gender/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Date of Birth/i)).toBeInTheDocument()
+
+    // 2. Family Contacts
+    expect(screen.getByText('2. Family Contacts')).toBeInTheDocument()
+    expect(screen.getByLabelText(/Father's Full Name/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Mother's Full Name/i)).toBeInTheDocument()
+
+    // 3. Medical Notes
+    expect(screen.getByText('3. Medical Notes & Health Requirements')).toBeInTheDocument()
+    expect(screen.getByLabelText(/Medical \/ Health Notes & Conditions/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Allergies & Dietary Restrictions/i)).toBeInTheDocument()
+
+    // 4. Intake Questionnaire
+    expect(screen.getByText('4. Intake Questionnaire & Admissions Notes')).toBeInTheDocument()
+    expect(screen.getByLabelText(/Behavioral, Social & Educational Notes/i)).toBeInTheDocument()
+
+    expect(screen.getByRole('button', { name: /Complete Intake & Create Workspace/i })).toBeInTheDocument()
   })
 
-  it('updates form fields on typing', () => {
+  it('updates input fields across sections on typing', () => {
     render(<NewCamperPage />)
-    const nameInput = screen.getByLabelText(/Camper Name/i) as HTMLInputElement
+    const firstNameInput = screen.getByLabelText(/First Name/i) as HTMLInputElement
+    const lastNameInput = screen.getByLabelText(/Last Name/i) as HTMLInputElement
     const appNumInput = screen.getByLabelText(/Application Number/i) as HTMLInputElement
+    const fatherNameInput = screen.getByLabelText(/Father's Full Name/i) as HTMLInputElement
+    const allergiesInput = screen.getByLabelText(/Allergies & Dietary Restrictions/i) as HTMLInputElement
 
-    fireEvent.change(nameInput, { target: { value: 'Rachel Katz' } })
-    fireEvent.change(appNumInput, { target: { value: '1050' } })
+    fireEvent.change(firstNameInput, { target: { value: 'Rachel' } })
+    fireEvent.change(lastNameInput, { target: { value: 'Katz' } })
+    fireEvent.change(appNumInput, { target: { value: 'APP-1050' } })
+    fireEvent.change(fatherNameInput, { target: { value: 'Joseph Katz' } })
+    fireEvent.change(allergiesInput, { target: { value: 'Nut allergy' } })
 
-    expect(nameInput.value).toBe('Rachel Katz')
-    expect(appNumInput.value).toBe('1050')
+    expect(firstNameInput.value).toBe('Rachel')
+    expect(lastNameInput.value).toBe('Katz')
+    expect(appNumInput.value).toBe('APP-1050')
+    expect(fatherNameInput.value).toBe('Joseph Katz')
+    expect(allergiesInput.value).toBe('Nut allergy')
   })
 })
