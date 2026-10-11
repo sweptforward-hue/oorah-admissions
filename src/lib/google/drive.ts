@@ -228,7 +228,20 @@ export async function fetchDriveFileMedia(
 /**
  * Verifies connectivity to Google Drive API.
  */
-export async function verifyDriveConnection(): Promise<{ success: boolean; message: string }> {
+export async function verifyDriveConnection(): Promise<{
+  success: boolean
+  message: string
+  user?: {
+    displayName?: string
+    emailAddress?: string
+  }
+  storageQuota?: {
+    limit?: string
+    usage?: string
+    usageInDrive?: string
+    usageInDriveTrash?: string
+  }
+}> {
   const token = await getAccessToken()
   if (!token) {
     return {
@@ -238,7 +251,7 @@ export async function verifyDriveConnection(): Promise<{ success: boolean; messa
   }
 
   try {
-    const res = await fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
+    const res = await fetch('https://www.googleapis.com/drive/v3/about?fields=user,storageQuota', {
       headers: { Authorization: `Bearer ${token}` },
     })
 
@@ -247,7 +260,13 @@ export async function verifyDriveConnection(): Promise<{ success: boolean; messa
       return { success: false, message: `Drive verification failed: ${errText}` }
     }
 
-    return { success: true, message: 'Google Cloud Platform OAuth connection verified successfully.' }
+    const data = await res.json()
+    return {
+      success: true,
+      message: 'Google Cloud Platform OAuth connection verified successfully.',
+      user: data.user,
+      storageQuota: data.storageQuota,
+    }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
     return { success: false, message: `Drive connection error: ${message}` }

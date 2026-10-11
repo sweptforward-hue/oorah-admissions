@@ -259,6 +259,39 @@ export async function updateDriveFolder(folderId: string) {
   return { success: true }
 }
 
+export async function getDriveStorageConfig() {
+  await requireAdminRole()
+  const supabase = createServerSupabaseClient()
+
+  let folderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID || '1A2B3C4D5E6F7G8H9I0J'
+
+  try {
+    const { data: latestAudit } = await supabase
+      .from('audit_log')
+      .select('details')
+      .eq('action', 'UPDATE_STORAGE_FOLDER')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (latestAudit?.details && typeof latestAudit.details === 'object' && 'drive_folder_id' in latestAudit.details) {
+      const customFolderId = (latestAudit.details as { drive_folder_id?: string }).drive_folder_id
+      if (customFolderId) {
+        folderId = customFolderId
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch storage folder config from audit_log:', err)
+  }
+
+  const connection = await verifyDriveConnection()
+
+  return {
+    folderId,
+    connection
+  }
+}
+
 export async function testDriveConnection() {
   await requireAdminRole()
   return await verifyDriveConnection()
