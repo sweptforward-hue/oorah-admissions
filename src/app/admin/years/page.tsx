@@ -12,7 +12,6 @@ export default function AdminYearsPage() {
   const [isPending, startTransition] = useTransition()
 
   const loadData = useCallback(async () => {
-    setLoading(true)
     try {
       const data = await getYears()
       setYears(data)
@@ -24,8 +23,22 @@ export default function AdminYearsPage() {
   }, [])
 
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    let isMounted = true
+    async function load() {
+      try {
+        const data = await getYears()
+        if (isMounted) setYears(data)
+      } catch (e) {
+        console.error('Failed to load years:', e)
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const handleAddYear = async (e: React.FormEvent) => {
     e.preventDefault()

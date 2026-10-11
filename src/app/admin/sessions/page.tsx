@@ -17,7 +17,6 @@ export default function AdminSessionsPage() {
   const [isPending, startTransition] = useTransition()
 
   const loadData = useCallback(async () => {
-    setLoading(true)
     try {
       const data = await getSessions()
       setSessions(data)
@@ -29,8 +28,22 @@ export default function AdminSessionsPage() {
   }, [])
 
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    let isMounted = true
+    async function load() {
+      try {
+        const data = await getSessions()
+        if (isMounted) setSessions(data)
+      } catch (e) {
+        console.error('Failed to load sessions:', e)
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const handleAddSession = async (e: React.FormEvent) => {
     e.preventDefault()

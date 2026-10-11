@@ -21,8 +21,6 @@ export default function StatusesPage() {
   const [newStatusName, setNewStatusName] = useState('')
 
   const fetchStatuses = useCallback(async () => {
-    setLoading(true)
-    setError(null)
     try {
       const { data, error: fetchError } = await supabase
         .from('statuses')
@@ -44,8 +42,34 @@ export default function StatusesPage() {
   }, [])
 
   useEffect(() => {
-    fetchStatuses()
-  }, [fetchStatuses])
+    let isMounted = true
+    async function load() {
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('statuses')
+          .select('*')
+          .order('display_order', { ascending: true })
+
+        if (!isMounted) return
+        if (fetchError) {
+          setError(fetchError.message)
+          setStatuses([])
+        } else {
+          setStatuses(data || [])
+        }
+      } catch (err: unknown) {
+        if (!isMounted) return
+        setError((err as Error).message || 'Failed to load statuses')
+        setStatuses([])
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   async function toggleActive(id: string, currentStatus: boolean) {
     const action = currentStatus ? 'deactivate' : 'reactivate'

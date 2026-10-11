@@ -39,8 +39,22 @@ export default function AdminCustomFieldsPage() {
   }, [])
 
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    let isMounted = true
+    async function init() {
+      try {
+        const data = await getCustomFields()
+        if (isMounted) setFields(data)
+      } catch (e) {
+        console.error('Failed to load custom fields:', e)
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+    init()
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const resetForm = () => {
     setLabel('')
