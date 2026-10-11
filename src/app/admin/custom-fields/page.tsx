@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useEffect, useTransition, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
@@ -11,14 +11,9 @@ import {
   CustomFieldDefinition,
 } from '@/lib/custom-fields/actions'
 
-const DEFAULT_FIELDS: CustomFieldDefinition[] = [
-  { id: '1', name: 't_shirt_size', label: 'T-Shirt Size', field_type: 'dropdown', required: true, options: { entity_type: 'camper', choices: ['S', 'M', 'L', 'XL'] } },
-  { id: '2', name: 'dietary_restrictions', label: 'Dietary Restrictions', field_type: 'text', required: false, options: { entity_type: 'camper' } },
-  { id: '3', name: 'driver_license_verified', label: 'Driver License Verified', field_type: 'checkbox', required: true, options: { entity_type: 'staff' } },
-]
-
 export default function AdminCustomFieldsPage() {
-  const [fields, setFields] = useState<CustomFieldDefinition[]>(DEFAULT_FIELDS)
+  const [fields, setFields] = useState<CustomFieldDefinition[]>([])
+  const [loading, setLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
 
   // Modal states
@@ -31,21 +26,21 @@ export default function AdminCustomFieldsPage() {
   const [entityType, setEntityType] = useState<'camper' | 'staff'>('camper')
   const [required, setRequired] = useState(false)
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    setLoading(true)
     try {
       const data = await getCustomFields()
-      if (data && data.length > 0) {
-        setFields(data)
-      }
+      setFields(data)
     } catch (e) {
-      console.error(e)
+      console.error('Failed to load custom fields:', e)
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line
     loadData()
-  }, [])
+  }, [loadData])
 
   const resetForm = () => {
     setLabel('')
@@ -127,6 +122,8 @@ export default function AdminCustomFieldsPage() {
     })
   }
 
+  if (loading) return <div className="p-8 text-slate-600">Loading custom fields...</div>
+
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -137,39 +134,45 @@ export default function AdminCustomFieldsPage() {
         <Button onClick={handleOpenAddModal}>+ Add Custom Field</Button>
       </div>
 
-      <div className="space-y-4">
-        {fields.map((f) => {
-          const entType = typeof f.options?.entity_type === 'string' ? f.options.entity_type : 'camper'
-          return (
-            <Card key={f.id} className="p-4 flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                  {f.label || f.name}
-                  <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-700 uppercase">
-                    {entType}
-                  </span>
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Type: {f.field_type} • Required: {f.required ? 'Yes' : 'No'}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleOpenEditModal(f)}>
-                  Configure
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  disabled={isPending}
-                  onClick={() => handleDelete(f.id, f.label || f.name)}
-                >
-                  Delete
-                </Button>
-              </div>
-            </Card>
-          )
-        })}
-      </div>
+      {fields.length === 0 ? (
+        <div className="p-8 text-center text-slate-500 border border-dashed rounded bg-slate-50 text-sm">
+          No custom field definitions found in schema.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {fields.map((f) => {
+            const entType = typeof f.options?.entity_type === 'string' ? f.options.entity_type : 'camper'
+            return (
+              <Card key={f.id} className="p-4 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                    {f.label || f.name}
+                    <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-700 uppercase">
+                      {entType}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Type: {f.field_type} • Required: {f.required ? 'Yes' : 'No'}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handleOpenEditModal(f)}>
+                    Configure
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={isPending}
+                    onClick={() => handleDelete(f.id, f.label || f.name)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      )}
 
       {/* Add Modal */}
       {isAddOpen && (
