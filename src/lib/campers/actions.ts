@@ -1,26 +1,39 @@
 'use server'
 
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server'
 import { getCurrentUser, requireAdminRole } from '@/lib/auth/authorization'
 import { revalidatePath } from 'next/cache'
 
 export async function deleteCamper(camperId: string) {
   try {
     const admin = await requireAdminRole()
-    const supabase = createServerSupabaseClient()
+    const adminSupabase = createAdminClient()
 
     // Fetch camper name/appNum for audit log before deletion
-    const { data: camper } = await supabase.from('kids').select('name, application_number, first_name, last_name').eq('id', camperId).single()
+    const { data: camper } = await adminSupabase.from('kids').select('name, application_number, first_name, last_name').eq('id', camperId).single()
     const camperName = camper ? (camper.name || `${camper.first_name} ${camper.last_name}`) : camperId
 
-    const { error } = await supabase.from('kids').delete().eq('id', camperId)
+    // Cleanly delete from dependent tables if cascade isn't configured in all environments
+    await Promise.allSettled([
+      adminSupabase.from('kid_photos').delete().eq('kid_id', camperId),
+      adminSupabase.from('kid_documents').delete().eq('kid_id', camperId),
+      adminSupabase.from('kid_voice_notes').delete().eq('kid_id', camperId),
+      adminSupabase.from('kid_transcripts').delete().eq('kid_id', camperId),
+      adminSupabase.from('kid_contacts').delete().eq('kid_id', camperId),
+      adminSupabase.from('kid_notes').delete().eq('kid_id', camperId),
+      adminSupabase.from('kid_custom_fields').delete().eq('kid_id', camperId),
+      adminSupabase.from('vaad_votes').delete().eq('kid_id', camperId),
+      adminSupabase.from('status_history').delete().eq('kid_id', camperId),
+    ])
+
+    const { error } = await adminSupabase.from('kids').delete().eq('id', camperId)
 
     if (error) {
       return { success: false, error: `Failed to delete camper: ${error.message}` }
     }
 
     // Record immutable audit log entry
-    await supabase.from('audit_log').insert({
+    await adminSupabase.from('audit_log').insert({
       actor_id: admin.id,
       action: 'DELETE_CAMPER',
       entity_type: 'kid',

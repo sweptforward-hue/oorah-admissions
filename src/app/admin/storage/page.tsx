@@ -8,7 +8,6 @@ import { updateDriveFolder, testDriveConnection } from '@/lib/admin/actions'
 export default function AdminStoragePage() {
   const [folderId, setFolderId] = useState('1A2B3C4D5E6F7G8H9I0J')
   const [isPending, startTransition] = useTransition()
-  const [isAuthorizing, setIsAuthorizing] = useState(false)
 
   const handleUpdateFolder = () => {
     const newFolder = prompt('Enter new Google Drive Root Folder ID:', folderId)
@@ -36,22 +35,6 @@ export default function AdminStoragePage() {
     })
   }
 
-  const handleAuthorizeGoogleDrive = async () => {
-    try {
-      setIsAuthorizing(true)
-      const res = await testDriveConnection()
-      if (res.success) {
-        alert(res.message || 'Google Drive service connection verified successfully.')
-      } else {
-        alert(res.message || 'Connection verification failed')
-      }
-    } catch (err: unknown) {
-      alert((err as Error).message || 'Failed to verify Google Drive connection')
-    } finally {
-      setIsAuthorizing(false)
-    }
-  }
-
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-6">
       <h1 className="text-3xl font-bold text-slate-900">Google Drive & Document Storage</h1>
@@ -72,31 +55,20 @@ export default function AdminStoragePage() {
             </Button>
           </div>
 
-          <div className="flex items-center justify-between border-b pb-3">
-            <div>
-              <div className="font-semibold text-slate-800">OAuth 2.0 Google Drive Access</div>
-              <div className="text-xs text-slate-500">
-                Grant OAuth 2.0 read, write, and store permissions for admissions documents & media
-              </div>
-            </div>
-            <Button
-              variant="default"
-              size="sm"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={handleAuthorizeGoogleDrive}
-              disabled={isAuthorizing}
-            >
-              {isAuthorizing ? 'Connecting...' : 'Authorize with Google (Read/Write/Store)'}
-            </Button>
-          </div>
-
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-semibold text-slate-800">OAuth Service Connection</div>
-              <div className="text-xs text-green-600">● Connected (Google Cloud Platform)</div>
+              <div className="font-semibold text-slate-800">Google Drive Service Account</div>
+              <div className="text-xs text-green-600 font-medium">● Connected (enhanced-victor-470022-a2)</div>
+              <div className="text-xs text-slate-400 mt-0.5">Automated document & photo archiving via drive.file</div>
             </div>
-            <Button variant="outline" size="sm" onClick={handleTestConnection} disabled={isPending}>
-              Test Connection
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleTestConnection}
+              disabled={isPending}
+              className="text-xs font-semibold"
+            >
+              {isPending ? 'Testing...' : 'Test & Verify Connection'}
             </Button>
           </div>
         </CardContent>
