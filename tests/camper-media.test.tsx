@@ -380,35 +380,38 @@ describe('Camper Media Management (Photos, Voice Notes, Transcript)', () => {
 })
 
 describe('CamperDetailPage Server Component Media Loading', () => {
-  it('loads camper detail page with fallback media when no database is configured', async () => {
+  it('calls notFound when camper is not found in database', async () => {
     const CamperDetailPage = (await import('@/app/campers/[id]/page')).default
-    const pageElement = await CamperDetailPage({ params: Promise.resolve({ id: '1' }) })
+    const mockSupabaseNotFound = {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: null,
+              error: { message: 'Not found' },
+            }),
+          }),
+        }),
+      }),
+    }
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockResolvedValueOnce(mockSupabaseNotFound as any)
+
+    await expect(
+      CamperDetailPage({ params: Promise.resolve({ id: 'non-existent' }) })
+    ).rejects.toThrow()
+  })
+
+  it('queries Supabase in parallel and maps Drive URLs when configured', async () => {
+    const CamperDetailPage = (await import('@/app/campers/[id]/page')).default
+    const pageElement = await CamperDetailPage({ params: Promise.resolve({ id: 'kid-real-1' }) })
     render(pageElement)
 
-    expect(screen.getByText('John Smith')).toBeInTheDocument()
+    expect(screen.getByText('Chaim Goldberg')).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Photos' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Documents' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Voice Notes' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Transcripts' })).toBeInTheDocument()
-  })
-
-  it('queries Supabase in parallel and maps Drive URLs when configured', async () => {
-    const originalUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://production-project.supabase.co'
-
-    try {
-      const CamperDetailPage = (await import('@/app/campers/[id]/page')).default
-      const pageElement = await CamperDetailPage({ params: Promise.resolve({ id: 'kid-real-1' }) })
-      render(pageElement)
-
-      expect(screen.getByText('Chaim Goldberg')).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'Photos' })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'Documents' })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'Voice Notes' })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'Transcripts' })).toBeInTheDocument()
-    } finally {
-      process.env.NEXT_PUBLIC_SUPABASE_URL = originalUrl
-    }
   })
 })
 

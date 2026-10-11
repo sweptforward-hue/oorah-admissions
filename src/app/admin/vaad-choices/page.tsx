@@ -22,31 +22,13 @@ export default function VaadChoicesPage() {
   const [editOrder, setEditOrder] = useState<number>(0)
 
   const loadChoices = useCallback(async () => {
-    const fallbackChoices: VaadChoice[] = [
-      { id: '1', label: 'Accept', color: '#22c55e', action: 'accept', active: true, sort_order: 10 },
-      { id: '2', label: 'Reject', color: '#ef4444', action: 'reject', active: true, sort_order: 20 },
-      { id: '3', label: 'Abstain', color: '#64748b', action: 'abstain', active: true, sort_order: 30 },
-      { id: '4', label: 'Request Interview', color: '#8b5cf6', action: 'request_interview', active: true, sort_order: 40 },
-    ]
-
-    const hasSupabaseConfig = Boolean(
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
-    )
-
-    if (!hasSupabaseConfig) {
-      setChoices(fallbackChoices)
-      setLoading(false)
-      return
-    }
-
     try {
       const { data, error } = await supabase
         .from('vaad_choices')
         .select('*')
         .order('sort_order', { ascending: true })
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setChoices(data.map((c: any) => ({
           id: c.id,
@@ -57,10 +39,10 @@ export default function VaadChoicesPage() {
           sort_order: c.sort_order ?? c.display_order ?? 0,
         })))
       } else {
-        setChoices(fallbackChoices)
+        setChoices([])
       }
     } catch {
-      setChoices(fallbackChoices)
+      setChoices([])
     } finally {
       setLoading(false)
     }
@@ -164,63 +146,69 @@ export default function VaadChoicesPage() {
         </form>
       )}
 
-      <div className="space-y-4">
-        {choices.map(choice => (
-          <div key={choice.id} className={`p-4 border rounded flex justify-between items-center ${!choice.active ? 'opacity-60 bg-gray-50' : 'bg-white'}`}>
-            <div>
-              {editingId === choice.id ? (
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="p-1 border rounded"
-                  />
-                  <input
-                    type="number"
-                    value={editOrder}
-                    onChange={(e) => setEditOrder(parseInt(e.target.value) || 0)}
-                    className="p-1 border rounded w-24"
-                  />
-                </div>
-              ) : (
-                <>
-                  <h3 className="font-semibold">{choice.label}</h3>
-                  <p className="text-sm text-gray-500">
-                    Order: {choice.sort_order} {choice.color && `• Color: ${choice.color}`}
-                  </p>
-                </>
-              )}
+      {choices.length === 0 ? (
+        <div className="p-8 text-center border rounded bg-white text-gray-500">
+          No VAAD voting choices configured. Click "+ Add Choice" above to create one.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {choices.map(choice => (
+            <div key={choice.id} className={`p-4 border rounded flex justify-between items-center ${!choice.active ? 'opacity-60 bg-gray-50' : 'bg-white'}`}>
+              <div>
+                {editingId === choice.id ? (
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="p-1 border rounded"
+                    />
+                    <input
+                      type="number"
+                      value={editOrder}
+                      onChange={(e) => setEditOrder(parseInt(e.target.value) || 0)}
+                      className="p-1 border rounded w-24"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="font-semibold">{choice.label}</h3>
+                    <p className="text-sm text-gray-500">
+                      Order: {choice.sort_order} {choice.color && `• Color: ${choice.color}`}
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-4">
+                {editingId === choice.id ? (
+                  <>
+                    <button onClick={() => saveEdit(choice.id)} className="text-sm bg-blue-600 text-white px-3 py-1 rounded">Save</button>
+                    <button onClick={() => setEditingId(null)} className="text-sm border px-3 py-1 rounded">Cancel</button>
+                  </>
+                ) : (
+                  <>
+                    <span className={`px-2 py-1 text-xs rounded ${choice.active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
+                      {choice.active ? 'Active' : 'Inactive'}
+                    </span>
+                    <button
+                      onClick={() => startEditing(choice)}
+                      className="text-sm border px-3 py-1 rounded hover:bg-gray-50"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => toggleActive(choice.id, choice.active)}
+                      className="text-sm border px-3 py-1 rounded hover:bg-gray-50"
+                    >
+                      {choice.active ? 'Deactivate' : 'Reactivate'}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              {editingId === choice.id ? (
-                <>
-                  <button onClick={() => saveEdit(choice.id)} className="text-sm bg-blue-600 text-white px-3 py-1 rounded">Save</button>
-                  <button onClick={() => setEditingId(null)} className="text-sm border px-3 py-1 rounded">Cancel</button>
-                </>
-              ) : (
-                <>
-                  <span className={`px-2 py-1 text-xs rounded ${choice.active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
-                    {choice.active ? 'Active' : 'Inactive'}
-                  </span>
-                  <button
-                    onClick={() => startEditing(choice)}
-                    className="text-sm border px-3 py-1 rounded hover:bg-gray-50"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => toggleActive(choice.id, choice.active)}
-                    className="text-sm border px-3 py-1 rounded hover:bg-gray-50"
-                  >
-                    {choice.active ? 'Deactivate' : 'Reactivate'}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

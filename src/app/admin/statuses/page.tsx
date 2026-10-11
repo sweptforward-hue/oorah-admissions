@@ -20,27 +20,8 @@ export default function StatusesPage() {
   const [newStatusName, setNewStatusName] = useState('')
 
   useEffect(() => {
-    const fallbackStatuses: Status[] = [
-      { id: '1', name: 'New', description: 'Application initiated', display_order: 10, active: true, is_default: true, color_hex: '#64748b' },
-      { id: '2', name: 'Under Review', description: 'Staff reviewing documents', display_order: 20, active: true, is_default: false, color_hex: '#3b82f6' },
-      { id: '3', name: 'Interview', description: 'Interview scheduled or prep', display_order: 30, active: true, is_default: false, color_hex: '#8b5cf6' },
-      { id: '4', name: 'VAAD Review', description: 'In committee voting', display_order: 40, active: true, is_default: false, color_hex: '#f59e0b' },
-      { id: '5', name: 'Accepted', description: 'Admitted to camp', display_order: 50, active: true, is_default: false, color_hex: '#22c55e' },
-      { id: '6', name: 'Rejected / Withdrawn', description: 'Declined or withdrawn', display_order: 60, active: true, is_default: false, color_hex: '#ef4444' },
-    ]
-
     async function fetchStatuses() {
       setLoading(true)
-      const hasSupabaseConfig = Boolean(
-        process.env.NEXT_PUBLIC_SUPABASE_URL &&
-        process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
-      )
-
-      if (!hasSupabaseConfig && process.env.NODE_ENV !== 'test') {
-        setStatuses(fallbackStatuses)
-        setLoading(false)
-        return
-      }
 
       try {
         const { data, error } = await supabase
@@ -48,13 +29,13 @@ export default function StatusesPage() {
           .select('*')
           .order('display_order', { ascending: true })
 
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           setStatuses(data)
         } else {
-          setStatuses(fallbackStatuses)
+          setStatuses([])
         }
       } catch {
-        setStatuses(fallbackStatuses)
+        setStatuses([])
       } finally {
         setLoading(false)
       }
@@ -69,13 +50,7 @@ export default function StatusesPage() {
 
     setStatuses(prev => prev.map(s => s.id === id ? { ...s, active: !currentStatus } : s))
 
-    const hasSupabaseConfig = Boolean(
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
-    )
-    if (hasSupabaseConfig) {
-      await supabase.from('statuses').update({ active: !currentStatus }).eq('id', id)
-    }
+    await supabase.from('statuses').update({ active: !currentStatus }).eq('id', id)
   }
 
   async function addStatus(e: React.FormEvent) {
@@ -97,18 +72,12 @@ export default function StatusesPage() {
     setNewStatusName('')
     setIsAdding(false)
 
-    const hasSupabaseConfig = Boolean(
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
-    )
-    if (hasSupabaseConfig) {
-      await supabase.from('statuses').insert({
-        name: newStatus.name,
-        display_order: newStatus.display_order,
-        active: true,
-        is_default: false
-      })
-    }
+    await supabase.from('statuses').insert({
+      name: newStatus.name,
+      display_order: newStatus.display_order,
+      active: true,
+      is_default: false
+    })
   }
 
   if (loading) return <div className="p-8">Loading...</div>
@@ -146,36 +115,42 @@ export default function StatusesPage() {
         </form>
       )}
 
-      <div className="space-y-4">
-        {statuses.map(status => (
-          <div key={status.id} className={`p-4 border rounded flex justify-between items-center ${!status.active ? 'opacity-60 bg-gray-50' : 'bg-white'}`}>
-            <div>
-              <h3 className="font-semibold flex items-center gap-2">
-                {status.name}
-                {status.is_default && (
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Default</span>
+      {statuses.length === 0 ? (
+        <div className="p-8 text-center border rounded bg-white text-gray-500">
+          No application statuses configured. Click "+ Add Status" above to create one.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {statuses.map(status => (
+            <div key={status.id} className={`p-4 border rounded flex justify-between items-center ${!status.active ? 'opacity-60 bg-gray-50' : 'bg-white'}`}>
+              <div>
+                <h3 className="font-semibold flex items-center gap-2">
+                  {status.name}
+                  {status.is_default && (
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Default</span>
+                  )}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Order: {status.display_order}
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className={`px-2 py-1 text-xs rounded ${status.active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
+                  {status.active ? 'Active' : 'Inactive'}
+                </span>
+                {!status.is_default && (
+                  <button
+                    onClick={() => toggleActive(status.id, status.active)}
+                    className="text-sm border px-3 py-1 rounded hover:bg-gray-50"
+                  >
+                    {status.active ? 'Deactivate' : 'Reactivate'}
+                  </button>
                 )}
-              </h3>
-              <p className="text-sm text-gray-500">
-                Order: {status.display_order}
-              </p>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              <span className={`px-2 py-1 text-xs rounded ${status.active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
-                {status.active ? 'Active' : 'Inactive'}
-              </span>
-              {!status.is_default && (
-                <button
-                  onClick={() => toggleActive(status.id, status.active)}
-                  className="text-sm border px-3 py-1 rounded hover:bg-gray-50"
-                >
-                  {status.active ? 'Deactivate' : 'Reactivate'}
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
