@@ -79,6 +79,20 @@ export interface TranscriptItem {
   drive_url?: string
 }
 
+export interface ChatAttachment {
+  type: 'document' | 'audio'
+  name: string
+  url: string
+}
+
+export interface ChatMessage {
+  id: string
+  author: string
+  content: string
+  timestamp: string
+  attachment?: ChatAttachment
+}
+
 export interface CamperDetailProps {
   initialCamper: {
     id: string
@@ -99,6 +113,7 @@ export interface CamperDetailProps {
   initialPhotos?: PhotoItem[]
   initialVoiceNotes?: VoiceNoteItem[]
   initialTranscripts?: TranscriptItem[]
+  initialChatMessages?: ChatMessage[]
 }
 
 export function CamperDetailClient({
@@ -107,6 +122,7 @@ export function CamperDetailClient({
   initialPhotos = [],
   initialVoiceNotes = [],
   initialTranscripts = [],
+  initialChatMessages = [],
 }: CamperDetailProps) {
   const router = useRouter()
   const [camper, setCamper] = useState(initialCamper)
@@ -141,56 +157,21 @@ export function CamperDetailClient({
 
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false)
   const [profileForm, setProfileForm] = useState({
-    grade: camper.grade || '8th Grade',
-    school: camper.school || 'Yeshiva Toras Chaim',
-    city: camper.city || 'Monsey',
-    state: camper.state || 'NY',
-    notes: camper.notes || 'Standard application with good recommendations.',
+    grade: camper.grade || '',
+    school: camper.school || '',
+    city: camper.city || '',
+    state: camper.state || '',
+    notes: camper.notes || '',
   })
 
   const [isAssignCohortModalOpen, setIsAssignCohortModalOpen] = useState(false)
   const [cohortSessionInput, setCohortSessionInput] = useState(camper.session || 'Session A')
-  const [bunkInput, setBunkInput] = useState('Bunk 12')
+  const [bunkInput, setBunkInput] = useState('')
   const [isDeleteCamperDialogOpen, setIsDeleteCamperDialogOpen] = useState(false)
 
   // Chat State
   const [noteText, setNoteText] = useState('')
-  interface ChatAttachment {
-    type: 'document' | 'audio'
-    name: string
-    url: string
-  }
-  interface ChatMessage {
-    id: string
-    author: string
-    content: string
-    timestamp: string
-    attachment?: ChatAttachment
-  }
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      author: 'Rabbi Cohen',
-      content: '@Azriel Cohenca Please review the recommendation letter attached.',
-      timestamp: '10:30 AM',
-      attachment: {
-        type: 'document',
-        name: 'Recommendation_Letter.pdf',
-        url: '/api/media/proxy/doc-rec-1',
-      },
-    },
-    {
-      id: '2',
-      author: 'Admissions Staff',
-      content: 'Recorded phone interview summary with applicant parents.',
-      timestamp: '11:15 AM',
-      attachment: {
-        type: 'audio',
-        name: 'Parent_Interview_Note.webm',
-        url: '/api/media/proxy/audio-interview-1',
-      },
-    },
-  ])
+  const [messages, setMessages] = useState<ChatMessage[]>(initialChatMessages)
   const [isChatRecording, setIsChatRecording] = useState(false)
 
   // Contract Tab States
@@ -291,7 +272,7 @@ export function CamperDetailClient({
           ...prev,
           session: cohortSessionInput,
         }))
-        showNotification('Cohort & Bunk Assigned', `Assigned to ${cohortSessionInput}, Bunk: ${bunkInput}.`)
+        showNotification('Cohort & Bunk Assigned', `Assigned to ${cohortSessionInput}${bunkInput ? `, Bunk: ${bunkInput}` : ''}.`)
       } catch (err: unknown) {
         showNotification('Assignment Error', (err as Error).message || 'Failed to assign cohort/bunk')
       }
@@ -361,7 +342,7 @@ export function CamperDetailClient({
           showNotification('Attachment Error', res.error || 'Failed to attach document')
           return
         }
-        const docUrl = res.driveFile?.webViewLink || `/api/media/proxy/${res.driveFile?.id || 'doc-proxy'}`
+        const docUrl = res.driveFile?.webViewLink || (res.driveFile?.id ? `https://drive.google.com/file/d/${res.driveFile.id}/preview` : '#')
         handleSendNote({
           type: 'document',
           name: docName,
@@ -382,7 +363,7 @@ export function CamperDetailClient({
       handleSendNote({
         type: 'audio',
         name: audioName,
-        url: '/api/media/proxy/voice-sample-1',
+        url: '#',
       })
       showNotification('Voice Note Recorded', 'Voice note recorded and attached to chat.')
     }, 1500)
@@ -907,7 +888,7 @@ export function CamperDetailClient({
                 <h1 className="text-2xl font-bold text-slate-900">{camper.name}</h1>
                 <Badge variant="outline">{camper.status}</Badge>
               </div>
-              <p className="text-sm text-slate-500 mt-1">App #{camper.application_number}</p>
+              <p className="text-sm text-slate-500 mt-1">App #{camper.application_number || camper.id}</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <Button variant="outline" size="sm" disabled={isPending} onClick={() => setIsEditProfileModalOpen(true)}>
@@ -932,7 +913,7 @@ export function CamperDetailClient({
 
       {/* Workspace Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 md:grid-cols-7 w-full">
+        <TabsList className="grid grid-cols-4 md:grid-cols-8 w-full">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="chat">Chat</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -963,25 +944,25 @@ export function CamperDetailClient({
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm border-b pb-4">
                     <div>
                       <span className="text-slate-500 block mb-1">Grade</span>
-                      <span className="font-medium">{camper.grade || profileForm.grade}</span>
+                      <span className="font-medium">{camper.grade || profileForm.grade || 'N/A'}</span>
                     </div>
                     <div>
                       <span className="text-slate-500 block mb-1">School</span>
-                      <span className="font-medium">{camper.school || profileForm.school}</span>
+                      <span className="font-medium">{camper.school || profileForm.school || 'N/A'}</span>
                     </div>
                     <div>
                       <span className="text-slate-500 block mb-1">City / State</span>
                       <span className="font-medium">
-                        {camper.city || profileForm.city}, {camper.state || profileForm.state}
+                        {(camper.city || profileForm.city) ? `${camper.city || profileForm.city}${camper.state || profileForm.state ? `, ${camper.state || profileForm.state}` : ''}` : 'N/A'}
                       </span>
                     </div>
                     <div>
                       <span className="text-slate-500 block mb-1">Session / Cohort</span>
-                      <span className="font-medium">{camper.session || cohortSessionInput}</span>
+                      <span className="font-medium">{camper.session || cohortSessionInput || 'N/A'}</span>
                     </div>
                     <div>
                       <span className="text-slate-500 block mb-1">Bunk Assignment</span>
-                      <span className="font-medium">{bunkInput}</span>
+                      <span className="font-medium">{bunkInput || 'Unassigned'}</span>
                     </div>
                   </div>
 
@@ -999,7 +980,7 @@ export function CamperDetailClient({
                   <div className="text-sm pt-2">
                     <span className="text-slate-500 block mb-1">Demographic & Review Notes</span>
                     <p className="text-slate-700 bg-slate-50 p-3 rounded border">
-                      {camper.notes || profileForm.notes}
+                      {camper.notes || profileForm.notes || 'No notes provided.'}
                     </p>
                   </div>
                 </CardContent>
@@ -1037,56 +1018,66 @@ export function CamperDetailClient({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="p-4 bg-slate-50 border rounded-lg text-sm text-slate-700 space-y-4 max-h-[450px] overflow-y-auto">
-                  {messages.map((m) => (
-                    <div key={m.id} className="p-3 bg-white border rounded-lg shadow-sm space-y-2">
-                      <div className="flex justify-between items-center text-xs text-slate-500">
-                        <span className="font-semibold text-slate-800">{m.author}</span>
-                        <span>{m.timestamp}</span>
+                  {messages.length === 0 ? (
+                    <p className="text-xs text-slate-500 italic">No notes or chat messages yet.</p>
+                  ) : (
+                    messages.map((m) => (
+                      <div key={m.id} className="p-3 bg-white border rounded-lg shadow-sm space-y-2">
+                        <div className="flex justify-between items-center text-xs text-slate-500">
+                          <span className="font-semibold text-slate-800">{m.author}</span>
+                          <span>{m.timestamp}</span>
+                        </div>
+                        <p className="text-slate-800 text-sm whitespace-pre-wrap">{m.content}</p>
+
+                        {m.attachment && m.attachment.type === 'document' && (
+                          <div className="p-2.5 bg-slate-50 border rounded-md flex items-center justify-between gap-3 text-xs mt-2">
+                            <div className="flex items-center gap-2 truncate">
+                              <span className="text-base">📄</span>
+                              <span className="font-medium text-slate-700 truncate">{m.attachment.name}</span>
+                            </div>
+                            {m.attachment.url && m.attachment.url !== '#' && (
+                              <a
+                                href={m.attachment.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download={m.attachment.name}
+                                className="text-blue-600 hover:text-blue-800 font-medium underline flex-shrink-0"
+                              >
+                                Download
+                              </a>
+                            )}
+                          </div>
+                        )}
+
+                        {m.attachment && m.attachment.type === 'audio' && (
+                          <div className="p-2.5 bg-slate-50 border rounded-md space-y-1.5 text-xs mt-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-slate-700 flex items-center gap-1.5">
+                                <span>🎙️</span> {m.attachment.name}
+                              </span>
+                              {m.attachment.url && m.attachment.url !== '#' && (
+                                <a
+                                  href={m.attachment.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  download={m.attachment.name}
+                                  className="text-blue-600 hover:text-blue-800 font-medium underline"
+                                >
+                                  Download
+                                </a>
+                              )}
+                            </div>
+                            {m.attachment.url && m.attachment.url !== '#' && (
+                              <audio controls className="w-full h-8 mt-1">
+                                <source src={m.attachment.url} type="audio/webm" />
+                                Your browser does not support audio playback.
+                              </audio>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <p className="text-slate-800 text-sm whitespace-pre-wrap">{m.content}</p>
-
-                      {m.attachment && m.attachment.type === 'document' && (
-                        <div className="p-2.5 bg-slate-50 border rounded-md flex items-center justify-between gap-3 text-xs mt-2">
-                          <div className="flex items-center gap-2 truncate">
-                            <span className="text-base">📄</span>
-                            <span className="font-medium text-slate-700 truncate">{m.attachment.name}</span>
-                          </div>
-                          <a
-                            href={m.attachment.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            download={m.attachment.name}
-                            className="text-blue-600 hover:text-blue-800 font-medium underline flex-shrink-0"
-                          >
-                            Download
-                          </a>
-                        </div>
-                      )}
-
-                      {m.attachment && m.attachment.type === 'audio' && (
-                        <div className="p-2.5 bg-slate-50 border rounded-md space-y-1.5 text-xs mt-2">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium text-slate-700 flex items-center gap-1.5">
-                              <span>🎙️</span> {m.attachment.name}
-                            </span>
-                            <a
-                              href={m.attachment.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              download={m.attachment.name}
-                              className="text-blue-600 hover:text-blue-800 font-medium underline"
-                            >
-                              Download
-                            </a>
-                          </div>
-                          <audio controls className="w-full h-8 mt-1">
-                            <source src={m.attachment.url} type="audio/webm" />
-                            Your browser does not support audio playback.
-                          </audio>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
 
                 <div className="space-y-2 pt-2">
@@ -1501,7 +1492,7 @@ export function CamperDetailClient({
                 <div>
                   <CardTitle>VAAD Committee Review & Decision</CardTitle>
                   <p className="text-xs text-slate-500 mt-1">
-                    Atomic voting system requiring 2-of-3 committee consensus for admissions acceptance.
+                    Atomic voting system requiring committee consensus for admissions acceptance.
                   </p>
                 </div>
                 <Button variant="outline" disabled={isPending} onClick={handleToggleVoting}>
@@ -1613,7 +1604,7 @@ export function CamperDetailClient({
         isOpen={isStatusModalOpen}
         onClose={() => setIsStatusModalOpen(false)}
         title="Override Camper Status"
-        description={`Update application status for ${camper.name} (App #${camper.application_number}).`}
+        description={`Update application status for ${camper.name} (App #${camper.application_number || camper.id}).`}
       >
         <div className="space-y-4">
           <div>
@@ -1763,7 +1754,7 @@ export function CamperDetailClient({
         onClose={() => setIsDeleteCamperDialogOpen(false)}
         onConfirm={handleConfirmDeleteCamper}
         title="Delete Camper Record"
-        message={`Are you sure you want to delete ${camper.name} (App #${camper.application_number})? This action cannot be undone.`}
+        message={`Are you sure you want to delete ${camper.name} (App #${camper.application_number || camper.id})? This action cannot be undone.`}
         confirmText="Delete Camper"
         cancelText="Cancel"
         variant="destructive"
@@ -1823,7 +1814,7 @@ export function CamperDetailClient({
             <Input
               value={photoCaption}
               onChange={(e) => setPhotoCaption(e.target.value)}
-              placeholder="e.g. Camper Official Headshot 2026"
+              placeholder="e.g. Camper Official Headshot"
             />
           </div>
           <div>
@@ -1994,7 +1985,7 @@ export function CamperDetailClient({
             <Input
               value={voiceTitle}
               onChange={(e) => setVoiceTitle(e.target.value)}
-              placeholder="e.g. Rabbi Cohen Parent Interview 09-12-2026"
+              placeholder="e.g. Parent Interview"
             />
           </div>
           <div>
@@ -2050,7 +2041,7 @@ export function CamperDetailClient({
         isOpen={isPreviewPdfModalOpen}
         onClose={() => setIsPreviewPdfModalOpen(false)}
         title="Enrollment Contract Preview"
-        description={`Previewing enrollment contract for ${camper.name} (App #${camper.application_number}).`}
+        description={`Previewing enrollment contract for ${camper.name} (App #${camper.application_number || camper.id}).`}
       >
         <div className="space-y-4">
           <div className="border rounded-lg bg-slate-100 p-4 text-center min-h-[300px] flex flex-col items-center justify-center space-y-3">
@@ -2058,7 +2049,7 @@ export function CamperDetailClient({
               Oorah Admissions Official Enrollment Contract
             </p>
             <p className="text-xs text-slate-600">
-              Camper: {camper.name} | Application #: {camper.application_number}
+              Camper: {camper.name} | Application #: {camper.application_number || camper.id}
             </p>
             {contractPdfUrl && contractPdfUrl.includes('drive.google.com') ? (
               <iframe
@@ -2068,7 +2059,7 @@ export function CamperDetailClient({
               />
             ) : (
               <div className="w-full h-48 bg-white border rounded shadow-inner p-4 text-left text-xs font-mono overflow-auto">
-                {`%PDF-1.4 Official Enrollment Contract\n---------------------------------------\nCamper: ${camper.name}\nApplication: ${camper.application_number}\nGenerated: ${new Date().toLocaleDateString()}\nStatus: ${contractStatus}\n\nTerms and conditions for season enrollment apply.`}
+                {`%PDF-1.4 Official Enrollment Contract\n---------------------------------------\nCamper: ${camper.name}\nApplication: ${camper.application_number || camper.id}\nGenerated: ${new Date().toLocaleDateString()}\nStatus: ${contractStatus}\n\nTerms and conditions for season enrollment apply.`}
               </div>
             )}
           </div>

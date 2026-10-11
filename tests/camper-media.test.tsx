@@ -8,6 +8,9 @@ vi.mock('next/navigation', () => ({
     push: vi.fn(),
     refresh: vi.fn(),
   }),
+  notFound: () => {
+    throw new Error('NEXT_NOT_FOUND')
+  },
 }))
 
 vi.mock('next/link', () => ({
@@ -58,19 +61,25 @@ const mockSupabaseInstance = {
     if (table === 'kids') {
       return {
         select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: {
-                id: 'kid-real-1',
-                name: 'Chaim Goldberg',
-                application_number: '5555',
-                voting_open: true,
-                created_at: '2025-02-01T12:00:00Z',
-                statuses: { name: 'VAAD Review' },
-              },
-              error: null,
+          eq: vi.fn().mockImplementation((_col: string, val: string) => ({
+            single: vi.fn().mockImplementation(() => {
+              if (val === 'not-found') {
+                return Promise.resolve({ data: null, error: { message: 'Not found' } })
+              }
+              return Promise.resolve({
+                data: {
+                  id: val,
+                  name: 'Chaim Goldberg',
+                  application_number: '5555',
+                  voting_open: true,
+                  created_at: '2025-02-01T12:00:00Z',
+                  updated_at: '2025-02-01T12:00:00Z',
+                  statuses: { name: 'VAAD Review' },
+                },
+                error: null,
+              })
             }),
-          }),
+          })),
         }),
       }
     }
@@ -158,6 +167,25 @@ const mockSupabaseInstance = {
         }),
       }
     }
+    if (table === 'chat_messages') {
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({
+              data: [
+                {
+                  id: 'chat-1',
+                  content: 'Welcome to camper notes',
+                  created_at: '2025-02-01T12:00:00Z',
+                  users: { full_name: 'Admissions Staff' },
+                },
+              ],
+              error: null,
+            }),
+          }),
+        }),
+      }
+    }
     return {
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
@@ -187,7 +215,6 @@ describe('Camper Media Management (Photos, Voice Notes, Transcript)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    // Polyfill ResizeObserver and PointerEvent if missing in jsdom
     if (typeof window !== 'undefined') {
       if (!window.ResizeObserver) {
         window.ResizeObserver = class {
@@ -380,35 +407,23 @@ describe('Camper Media Management (Photos, Voice Notes, Transcript)', () => {
 })
 
 describe('CamperDetailPage Server Component Media Loading', () => {
-  it('loads camper detail page with fallback media when no database is configured', async () => {
+  it('calls notFound when camper is not in the database', async () => {
     const CamperDetailPage = (await import('@/app/campers/[id]/page')).default
-    const pageElement = await CamperDetailPage({ params: Promise.resolve({ id: '1' }) })
+    await expect(
+      CamperDetailPage({ params: Promise.resolve({ id: 'not-found' }) })
+    ).rejects.toThrow('NEXT_NOT_FOUND')
+  })
+
+  it('queries Supabase in parallel and maps Drive URLs when configured', async () => {
+    const CamperDetailPage = (await import('@/app/campers/[id]/page')).default
+    const pageElement = await CamperDetailPage({ params: Promise.resolve({ id: 'kid-real-1' }) })
     render(pageElement)
 
-    expect(screen.getByText('John Smith')).toBeInTheDocument()
+    expect(screen.getByText('Chaim Goldberg')).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Photos' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Documents' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Voice Notes' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Transcripts' })).toBeInTheDocument()
-  })
-
-  it('queries Supabase in parallel and maps Drive URLs when configured', async () => {
-    const originalUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://production-project.supabase.co'
-
-    try {
-      const CamperDetailPage = (await import('@/app/campers/[id]/page')).default
-      const pageElement = await CamperDetailPage({ params: Promise.resolve({ id: 'kid-real-1' }) })
-      render(pageElement)
-
-      expect(screen.getByText('Chaim Goldberg')).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'Photos' })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'Documents' })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'Voice Notes' })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'Transcripts' })).toBeInTheDocument()
-    } finally {
-      process.env.NEXT_PUBLIC_SUPABASE_URL = originalUrl
-    }
   })
 })
 
@@ -444,4 +459,3 @@ describe('Detail Actions Drive URL Formats', () => {
     expect(transcripts[0].drive_url).toBe('https://drive.google.com/file/d/drive-tr-666/preview')
   })
 })
-

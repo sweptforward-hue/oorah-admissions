@@ -1,0 +1,133 @@
+
+> oorah-admissions@0.1.0 dev
+> next dev
+
+▲ Next.js 16.3.5 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 619ms
+✓ Running next.config.ts took 48ms
+
+○ Compiling / ...
+ HEAD / 200 in 4.9s (next.js: 4.5s, application-code: 411ms)
+ GET /login 200 in 884ms (next.js: 714ms, proxy.ts: 11ms, application-code: 159ms)
+ GET /login 200 in 66ms (next.js: 5ms, proxy.ts: 8ms, application-code: 53ms)
+ GET /dashboard 200 in 509ms (next.js: 462ms, proxy.ts: 9ms, application-code: 37ms)
+ GET /dashboard 200 in 53ms (next.js: 8ms, proxy.ts: 10ms, application-code: 35ms)
+ POST /dashboard 200 in 57ms (next.js: 6ms, proxy.ts: 9ms, application-code: 42ms)
+  └─ ƒ getCurrentUser() in 5ms src/lib/auth/authorization.ts
+ POST /dashboard 200 in 24ms (next.js: 4ms, proxy.ts: 8ms, application-code: 12ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ GET /campers 200 in 596ms (next.js: 441ms, proxy.ts: 7ms, application-code: 148ms)
+ POST /campers 200 in 27ms (next.js: 5ms, proxy.ts: 7ms, application-code: 14ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ POST /campers 200 in 20ms (next.js: 4ms, proxy.ts: 5ms, application-code: 11ms)
+  └─ ƒ getCurrentUser() in 1ms src/lib/auth/authorization.ts
+ GET /campers/new 200 in 1862ms (next.js: 1789ms, proxy.ts: 15ms, application-code: 59ms)
+ POST /campers/new 200 in 56ms (next.js: 10ms, proxy.ts: 6ms, application-code: 39ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ POST /campers/new 200 in 70ms (next.js: 9ms, proxy.ts: 12ms, application-code: 49ms)
+  └─ ƒ getCurrentUser() in 3ms src/lib/auth/authorization.ts
+ GET /login 200 in 76ms (next.js: 6ms, proxy.ts: 8ms, application-code: 62ms)
+ GET /dashboard 200 in 50ms (next.js: 9ms, proxy.ts: 6ms, application-code: 35ms)
+ GET /dashboard 200 in 48ms (next.js: 6ms, proxy.ts: 11ms, application-code: 31ms)
+ POST /dashboard 200 in 25ms (next.js: 4ms, proxy.ts: 9ms, application-code: 12ms)
+  └─ ƒ getCurrentUser() in 3ms src/lib/auth/authorization.ts
+ POST /dashboard 200 in 24ms (next.js: 6ms, proxy.ts: 5ms, application-code: 13ms)
+  └─ ƒ getCurrentUser() in 3ms src/lib/auth/authorization.ts
+ GET /dashboard 200 in 116ms (next.js: 4ms, proxy.ts: 5ms, application-code: 107ms)
+ POST /dashboard 200 in 21ms (next.js: 4ms, proxy.ts: 7ms, application-code: 10ms)
+  └─ ƒ getCurrentUser() in 1ms src/lib/auth/authorization.ts
+ POST /dashboard 200 in 21ms (next.js: 4ms, proxy.ts: 5ms, application-code: 11ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ GET /campers/new 200 in 36ms (next.js: 5ms, proxy.ts: 5ms, application-code: 26ms)
+ POST /campers/new 200 in 18ms (next.js: 4ms, proxy.ts: 5ms, application-code: 10ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ POST /campers/new 200 in 20ms (next.js: 4ms, proxy.ts: 6ms, application-code: 10ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ GET /login 200 in 65ms (next.js: 4ms, proxy.ts: 7ms, application-code: 54ms)
+ GET /dashboard 200 in 32ms (next.js: 5ms, proxy.ts: 5ms, application-code: 22ms)
+ GET /dashboard 200 in 46ms (next.js: 7ms, proxy.ts: 9ms, application-code: 30ms)
+ POST /dashboard 200 in 24ms (next.js: 4ms, proxy.ts: 8ms, application-code: 12ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ POST /dashboard 200 in 24ms (next.js: 4ms, proxy.ts: 8ms, application-code: 12ms)
+  └─ ƒ getCurrentUser() in 3ms src/lib/auth/authorization.ts
+ GET /session-a 404 in 299ms (next.js: 241ms, proxy.ts: 5ms, application-code: 53ms)
+ GET /campers/1 404 in 8.6s (next.js: 1463ms, proxy.ts: 5ms, application-code: 7.1s)
+ GET /login 200 in 75ms (next.js: 10ms, proxy.ts: 8ms, application-code: 57ms)
+ GET /dashboard 200 in 39ms (next.js: 9ms, proxy.ts: 7ms, application-code: 23ms)
+ GET /dashboard 200 in 40ms (next.js: 7ms, proxy.ts: 6ms, application-code: 26ms)
+ POST /dashboard 200 in 24ms (next.js: 6ms, proxy.ts: 6ms, application-code: 11ms)
+  └─ ƒ getCurrentUser() in 1ms src/lib/auth/authorization.ts
+ POST /dashboard 200 in 27ms (next.js: 9ms, proxy.ts: 6ms, application-code: 13ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ GET /campers/new 200 in 132ms (next.js: 10ms, proxy.ts: 5ms, application-code: 118ms)
+ POST /campers/new 200 in 21ms (next.js: 4ms, proxy.ts: 6ms, application-code: 11ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ POST /campers/new 200 in 18ms (next.js: 4ms, proxy.ts: 5ms, application-code: 10ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ POST /campers/new 200 in 3.2s (next.js: 4ms, proxy.ts: 6ms, application-code: 3.2s)
+Error creating camper: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: AggregateError:  (ECONNREFUSED)\n' +
+    'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET /login 200 in 67ms (next.js: 5ms, proxy.ts: 7ms, application-code: 55ms)
+ GET /dashboard 200 in 35ms (next.js: 5ms, proxy.ts: 8ms, application-code: 23ms)
+ GET /dashboard 200 in 44ms (next.js: 7ms, proxy.ts: 9ms, application-code: 29ms)
+ POST /dashboard 200 in 26ms (next.js: 4ms, proxy.ts: 8ms, application-code: 14ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ POST /dashboard 200 in 19ms (next.js: 3ms, proxy.ts: 5ms, application-code: 11ms)
+  └─ ƒ getCurrentUser() in 3ms src/lib/auth/authorization.ts
+ GET /campers/new 200 in 58ms (next.js: 4ms, proxy.ts: 4ms, application-code: 50ms)
+ POST /campers/new 200 in 20ms (next.js: 4ms, proxy.ts: 8ms, application-code: 9ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ POST /campers/new 200 in 21ms (next.js: 4ms, proxy.ts: 5ms, application-code: 12ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ POST /campers/new 200 in 6.2s (next.js: 4ms, proxy.ts: 5ms, application-code: 6.2s)
+Error creating camper: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: AggregateError:  (ECONNREFUSED)\n' +
+    'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET /login 200 in 62ms (next.js: 7ms, proxy.ts: 5ms, application-code: 50ms)
+ GET /dashboard 200 in 36ms (next.js: 7ms, proxy.ts: 5ms, application-code: 24ms)
+ GET /dashboard 200 in 47ms (next.js: 5ms, proxy.ts: 9ms, application-code: 32ms)
+ POST /dashboard 200 in 25ms (next.js: 4ms, proxy.ts: 6ms, application-code: 15ms)
+  └─ ƒ getCurrentUser() in 4ms src/lib/auth/authorization.ts
+ POST /dashboard 200 in 20ms (next.js: 3ms, proxy.ts: 5ms, application-code: 11ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ GET /campers/new 200 in 62ms (next.js: 5ms, proxy.ts: 5ms, application-code: 53ms)
+ POST /campers/new 200 in 20ms (next.js: 4ms, proxy.ts: 5ms, application-code: 11ms)
+  └─ ƒ getCurrentUser() in 3ms src/lib/auth/authorization.ts
+ POST /campers/new 200 in 19ms (next.js: 4ms, proxy.ts: 5ms, application-code: 10ms)
+  └─ ƒ getCurrentUser() in 2ms src/lib/auth/authorization.ts
+ POST /campers/new 200 in 9.9s (next.js: 4ms, proxy.ts: 5ms, application-code: 9.9s)
+Error creating camper: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: AggregateError:  (ECONNREFUSED)\n' +
+    'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET /campers/10000000-0000-0000-0000-000000000001 404 in 7.2s (next.js: 35ms, proxy.ts: 9ms, application-code: 7.1s)
+ GET /campers/non-existent-id 404 in 7.2s (next.js: 23ms, proxy.ts: 5ms, application-code: 7.1s)
