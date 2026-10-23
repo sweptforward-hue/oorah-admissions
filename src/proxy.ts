@@ -34,6 +34,16 @@ export async function proxy(request: NextRequest) {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key'
     try {
       const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+        global: {
+          fetch: (url: RequestInfo | URL, options?: RequestInit) => {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 2000)
+            return fetch(url, {
+              ...options,
+              signal: controller.signal,
+            }).finally(() => clearTimeout(timeoutId))
+          },
+        },
         cookies: {
           getAll() {
             return request.cookies.getAll()

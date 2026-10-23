@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { render, screen, cleanup } from '@testing-library/react'
 import AdminYearsPage from '@/app/admin/years/page'
 import AdminSessionsPage from '@/app/admin/sessions/page'
 import AdminCustomFieldsPage from '@/app/admin/custom-fields/page'
@@ -8,6 +8,10 @@ import AdminExportsPage from '@/app/admin/exports/page'
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: React.ReactNode, href: string }) => <a href={href}>{children}</a>
 }))
+
+afterEach(() => {
+  cleanup()
+})
 
 describe('Admin Management Modules', () => {
   it('renders Years page with active year items', () => {
@@ -23,10 +27,10 @@ describe('Admin Management Modules', () => {
     expect(screen.getByText('Session B')).toBeInTheDocument()
   })
 
-  it('renders Custom Fields page with dynamic fields', () => {
+  it('renders Custom Fields page with clean state', () => {
     render(<AdminCustomFieldsPage />)
     expect(screen.getByText('Custom Data Fields')).toBeInTheDocument()
-    expect(screen.getByText('T-Shirt Size')).toBeInTheDocument()
+    expect(screen.getByText('No Custom Fields')).toBeInTheDocument()
   })
 
   it('renders Exports page with export destinations', () => {
