@@ -87,16 +87,9 @@ export const DEFAULT_VAAD_CHOICES: VaadChoiceContext[] = [
   { id: 'vc-4', label: 'Waitlist', action: 'waitlist', color: '#6B7280', active: true },
 ];
 
-export const DEFAULT_CAMPERS: CamperContext[] = [];
-
-/**
- * Retrieve grounded context from Supabase tables:
- * kids, statuses, sessions, years, vaad_choices
- * Gracefully falls back to default grounded data if DB is unavailable.
- */
 export async function retrieveRAGContext(query: string): Promise<RAGContext> {
   const sources: string[] = [];
-  let campers: CamperContext[] = [...DEFAULT_CAMPERS];
+  let campers: CamperContext[] = [];
   let statuses: StatusContext[] = [...DEFAULT_STATUSES];
   let sessions: SessionContext[] = [...DEFAULT_SESSIONS];
   let years: YearContext[] = [...DEFAULT_YEARS];
