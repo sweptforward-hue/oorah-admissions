@@ -27,6 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_staff_session ON public.staff(session);
 CREATE INDEX IF NOT EXISTS idx_staff_status ON public.staff(status);
 CREATE INDEX IF NOT EXISTS idx_staff_year ON public.staff(year);
 CREATE INDEX IF NOT EXISTS idx_staff_name ON public.staff(last_name, first_name);
+CREATE INDEX IF NOT EXISTS idx_staff_user_id ON public.staff(user_id);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.staff ENABLE ROW LEVEL SECURITY;

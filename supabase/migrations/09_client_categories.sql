@@ -48,6 +48,7 @@ CREATE POLICY "client_categories_service_role" ON public.client_categories
 
 -- Add optional client_category_id reference on kids table if not exists
 ALTER TABLE public.kids ADD COLUMN IF NOT EXISTS client_category_id UUID REFERENCES public.client_categories(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_kids_client_category_id ON public.kids(client_category_id);
 
 -- Initial default categories if table is empty
 INSERT INTO public.client_categories (name, code, description, color, is_active, sort_order)
