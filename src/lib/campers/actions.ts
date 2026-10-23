@@ -319,7 +319,7 @@ export async function getAdminCampers() {
   try {
     const stored = getStoredCampers()
     for (const s of stored) {
-      if (!resultList.some(r => r.id === s.id || r.appNum === s.application_number)) {
+      if (!resultList.some((r: any) => r.id === s.id || r.appNum === s.application_number)) {
         resultList.unshift({
           id: s.id,
           name: s.name,
