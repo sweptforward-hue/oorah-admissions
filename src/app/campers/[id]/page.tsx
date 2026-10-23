@@ -26,8 +26,6 @@ export default async function CamperDetailPage({ params }: PageProps) {
     .select(`
       id,
       application_number,
-      first_name,
-      last_name,
       name,
       voting_open,
       created_at,
@@ -38,6 +36,7 @@ export default async function CamperDetailPage({ params }: PageProps) {
     .single();
 
   if (error || !camperData) {
+    console.error('[CamperDetail Error]:', error, 'camperData:', camperData);
     return notFound();
   }
 

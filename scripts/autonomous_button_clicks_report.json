@@ -1,0 +1,458 @@
+{
+  "timestamp": "2026-10-23T17:17:02.532Z",
+  "totalActions": 55,
+  "actions": [
+    {
+      "timestamp": "2026-10-23T17:14:45.976Z",
+      "page": "/dashboard",
+      "element": "Page Load",
+      "action": "NAVIGATE",
+      "status": "PASSED",
+      "details": "http://localhost:3000/dashboard"
+    },
+    {
+      "timestamp": "2026-10-23T17:14:46.628Z",
+      "page": "/dashboard",
+      "element": "year",
+      "action": "SELECT_INSPECT",
+      "status": "PASSED",
+      "details": ""
+    },
+    {
+      "timestamp": "2026-10-23T17:14:46.692Z",
+      "page": "/dashboard",
+      "element": "session",
+      "action": "SELECT_INSPECT",
+      "status": "PASSED",
+      "details": ""
+    },
+    {
+      "timestamp": "2026-10-23T17:14:46.945Z",
+      "page": "/dashboard",
+      "element": "VAAD Review",
+      "action": "CLICK_EVALUATE",
+      "status": "PASSED",
+      "details": ""
+    },
+    {
+      "timestamp": "2026-10-23T17:14:47.032Z",
+      "page": "/dashboard",
+      "element": "Under Review",
+      "action": "CLICK_EVALUATE",
+      "status": "PASSED",
+      "details": ""
+    },
+    {
+      "timestamp": "2026-10-23T17:14:47.087Z",
+      "page": "/dashboard",
+      "element": "Accepted",
+      "action": "CLICK_EVALUATE",
+      "status": "PASSED",
+      "details": ""
+    },
+    {
+      "timestamp": "2026-10-23T17:14:47.182Z",
+      "page": "/dashboard",
+      "element": "Button",
+      "action": "CLICK_EVALUATE",
+      "status": "PASSED",
+      "details": ""
+    },
+    {
+      "timestamp": "2026-10-23T17:14:47.291Z",
+      "page": "/dashboard",
+      "element": "AI Assistant\nRAG",
+      "action": "CLICK_EVALUATE",
+      "status": "PASSED",
+      "details": ""
+    },
+    {
+      "timestamp": "2026-10-23T17:14:58.541Z",
+      "page": "/campers",
+      "element": "Search Input",
+      "action": "FILL",
+      "status": "PASSED",
+      "details": "Cohen"
+    },
+    {
+      "timestamp": "2026-10-23T17:14:58.900Z",
+      "page": "/campers",
+      "element": "+ New Kid",
+      "action": "INSPECT_CLICK",
+      "status": "PASSED",
+      "details": ""
+    },
+    {
+      "timestamp": "2026-10-23T17:15:01.000Z",
+      "page": "/campers/new",
+      "element": "Submit Application Button",
+      "action": "VERIFY_BUTTON",
+      "status": "PASSED",
+      "details": ""
+    },
+    {
+      "timestamp": "2026-10-23T17:15:09.323Z",
+      "page": "/staff",
+      "element": "Search Input",
+      "action": "FILL",
+      "status": "PASSED",
+      "details": "Counselor"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:10.212Z",
+      "page": "/staff",
+      "element": "staff_roster_verified.png",
+      "action": "CAPTURE",
+      "status": "PASSED",
+      "details": ""
+    },
+    {
+      "timestamp": "2026-10-23T17:15:24.643Z",
+      "page": "/staff/new",
+      "element": "input[name='first_name']",
+      "action": "FILL",
+      "status": "PASSED",
+      "details": "Eli"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:26.480Z",
+      "page": "/staff/new",
+      "element": "input[name='last_name']",
+      "action": "FILL",
+      "status": "PASSED",
+      "details": "Goldstein"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:26.628Z",
+      "page": "/staff/new",
+      "element": "input[name='email']",
+      "action": "FILL",
+      "status": "PASSED",
+      "details": "eli.goldstein@oorah.org"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:26.799Z",
+      "page": "/staff/new",
+      "element": "input[name='phone']",
+      "action": "FILL",
+      "status": "PASSED",
+      "details": "555-0192"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:27.074Z",
+      "page": "/staff/new",
+      "element": "input[name='bunk_assignment']",
+      "action": "FILL",
+      "status": "PASSED",
+      "details": "Bunk A-1"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:27.406Z",
+      "page": "/staff/new",
+      "element": "select[name=role_title]",
+      "action": "SELECT",
+      "status": "PASSED",
+      "details": "Head Counselor"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:27.674Z",
+      "page": "/staff/new",
+      "element": "select[name=session]",
+      "action": "SELECT",
+      "status": "PASSED",
+      "details": "Session A"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:28.173Z",
+      "page": "/staff/new",
+      "element": "staff_new_verified.png",
+      "action": "CAPTURE",
+      "status": "PASSED",
+      "details": ""
+    },
+    {
+      "timestamp": "2026-10-23T17:15:28.489Z",
+      "page": "/staff/new",
+      "element": "Register Staff Member Button",
+      "action": "CLICK",
+      "status": "PASSED",
+      "details": ""
+    },
+    {
+      "timestamp": "2026-10-23T17:15:34.820Z",
+      "page": "/staff/new",
+      "element": "staff_detail_verified.png",
+      "action": "CAPTURE",
+      "status": "PASSED",
+      "details": ""
+    },
+    {
+      "timestamp": "2026-10-23T17:15:41.883Z",
+      "page": "/admin",
+      "element": "Admin Cards Count",
+      "action": "COUNT",
+      "status": "PASSED",
+      "details": "Found 27 control cards"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:42.149Z",
+      "page": "/admin",
+      "element": "Campers",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/campers"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:42.205Z",
+      "page": "/admin",
+      "element": "Staff",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/staff"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:42.416Z",
+      "page": "/admin",
+      "element": "Users",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/users"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:42.677Z",
+      "page": "/admin",
+      "element": "Years",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/years"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:43.137Z",
+      "page": "/admin",
+      "element": "Sessions",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/sessions"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:43.632Z",
+      "page": "/admin",
+      "element": "Statuses",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/statuses"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:44.436Z",
+      "page": "/admin",
+      "element": "Categories",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/client-categories"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:44.587Z",
+      "page": "/admin",
+      "element": "Voting",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/vaad-choices"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:44.816Z",
+      "page": "/admin",
+      "element": "Custom Fields",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/custom-fields"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:44.966Z",
+      "page": "/admin",
+      "element": "Exports",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/exports"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:45.095Z",
+      "page": "/admin",
+      "element": "Storage",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/storage"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:45.339Z",
+      "page": "/admin",
+      "element": "Audit Log",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/audit-log"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:45.445Z",
+      "page": "/admin",
+      "element": "Help",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/help"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:45.557Z",
+      "page": "/admin",
+      "element": "Campers",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/campers"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:45.697Z",
+      "page": "/admin",
+      "element": "Staff Directory",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/staff"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:45.795Z",
+      "page": "/admin",
+      "element": "Users & Permissions",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/users"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:45.883Z",
+      "page": "/admin",
+      "element": "Camp Years",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/years"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:45.988Z",
+      "page": "/admin",
+      "element": "Sessions",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/sessions"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:46.079Z",
+      "page": "/admin",
+      "element": "Statuses",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/statuses"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:46.244Z",
+      "page": "/admin",
+      "element": "Client Categories",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/client-categories"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:46.476Z",
+      "page": "/admin",
+      "element": "VAAD Members",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/vaad-members"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:46.641Z",
+      "page": "/admin",
+      "element": "VAAD Choices",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/vaad-choices"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:46.862Z",
+      "page": "/admin",
+      "element": "Custom Fields",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/custom-fields"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:47.157Z",
+      "page": "/admin",
+      "element": "Export Data",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/exports"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:47.327Z",
+      "page": "/admin",
+      "element": "Storage & Drive",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/storage"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:47.491Z",
+      "page": "/admin",
+      "element": "Audit Log",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/audit-log"
+    },
+    {
+      "timestamp": "2026-10-23T17:15:47.629Z",
+      "page": "/admin",
+      "element": "Admin Help",
+      "action": "VERIFY_CARD",
+      "status": "PASSED",
+      "details": "/admin/help"
+    },
+    {
+      "timestamp": "2026-10-23T17:16:00.938Z",
+      "page": "/admin/years",
+      "element": "Year Input",
+      "action": "FILL",
+      "status": "PASSED",
+      "details": "Summer 2026"
+    },
+    {
+      "timestamp": "2026-10-23T17:16:01.033Z",
+      "page": "/admin/years",
+      "element": "+ Create Year Button",
+      "action": "INSPECT",
+      "status": "PASSED",
+      "details": ""
+    },
+    {
+      "timestamp": "2026-10-23T17:16:17.348Z",
+      "page": "/admin/client-categories",
+      "element": "+ Add Category Button",
+      "action": "CLICK",
+      "status": "PASSED",
+      "details": ""
+    },
+    {
+      "timestamp": "2026-10-23T17:16:19.228Z",
+      "page": "/admin/client-categories",
+      "element": "admin_client_categories_verified.png",
+      "action": "CAPTURE",
+      "status": "PASSED",
+      "details": ""
+    }
+  ],
+  "errors": [
+    {
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "location": {
+        "url": "http://localhost:3000/campers/26fa3bc8-61b2-450b-817c-a2e9300b93f3",
+        "line": 0,
+        "column": 0,
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    }
+  ]
+}

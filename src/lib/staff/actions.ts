@@ -317,50 +317,57 @@ export async function deleteStaffMember(staffId: string) {
     const admin = await requireAdminRole()
     const adminSupabase = createAdminClient()
 
-    // Fetch staff name and bunk assignment for audit log before deletion
     let staffName = staffId
     let appNumber = ''
+    let bunkAssignment: string | null = null
+    let sessionName: string | null = null
+
     const stored = getStoredStaff().find((s) => s.id === staffId || s.application_number === staffId)
     if (stored) {
       staffName = stored.name
       appNumber = stored.application_number
+      bunkAssignment = stored.bunk_assignment || null
+      sessionName = stored.session || null
     }
 
-    try {
-      const { data: staff } = await adminSupabase
-        .from('staff')
-        .select('name, first_name, last_name, application_number, bunk_assignment, session')
-        .eq('id', staffId)
-        .maybeSingle()
+    const { data: staff } = await adminSupabase
+      .from('staff')
+      .select('name, first_name, last_name, application_number, bunk_assignment, session')
+      .eq('id', staffId)
+      .maybeSingle()
 
-      if (staff) {
-        staffName = staff.name || `${staff.first_name} ${staff.last_name}`
-        appNumber = staff.application_number
-      }
+    if (staff) {
+      staffName = staff.name || `${staff.first_name} ${staff.last_name}`
+      appNumber = staff.application_number
+      bunkAssignment = staff.bunk_assignment || bunkAssignment
+      sessionName = staff.session || sessionName
+    }
 
-      await Promise.allSettled([
-        adminSupabase.from('bunk_assignments').delete().eq('staff_id', staffId),
-        adminSupabase.from('staff').update({ bunk_assignment: null }).eq('id', staffId),
-      ])
+    await Promise.allSettled([
+      adminSupabase.from('bunk_assignments').delete().eq('staff_id', staffId),
+      adminSupabase.from('staff').update({ bunk_assignment: null }).eq('id', staffId),
+    ])
 
-      await adminSupabase.from('staff').delete().eq('id', staffId)
-    } catch {}
+    const { error: deleteError } = await adminSupabase.from('staff').delete().eq('id', staffId)
+    if (deleteError) {
+      throw new Error(`Failed to delete staff member: ${deleteError.message}`)
+    }
 
     // Always remove from local persistent store
     deleteStoredStaff(staffId)
 
-    try {
-      await adminSupabase.from('audit_log').insert({
-        actor_id: admin.id,
-        action: 'DELETE_STAFF_MEMBER',
-        entity_type: 'staff',
-        entity_id: staffId,
-        details: {
-          staff_name: staffName,
-          application_number: appNumber,
-        },
-      })
-    } catch {}
+    await adminSupabase.from('audit_log').insert({
+      actor_id: admin.id,
+      action: 'DELETE_STAFF_MEMBER',
+      entity_type: 'staff',
+      entity_id: staffId,
+      details: {
+        staff_name: staffName,
+        application_number: appNumber,
+        bunk_assignment: bunkAssignment,
+        session: sessionName,
+      },
+    })
 
     revalidatePath('/staff')
     revalidatePath('/admin/staff')

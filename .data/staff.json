@@ -1,0 +1,38 @@
+[
+  {
+    "id": "stf-new-1792775859322",
+    "application_number": "STF-8755",
+    "first_name": "David",
+    "last_name": "Katz",
+    "email": null,
+    "phone": null,
+    "role_title": "Senior Counselor",
+    "department": "Camp Operations",
+    "session": "Session A",
+    "year": 2026,
+    "bunk_assignment": null,
+    "notes": null,
+    "status": "Active",
+    "name": "David Katz",
+    "created_at": "2026-10-23T17:17:39.322Z",
+    "updated_at": "2026-10-23T17:17:39.322Z"
+  },
+  {
+    "id": "stf-new-1792775728093",
+    "application_number": "STF-7419",
+    "first_name": "David",
+    "last_name": "Katz",
+    "email": null,
+    "phone": null,
+    "role_title": "Senior Counselor",
+    "department": "Camp Operations",
+    "session": "Session A",
+    "year": 2026,
+    "bunk_assignment": null,
+    "notes": null,
+    "status": "Active",
+    "name": "David Katz",
+    "created_at": "2026-10-23T17:15:28.092Z",
+    "updated_at": "2026-10-23T17:15:28.092Z"
+  }
+]

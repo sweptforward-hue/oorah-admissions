@@ -78,6 +78,7 @@ const mockSupabaseInstance = {
 vi.mock('@/lib/supabase/server', () => ({
   createServerSupabaseClient: vi.fn(() => mockSupabaseInstance),
   createClient: vi.fn(() => Promise.resolve(mockSupabaseInstance)),
+  createAdminClient: vi.fn(() => mockSupabaseInstance),
 }))
 
 vi.mock('@/lib/auth/authorization', () => ({
