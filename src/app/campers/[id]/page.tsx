@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
+import { getStoredCampers } from '@/lib/persistence/store';
 import {
   CamperDetailClient,
   CamperDocument,
@@ -19,7 +20,7 @@ export default async function CamperDetailPage({ params }: PageProps) {
   const resolvedParams = await params;
   const { id } = resolvedParams;
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: camperData, error } = await supabase
     .from('kids')
