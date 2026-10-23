@@ -1,6 +1,21 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
 import React from 'react'
+
+afterEach(() => {
+  cleanup()
+})
+
+vi.mock('@/lib/persistence/store', () => ({
+  getStoredStaff: vi.fn(() => []),
+  saveStoredStaff: vi.fn(),
+  updateStoredStaff: vi.fn(),
+  deleteStoredStaff: vi.fn(),
+  getStoredKids: vi.fn(() => []),
+  saveStoredKid: vi.fn(),
+  updateStoredKid: vi.fn(),
+  deleteStoredKid: vi.fn(),
+}))
 import { StaffRosterClient, getRoleVariant } from '@/components/staff/staff-roster-client'
 import { StaffDetailClient } from '@/components/staff/staff-detail-client'
 import NewStaffPage from '@/app/staff/new/page'
