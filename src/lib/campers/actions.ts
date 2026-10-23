@@ -3,6 +3,7 @@
 import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server'
 import { getCurrentUser, requireAdminRole } from '@/lib/auth/authorization'
 import { revalidatePath } from 'next/cache'
+import { getStoredCampers, deleteStoredCamper } from '@/lib/persistence/store'
 
 export async function deleteCamper(camperId: string) {
   try {
@@ -57,6 +58,9 @@ export async function deleteCamper(camperId: string) {
         application_number: camper?.application_number,
       }
     })
+
+    // Also remove from local persistent store
+    deleteStoredCamper(camperId)
 
     revalidatePath('/admin/campers')
     revalidatePath('/campers')
@@ -295,8 +299,7 @@ export async function getAdminCampers() {
     return []
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data || []).map((kid: any) => {
+  let resultList = (data || []).map((kid: any) => {
     const rawStatus = (kid as { statuses?: unknown }).statuses
     const statusObj = Array.isArray(rawStatus)
       ? (rawStatus[0] as { name?: string; color_hex?: string } | undefined)
@@ -311,4 +314,24 @@ export async function getAdminCampers() {
       createdDate: new Date(kid.created_at).toISOString().split('T')[0]
     }
   })
+
+  // Merge locally stored persistent campers so added campers persist after refresh
+  try {
+    const stored = getStoredCampers()
+    for (const s of stored) {
+      if (!resultList.some(r => r.id === s.id || r.appNum === s.application_number)) {
+        resultList.unshift({
+          id: s.id,
+          name: s.name,
+          appNum: s.application_number,
+          status: s.status || 'New',
+          statusColor: '#3b82f6',
+          votingOpen: s.voting_open ?? true,
+          createdDate: new Date(s.created_at).toISOString().split('T')[0]
+        })
+      }
+    }
+  } catch {}
+
+  return resultList
 }

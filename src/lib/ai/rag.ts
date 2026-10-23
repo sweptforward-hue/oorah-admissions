@@ -396,7 +396,7 @@ export function generateSmartFallbackResponse(query: string, context: RAGContext
     );
 
     if (vaadCampers.length === 0) {
-      return `### VAAD Review Queue\n\nThere are currently **0 campers** awaiting VAAD committee review. All applications have been processed or are in earlier stages.`;
+      return `### Campers in VAAD Review (0 Pending)\n\nThere are currently **0 campers** awaiting VAAD committee review. All applications have been processed or are in earlier stages.`;
     }
 
     const list = vaadCampers

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/layout/Navbar";
 import { Kid, KidStatus } from "@/types";
 import { createClient } from "@/lib/supabase/server";
+import { getStoredCampers } from "@/lib/persistence/store";
 
 const getStatusVariant = (status: string) => {
   switch (status) {
@@ -71,9 +72,27 @@ export default async function CampersDashboard() {
         });
       }
     } catch {
-      // No data available — empty state will be shown
+      // Supabase query error
     }
   }
+
+  // Merge locally stored persistent campers so added campers persist after refresh
+  try {
+    const stored = getStoredCampers();
+    for (const s of stored) {
+      if (!campers.some(c => c.id === s.id || c.application_number === s.application_number)) {
+        campers.unshift({
+          id: s.id,
+          application_number: s.application_number,
+          name: s.name,
+          status: (s.status || 'New') as KidStatus,
+          created_at: s.created_at,
+          updated_at: s.updated_at,
+          last_activity: new Date(s.updated_at || s.created_at).toLocaleDateString(),
+        });
+      }
+    }
+  } catch {}
 
   return (
     <div className="min-h-screen bg-slate-50">
