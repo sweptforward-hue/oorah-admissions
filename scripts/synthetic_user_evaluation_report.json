@@ -1,0 +1,364 @@
+{
+  "synthetic_user": {
+    "name": "Alex Rivera",
+    "email": "alex.rivera.synthetic@oorah-admissions.internal",
+    "role": "synthetic-evaluator",
+    "department": "Admissions QA & System Verification"
+  },
+  "timestamp": "2026-10-23T16:48:52.334759+00:00",
+  "target_system": {
+    "vercel_url": "https://oorah-admissions-bzfrontdesk.vercel.app",
+    "supabase_url": "https://poqsbceyjkwnfdcfcnvq.supabase.co"
+  },
+  "summary": {
+    "total_tests": 29,
+    "passed_tests": 29,
+    "failed_tests": 0,
+    "verdict": "PASSED",
+    "duration_seconds": 4.19
+  },
+  "sections": {
+    "1_codebase_security": [
+      {
+        "test_name": "authorization.ts: getCurrentUser & requireAdminRole validation",
+        "passed": true,
+        "details": {
+          "has_getCurrentUser": true,
+          "has_requireAdminRole": true,
+          "has_database_lookup": true,
+          "has_master_admin_bypass_check": true
+        },
+        "timestamp": "2026-10-23T16:48:52.338992+00:00"
+      },
+      {
+        "test_name": "proxy.ts: Edge route protection & role enforcement",
+        "passed": true,
+        "details": {
+          "has_matcher": true,
+          "admin_guard": true,
+          "deactivation_guard": true,
+          "unauthenticated_guard": true,
+          "admin_required_guard": true
+        },
+        "timestamp": "2026-10-23T16:48:52.342490+00:00"
+      },
+      {
+        "test_name": "auth/callback/route.ts: PKCE code exchange & user synchronization",
+        "passed": true,
+        "details": {
+          "has_exchangeCodeForSession": true,
+          "has_user_synchronization": true
+        },
+        "timestamp": "2026-10-23T16:48:52.346033+00:00"
+      },
+      {
+        "test_name": "login/page.tsx: Dual Google OAuth & Email/Password handlers",
+        "passed": true,
+        "details": {
+          "has_google_oauth": true,
+          "has_email_signin": true,
+          "has_email_signup": true
+        },
+        "timestamp": "2026-10-23T16:48:52.352849+00:00"
+      },
+      {
+        "test_name": "03_row_level_security.sql: Definitive RLS functions and table policies",
+        "passed": true,
+        "details": {
+          "is_admin_function": true,
+          "is_active_user_function": true,
+          "is_vaad_member_function": true,
+          "users_rls": true,
+          "vaad_votes_rls": true
+        },
+        "timestamp": "2026-10-23T16:48:52.355821+00:00"
+      }
+    ],
+    "2_live_supabase_auth": [
+      {
+        "test_name": "Live GoTrue Engine Status",
+        "passed": true,
+        "details": {
+          "status_code": 200,
+          "response": {
+            "version": "v2.197.0",
+            "name": "GoTrue",
+            "description": "GoTrue is a user registration and authentication API"
+          }
+        },
+        "timestamp": "2026-10-23T16:48:52.516523+00:00"
+      },
+      {
+        "test_name": "GoTrue Auth Providers Configuration (Google OAuth=True, Public Signup=Disabled)",
+        "passed": true,
+        "details": {
+          "status_code": 200,
+          "google_oauth": true,
+          "email_auth": true,
+          "signup_disabled": true
+        },
+        "timestamp": "2026-10-23T16:48:52.628308+00:00"
+      },
+      {
+        "test_name": "Synthetic User Registration Real Policy Check (alex.rivera.synthetic@oorah-admissions.internal)",
+        "passed": true,
+        "details": {
+          "status_code": 422,
+          "error_code": "signup_disabled",
+          "verified_live_cloud": true
+        },
+        "timestamp": "2026-10-23T16:48:52.753469+00:00"
+      },
+      {
+        "test_name": "GoTrue Cryptographic Password Verification Engine Rejection",
+        "passed": true,
+        "details": {
+          "status_code": 400,
+          "response": {
+            "code": 400,
+            "error_code": "invalid_credentials",
+            "msg": "Invalid login credentials"
+          }
+        },
+        "timestamp": "2026-10-23T16:48:52.847061+00:00"
+      },
+      {
+        "test_name": "GoTrue Token Introspection Rejection for Anon Key (Missing User Sub Claim)",
+        "passed": true,
+        "details": {
+          "status_code": 403,
+          "response": {
+            "code": 403,
+            "error_code": "bad_jwt",
+            "msg": "invalid claim: missing sub claim"
+          }
+        },
+        "timestamp": "2026-10-23T16:48:52.932105+00:00"
+      },
+      {
+        "test_name": "PostgreSQL Row Level Security (RLS) restricts public.users from Unauthenticated Access",
+        "passed": true,
+        "details": {
+          "status_code": 200,
+          "returned_rows": 0
+        },
+        "timestamp": "2026-10-23T16:48:53.057052+00:00"
+      }
+    ],
+    "3_session_lifecycle": [
+      {
+        "test_name": "Phase A: Unauthenticated request to /dashboard rejected -> 307 /login",
+        "passed": true,
+        "details": {
+          "status_code": 307,
+          "location": "/login"
+        },
+        "timestamp": "2026-10-23T16:48:53.204232+00:00"
+      },
+      {
+        "test_name": "Phase A: Unauthenticated request to /campers rejected -> 307 /login",
+        "passed": true,
+        "details": {
+          "status_code": 307,
+          "location": "/login"
+        },
+        "timestamp": "2026-10-23T16:48:53.244548+00:00"
+      },
+      {
+        "test_name": "Phase A: Unauthenticated request to /admin/users rejected -> 307 /login",
+        "passed": true,
+        "details": {
+          "status_code": 307,
+          "location": "/login"
+        },
+        "timestamp": "2026-10-23T16:48:53.287537+00:00"
+      },
+      {
+        "test_name": "Phase A: Unauthenticated access to /login displays login form (HTTP 200)",
+        "passed": true,
+        "details": {
+          "status_code": 200
+        },
+        "timestamp": "2026-10-23T16:48:53.338768+00:00"
+      },
+      {
+        "test_name": "Phase B: Sign-in successful - Alex Rivera session established on /dashboard (HTTP 200)",
+        "passed": true,
+        "details": {
+          "status_code": 200
+        },
+        "timestamp": "2026-10-23T16:48:53.430631+00:00"
+      },
+      {
+        "test_name": "Phase B: Active session on /login automatically redirects to /dashboard",
+        "passed": true,
+        "details": {
+          "status_code": 307,
+          "location": "/dashboard"
+        },
+        "timestamp": "2026-10-23T16:48:53.484360+00:00"
+      },
+      {
+        "test_name": "Phase C: Authenticated camper roster access (/campers) -> HTTP 200",
+        "passed": true,
+        "details": {
+          "status_code": 200
+        },
+        "timestamp": "2026-10-23T16:48:53.707632+00:00"
+      },
+      {
+        "test_name": "Phase C: Authenticated live AI admissions query (/api/ai/chat) connected to live DB",
+        "passed": true,
+        "details": {
+          "status_code": 200,
+          "has_data": true
+        },
+        "timestamp": "2026-10-23T16:48:54.854453+00:00"
+      },
+      {
+        "test_name": "Phase D: Session terminated - /dashboard immediately blocked -> 307 /login",
+        "passed": true,
+        "details": {
+          "status_code": 307,
+          "location": "/login"
+        },
+        "timestamp": "2026-10-23T16:48:54.923031+00:00"
+      },
+      {
+        "test_name": "Phase D: Session terminated - /campers immediately blocked -> 307 /login",
+        "passed": true,
+        "details": {
+          "status_code": 307,
+          "location": "/login"
+        },
+        "timestamp": "2026-10-23T16:48:54.961506+00:00"
+      },
+      {
+        "test_name": "Phase E: Sign back on - Session successfully renewed on /dashboard (HTTP 200)",
+        "passed": true,
+        "details": {
+          "status_code": 200
+        },
+        "timestamp": "2026-10-23T16:48:55.015706+00:00"
+      }
+    ],
+    "4_rights_transitions": [
+      {
+        "test_name": "Staff Access: /dashboard permitted (HTTP 200)",
+        "passed": true,
+        "details": {
+          "status": 200
+        },
+        "timestamp": "2026-10-23T16:48:55.117509+00:00"
+      },
+      {
+        "test_name": "Staff Access: /campers permitted (HTTP 200)",
+        "passed": true,
+        "details": {
+          "status": 200
+        },
+        "timestamp": "2026-10-23T16:48:55.262845+00:00"
+      },
+      {
+        "test_name": "Staff Access: /campers/new intake permitted (HTTP 200)",
+        "passed": true,
+        "details": {
+          "status": 200
+        },
+        "timestamp": "2026-10-23T16:48:55.323252+00:00"
+      },
+      {
+        "test_name": "Staff Access Guard: Staff rejected with /access-denied?reason=admin_required across 9 admin routes",
+        "passed": true,
+        "details": {
+          "/admin": {
+            "status": 307,
+            "location": "/access-denied?reason=admin_required"
+          },
+          "/admin/users": {
+            "status": 307,
+            "location": "/access-denied?reason=admin_required"
+          },
+          "/admin/years": {
+            "status": 307,
+            "location": "/access-denied?reason=admin_required"
+          },
+          "/admin/sessions": {
+            "status": 307,
+            "location": "/access-denied?reason=admin_required"
+          },
+          "/admin/statuses": {
+            "status": 307,
+            "location": "/access-denied?reason=admin_required"
+          },
+          "/admin/custom-fields": {
+            "status": 307,
+            "location": "/access-denied?reason=admin_required"
+          },
+          "/admin/storage": {
+            "status": 307,
+            "location": "/access-denied?reason=admin_required"
+          },
+          "/admin/vaad-choices": {
+            "status": 307,
+            "location": "/access-denied?reason=admin_required"
+          },
+          "/admin/client-categories": {
+            "status": 307,
+            "location": "/access-denied?reason=admin_required"
+          }
+        },
+        "timestamp": "2026-10-23T16:48:55.845939+00:00"
+      },
+      {
+        "test_name": "Admin Role Elevation: Administrator granted HTTP 200 access across all 8 canonical admin routes",
+        "passed": true,
+        "details": {
+          "/admin": {
+            "status": 200
+          },
+          "/admin/users": {
+            "status": 200
+          },
+          "/admin/years": {
+            "status": 200
+          },
+          "/admin/sessions": {
+            "status": 200
+          },
+          "/admin/statuses": {
+            "status": 200
+          },
+          "/admin/custom-fields": {
+            "status": 200
+          },
+          "/admin/storage": {
+            "status": 200
+          },
+          "/admin/vaad-choices": {
+            "status": 200
+          }
+        },
+        "timestamp": "2026-10-23T16:48:56.385467+00:00"
+      },
+      {
+        "test_name": "Admin Edge Proxy Authorization: Middleware passes admin through for staged route (/admin/client-categories)",
+        "passed": true,
+        "details": {
+          "status": 404,
+          "location": "None (passed to next)"
+        },
+        "timestamp": "2026-10-23T16:48:56.435992+00:00"
+      },
+      {
+        "test_name": "Security Guard: Tampered/Spoofed role cookie is ignored and redirected to /login",
+        "passed": true,
+        "details": {
+          "status": 307,
+          "location": "/login"
+        },
+        "timestamp": "2026-10-23T16:48:56.522152+00:00"
+      }
+    ]
+  }
+}

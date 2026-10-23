@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
+import Link from 'next/link'
+import { Users } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,20 +16,15 @@ interface CamperItem {
   votingOpen: boolean
 }
 
-const DEFAULT_ADMIN_CAMPERS: CamperItem[] = [
-  { id: '1', name: 'John Smith', appNum: '1042', status: 'VAAD Review', votingOpen: true },
-  { id: '2', name: 'Sarah Cohen', appNum: '1043', status: 'Accepted', votingOpen: false },
-]
-
 export default function AdminCampersPage() {
-  const [campers, setCampers] = useState<CamperItem[]>(DEFAULT_ADMIN_CAMPERS)
+  const [campers, setCampers] = useState<CamperItem[]>([])
   const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
     async function loadData() {
       try {
         const data = await getAdminCampers()
-        if (data && data.length > 0) {
+        if (data) {
           setCampers(data)
         }
       } catch (e) {
@@ -102,46 +99,61 @@ export default function AdminCampersPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Camper</TableHead>
-              <TableHead>Application #</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>VAAD Voting</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {campers.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell className="font-semibold text-slate-900">{c.name}</TableCell>
-                <TableCell className="text-slate-500">{c.appNum}</TableCell>
-                <TableCell><Badge variant="secondary">{c.status}</Badge></TableCell>
-                <TableCell>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={isPending}
-                    onClick={() => handleToggleVoting(c.id, c.votingOpen)}
-                  >
-                    {c.votingOpen ? 'Voting Open' : 'Voting Closed'}
-                  </Button>
-                </TableCell>
-                <TableCell className="text-right space-x-2">
-                  <Button size="sm" variant="outline" disabled={isPending} onClick={() => handleManualStatusChange(c.id)}>
-                    Override Status
-                  </Button>
-                  <Button size="sm" variant="destructive" disabled={isPending} onClick={() => handleDeleteCamper(c.id, c.name)}>
-                    Delete
-                  </Button>
-                </TableCell>
+      {campers.length === 0 ? (
+        <div className="bg-white rounded-lg border shadow-sm p-12 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 text-slate-400 mb-4">
+            <Users className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-semibold text-slate-800 mb-2">No Campers Found</h2>
+          <p className="text-sm text-slate-500 max-w-md mx-auto mb-6">
+            There are currently no camper records in the system. Get started by adding your first camper.
+          </p>
+          <Button asChild>
+            <Link href="/campers/new">+ Add Camper</Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Camper</TableHead>
+                <TableHead>Application #</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>VAAD Voting</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {campers.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell className="font-semibold text-slate-900">{c.name}</TableCell>
+                  <TableCell className="text-slate-500">{c.appNum}</TableCell>
+                  <TableCell><Badge variant="secondary">{c.status}</Badge></TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isPending}
+                      onClick={() => handleToggleVoting(c.id, c.votingOpen)}
+                    >
+                      {c.votingOpen ? 'Voting Open' : 'Voting Closed'}
+                    </Button>
+                  </TableCell>
+                  <TableCell className="text-right space-x-2">
+                    <Button size="sm" variant="outline" disabled={isPending} onClick={() => handleManualStatusChange(c.id)}>
+                      Override Status
+                    </Button>
+                    <Button size="sm" variant="destructive" disabled={isPending} onClick={() => handleDeleteCamper(c.id, c.name)}>
+                      Delete
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   )
 }

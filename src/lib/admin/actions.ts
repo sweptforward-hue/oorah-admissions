@@ -50,6 +50,54 @@ export async function toggleVaadMemberPermission(
 }
 
 // Operational Years
+export async function getYears(): Promise<Array<{ id: string; name: string; is_active: boolean; is_default: boolean; year: number }>> {
+  try {
+    const hasSupabaseConfig = Boolean(
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
+    )
+
+    if (!hasSupabaseConfig) {
+      return []
+    }
+
+    const supabase = createServerSupabaseClient()
+    let { data, error } = await supabase
+      .from('years')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      // Fallback ordering if created_at does not exist
+      const fallback = await supabase.from('years').select('*')
+      data = fallback.data
+      error = fallback.error
+    }
+
+    if (error || !data || data.length === 0) {
+      return []
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return data.map((item: any) => {
+      const yearNum = typeof item.year === 'number'
+        ? item.year
+        : (parseInt(String(item.name || '').replace(/\D/g, ''), 10) || new Date().getFullYear())
+
+      return {
+        id: String(item.id),
+        name: item.name || `Summer ${yearNum}`,
+        is_active: Boolean(item.is_active ?? item.active ?? true),
+        is_default: Boolean(item.is_default ?? false),
+        year: yearNum
+      }
+    })
+  } catch (err) {
+    console.error('Error in getYears:', err)
+    return []
+  }
+}
+
 export async function createYear(yearName: string) {
   await requireAdminRole()
   const yearNum = parseInt(yearName.replace(/\D/g, ''), 10) || new Date().getFullYear() + 1
@@ -63,14 +111,28 @@ export async function createYear(yearName: string) {
   }
 
   const supabase = createServerSupabaseClient()
-  const { data, error } = await supabase
+  const formattedName = yearName.startsWith('Summer ') ? yearName : `Summer ${yearName}`
+  let { data, error } = await supabase
     .from('years')
     .insert({
-      year: yearNum,
+      name: formattedName,
       is_active: true
     })
     .select()
     .single()
+
+  if (error && (error.message.includes("'name'") || error.message.includes("column \"name\""))) {
+    const res = await supabase
+      .from('years')
+      .insert({
+        year: yearNum,
+        is_active: true
+      })
+      .select()
+      .single()
+    data = res.data
+    error = res.error
+  }
 
   if (error) {
     throw new Error(`Failed to create year: ${error.message}`)
@@ -108,6 +170,71 @@ export async function updateYear(id: string, data: { year?: number; is_active?: 
 }
 
 // Camp Sessions
+export async function getSessions(): Promise<Array<{ id: string; name: string; yearName: string; startDate: string; endDate: string }>> {
+  try {
+    const hasSupabaseConfig = Boolean(
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
+    )
+
+    if (!hasSupabaseConfig) {
+      return []
+    }
+
+    const supabase = createServerSupabaseClient()
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*, years(name, year)')
+      .order('name', { ascending: true })
+
+    if (error) {
+      // Fallback query if relation join is unsupported
+      const { data: simpleData, error: simpleErr } = await supabase
+        .from('sessions')
+        .select('*')
+        .order('name', { ascending: true })
+
+      if (simpleErr || !simpleData || simpleData.length === 0) {
+        return []
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return simpleData.map((item: any) => ({
+        id: String(item.id),
+        name: item.name || '',
+        yearName: item.year_name || 'Summer 2025',
+        startDate: item.start_date || '',
+        endDate: item.end_date || ''
+      }))
+    }
+
+    if (!data || data.length === 0) {
+      return []
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return data.map((item: any) => {
+      let yearName = 'Summer 2025'
+      if (item.years) {
+        yearName = item.years.name || (item.years.year ? `Summer ${item.years.year}` : yearName)
+      } else if (item.year_name) {
+        yearName = item.year_name
+      }
+
+      return {
+        id: String(item.id),
+        name: item.name || '',
+        yearName,
+        startDate: item.start_date || '',
+        endDate: item.end_date || ''
+      }
+    })
+  } catch (err) {
+    console.error('Error in getSessions:', err)
+    return []
+  }
+}
+
 export async function createSession(sessionData: {
   name: string
   start_date: string

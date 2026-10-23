@@ -9,6 +9,7 @@ export default function AdminDashboard() {
     { name: 'Camp Years', path: '/admin/years', description: 'Academic and summer camp seasons' },
     { name: 'Sessions', path: '/admin/sessions', description: 'Configure Session A, B, and dates' },
     { name: 'Statuses', path: '/admin/statuses', description: 'Application workflow and status pipeline' },
+    { name: 'Client Categories', path: '/admin/client-categories', description: 'Configure applicant classifications & client categories' },
     { name: 'VAAD Members', path: '/admin/vaad-members', description: 'Configure committee voting members' },
     { name: 'VAAD Choices', path: '/admin/vaad-choices', description: 'Configure voting ballots and decisions' },
     { name: 'Custom Fields', path: '/admin/custom-fields', description: 'Design custom application form fields' },

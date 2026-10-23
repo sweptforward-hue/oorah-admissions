@@ -24,6 +24,7 @@ export default function AdminLayout({
                 <Link href="/admin/years" className="font-medium text-slate-300 hover:text-white whitespace-nowrap">Years</Link>
                 <Link href="/admin/sessions" className="font-medium text-slate-300 hover:text-white whitespace-nowrap">Sessions</Link>
                 <Link href="/admin/statuses" className="font-medium text-slate-300 hover:text-white whitespace-nowrap">Statuses</Link>
+                <Link href="/admin/client-categories" className="font-medium text-slate-300 hover:text-white whitespace-nowrap">Categories</Link>
                 <Link href="/admin/vaad-choices" className="font-medium text-slate-300 hover:text-white whitespace-nowrap">Voting</Link>
                 <Link href="/admin/custom-fields" className="font-medium text-slate-300 hover:text-white whitespace-nowrap">Custom Fields</Link>
                 <Link href="/admin/exports" className="font-medium text-slate-300 hover:text-white whitespace-nowrap">Exports</Link>

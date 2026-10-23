@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
+import { Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { createYear, updateYear } from '@/lib/admin/actions'
+import { getYears, createYear, updateYear } from '@/lib/admin/actions'
 
 interface YearItem {
   id: string
@@ -20,6 +21,21 @@ export default function AdminYearsPage() {
   const [newYear, setNewYear] = useState('')
   const [isPending, startTransition] = useTransition()
 
+  const loadYears = async () => {
+    try {
+      const data = await getYears()
+      if (data) {
+        setYears(data)
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  useEffect(() => {
+    loadYears()
+  }, [])
+
   const handleAddYear = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newYear.trim()) return
@@ -28,7 +44,7 @@ export default function AdminYearsPage() {
     startTransition(async () => {
       try {
         await createYear(yearName)
-        setYears(prev => [...prev, { id: String(Date.now()), name: yearName, is_active: true, is_default: false }])
+        await loadYears()
         setNewYear('')
       } catch (err: unknown) {
         alert((err as Error).message || 'Failed to create year')
@@ -80,27 +96,39 @@ export default function AdminYearsPage() {
         <Button type="submit" disabled={isPending}>+ Create Year</Button>
       </form>
 
-      <div className="space-y-4">
-        {years.map((y) => (
-          <Card key={y.id} className="p-4 flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                {y.name}
-                {y.is_default && <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Default</span>}
-              </h3>
-              <p className="text-xs text-slate-500">Status: {y.is_active ? 'Active' : 'Archived'}</p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" disabled={isPending} onClick={() => handleEditYear(y.id, y.name)}>
-                Edit
-              </Button>
-              <Button variant="outline" size="sm" disabled={isPending} onClick={() => handleToggleStatus(y.id, y.is_active)}>
-                {y.is_active ? 'Archive' : 'Activate'}
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
+      {years.length === 0 ? (
+        <Card className="p-12 text-center border-dashed">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 text-slate-400 mb-3">
+            <Calendar className="w-6 h-6" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-800 mb-1">No Operational Years</h3>
+          <p className="text-sm text-slate-500 max-w-sm mx-auto mb-4">
+            No operational years have been configured yet. Enter a year name above and click &quot;+ Create Year&quot; to get started.
+          </p>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {years.map((y) => (
+            <Card key={y.id} className="p-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                  {y.name}
+                  {y.is_default && <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Default</span>}
+                </h3>
+                <p className="text-xs text-slate-500">Status: {y.is_active ? 'Active' : 'Archived'}</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={isPending} onClick={() => handleEditYear(y.id, y.name)}>
+                  Edit
+                </Button>
+                <Button variant="outline" size="sm" disabled={isPending} onClick={() => handleToggleStatus(y.id, y.is_active)}>
+                  {y.is_active ? 'Archive' : 'Activate'}
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

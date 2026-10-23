@@ -1,58 +1,9 @@
 'use server'
 
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { UserWithVaadInfo } from '@/types/users'
 import { requireAdminRole } from '@/lib/auth/authorization'
-
-const DEFAULT_USERS: UserWithVaadInfo[] = [
-  {
-    id: 'u1',
-    name: 'Rabbi Michael Klein',
-    email: 'michael@oorah.org',
-    role: 'staff',
-    active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    vaad_member: {
-      id: 'vm1',
-      user_id: 'u1',
-      is_active: true,
-      can_contribute: true,
-      can_vote: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-  },
-  {
-    id: 'u2',
-    name: 'David Stern',
-    email: 'dstern@oorah.org',
-    role: 'admin',
-    active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    vaad_member: {
-      id: 'vm2',
-      user_id: 'u2',
-      is_active: true,
-      can_contribute: true,
-      can_vote: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-  },
-  {
-    id: 'u3',
-    name: 'Sarah Levy',
-    email: 'slevy@oorah.org',
-    role: 'staff',
-    active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    vaad_member: null
-  }
-]
 
 export async function getUsersWithVaadInfo(): Promise<UserWithVaadInfo[]> {
   await requireAdminRole()
@@ -62,7 +13,7 @@ export async function getUsersWithVaadInfo(): Promise<UserWithVaadInfo[]> {
   )
 
   if (!hasSupabaseConfig && process.env.NODE_ENV !== 'test') {
-    return DEFAULT_USERS
+    return []
   }
 
   const supabase = createServerSupabaseClient()
@@ -82,10 +33,10 @@ export async function getUsersWithVaadInfo(): Promise<UserWithVaadInfo[]> {
         updated_at
       )
     `)
-    .order('name')
+    .order('email')
 
   if (error || !data || data.length === 0) {
-    return DEFAULT_USERS
+    return []
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,6 +45,7 @@ export async function getUsersWithVaadInfo(): Promise<UserWithVaadInfo[]> {
 
     return {
       ...user,
+      name: user.full_name || user.name || user.email?.split('@')[0] || 'User',
       vaad_member: vaad_member_data || null,
     }
   })
@@ -180,4 +132,49 @@ export async function updateVaadPermissions(
 
   revalidatePath('/admin/users')
   return { success: true }
+}
+
+export async function deleteUser(userId: string) {
+  try {
+    const admin = await requireAdminRole()
+    const adminSupabase = createAdminClient()
+
+    // Retrieve user metadata for audit logging
+    const { data: user } = await adminSupabase
+      .from('users')
+      .select('email, full_name, role')
+      .eq('id', userId)
+      .maybeSingle()
+
+    // 1. Remove associated VAAD seats and unlink staff profile
+    await Promise.allSettled([
+      adminSupabase.from('vaad_members').delete().eq('user_id', userId),
+      adminSupabase.from('staff').update({ user_id: null }).eq('user_id', userId),
+    ])
+
+    // 2. Delete user account
+    const { error } = await adminSupabase.from('users').delete().eq('id', userId)
+
+    if (error) {
+      throw new Error(`Failed to delete user: ${error.message}`)
+    }
+
+    // 3. Immutable audit log record
+    await adminSupabase.from('audit_log').insert({
+      actor_id: admin.id,
+      action: 'DELETE_USER',
+      entity_type: 'user',
+      entity_id: userId,
+      details: {
+        email: user?.email,
+        full_name: user?.full_name,
+        role: user?.role,
+      },
+    })
+
+    revalidatePath('/admin/users')
+    return { success: true }
+  } catch (err: unknown) {
+    return { success: false, error: (err as Error).message || 'Unauthorized: Admin privileges required to delete users' }
+  }
 }

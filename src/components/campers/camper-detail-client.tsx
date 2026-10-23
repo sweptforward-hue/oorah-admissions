@@ -79,6 +79,23 @@ export interface TranscriptItem {
   drive_url?: string
 }
 
+export interface ChatAttachment {
+  type: 'document' | 'audio'
+  name: string
+  url: string
+  duration?: number
+  durationSeconds?: number
+}
+
+export interface ChatMessage {
+  id: string
+  author: string
+  content: string
+  timestamp: string
+  attachment?: ChatAttachment
+  tagged_users?: string[]
+}
+
 export interface CamperDetailProps {
   initialCamper: {
     id: string
@@ -99,6 +116,8 @@ export interface CamperDetailProps {
   initialPhotos?: PhotoItem[]
   initialVoiceNotes?: VoiceNoteItem[]
   initialTranscripts?: TranscriptItem[]
+  initialChatMessages?: ChatMessage[]
+  initialMessages?: ChatMessage[]
 }
 
 export function CamperDetailClient({
@@ -107,6 +126,8 @@ export function CamperDetailClient({
   initialPhotos = [],
   initialVoiceNotes = [],
   initialTranscripts = [],
+  initialChatMessages = [],
+  initialMessages = [],
 }: CamperDetailProps) {
   const router = useRouter()
   const [camper, setCamper] = useState(initialCamper)
@@ -141,56 +162,22 @@ export function CamperDetailClient({
 
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false)
   const [profileForm, setProfileForm] = useState({
-    grade: camper.grade || '8th Grade',
-    school: camper.school || 'Yeshiva Toras Chaim',
-    city: camper.city || 'Monsey',
-    state: camper.state || 'NY',
-    notes: camper.notes || 'Standard application with good recommendations.',
+    grade: camper.grade || '',
+    school: camper.school || '',
+    city: camper.city || '',
+    state: camper.state || '',
+    notes: camper.notes || '',
   })
 
   const [isAssignCohortModalOpen, setIsAssignCohortModalOpen] = useState(false)
   const [cohortSessionInput, setCohortSessionInput] = useState(camper.session || 'Session A')
-  const [bunkInput, setBunkInput] = useState('Bunk 12')
+  const [bunkInput, setBunkInput] = useState('')
   const [isDeleteCamperDialogOpen, setIsDeleteCamperDialogOpen] = useState(false)
 
   // Chat State
   const [noteText, setNoteText] = useState('')
-  interface ChatAttachment {
-    type: 'document' | 'audio'
-    name: string
-    url: string
-  }
-  interface ChatMessage {
-    id: string
-    author: string
-    content: string
-    timestamp: string
-    attachment?: ChatAttachment
-  }
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      author: 'Rabbi Cohen',
-      content: '@Azriel Cohenca Please review the recommendation letter attached.',
-      timestamp: '10:30 AM',
-      attachment: {
-        type: 'document',
-        name: 'Recommendation_Letter.pdf',
-        url: '/api/media/proxy/doc-rec-1',
-      },
-    },
-    {
-      id: '2',
-      author: 'Admissions Staff',
-      content: 'Recorded phone interview summary with applicant parents.',
-      timestamp: '11:15 AM',
-      attachment: {
-        type: 'audio',
-        name: 'Parent_Interview_Note.webm',
-        url: '/api/media/proxy/audio-interview-1',
-      },
-    },
-  ])
+  const effectiveInitialMessages = initialChatMessages && initialChatMessages.length > 0 ? initialChatMessages : (initialMessages || [])
+  const [messages, setMessages] = useState<ChatMessage[]>(effectiveInitialMessages)
   const [isChatRecording, setIsChatRecording] = useState(false)
 
   // Contract Tab States
@@ -327,22 +314,26 @@ export function CamperDetailClient({
   }
 
   // Chat Tab Handlers
-  const handleSendNote = async (attachment?: { type: 'document' | 'audio'; name: string; url: string }) => {
+  const handleSendNote = async (attachment?: ChatAttachment) => {
     if (!noteText.trim() && !attachment) return
     const textToSend = noteText.trim() || (attachment?.type === 'audio' ? 'Voice Note Attachment' : 'Document Attachment')
+    const mentions = Array.from(new Set((textToSend.match(/@([a-zA-Z0-9_-]+)/g) || []).map((m) => m.substring(1))))
     startTransition(async () => {
       try {
-        const res = await sendChatMessage(camper.id, textToSend)
+        const res = await sendChatMessage(camper.id, textToSend, attachment, mentions)
         if (!res.success) {
           showNotification('Chat Error', res.error || 'Failed to send note')
           return
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const createdMsg = (res as any).message
         const newMsg: ChatMessage = {
-          id: String(Date.now()),
+          id: createdMsg?.id ? String(createdMsg.id) : String(Date.now()),
           author: 'You',
           content: textToSend,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           attachment,
+          tagged_users: mentions.length > 0 ? mentions : undefined,
         }
         setMessages((prev) => [...prev, newMsg])
         setNoteText('')
@@ -352,16 +343,19 @@ export function CamperDetailClient({
     })
   }
 
-  const handleAttachDocument = () => {
-    const docName = `${camper.name}_Attachment.pdf`
+  const handleAttachDocument = (customDocName?: string, customDocUrl?: string) => {
+    const docName = customDocName || `${camper.name}_Attachment.pdf`
     startTransition(async () => {
       try {
-        const res = await uploadDocumentToDrive(camper.id, docName)
-        if (!res.success) {
-          showNotification('Attachment Error', res.error || 'Failed to attach document')
-          return
+        let docUrl = customDocUrl
+        if (!docUrl) {
+          const res = await uploadDocumentToDrive(camper.id, docName)
+          if (!res.success) {
+            showNotification('Attachment Error', res.error || 'Failed to attach document')
+            return
+          }
+          docUrl = res.driveFile?.webViewLink || `/api/media/proxy/${res.driveFile?.id || 'doc-proxy'}`
         }
-        const docUrl = res.driveFile?.webViewLink || `/api/media/proxy/${res.driveFile?.id || 'doc-proxy'}`
         handleSendNote({
           type: 'document',
           name: docName,
@@ -383,6 +377,7 @@ export function CamperDetailClient({
         type: 'audio',
         name: audioName,
         url: '/api/media/proxy/voice-sample-1',
+        durationSeconds: 15,
       })
       showNotification('Voice Note Recorded', 'Voice note recorded and attached to chat.')
     }, 1500)
@@ -963,25 +958,25 @@ export function CamperDetailClient({
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm border-b pb-4">
                     <div>
                       <span className="text-slate-500 block mb-1">Grade</span>
-                      <span className="font-medium">{camper.grade || profileForm.grade}</span>
+                      <span className="font-medium">{camper.grade || profileForm.grade || '—'}</span>
                     </div>
                     <div>
                       <span className="text-slate-500 block mb-1">School</span>
-                      <span className="font-medium">{camper.school || profileForm.school}</span>
+                      <span className="font-medium">{camper.school || profileForm.school || '—'}</span>
                     </div>
                     <div>
                       <span className="text-slate-500 block mb-1">City / State</span>
                       <span className="font-medium">
-                        {camper.city || profileForm.city}, {camper.state || profileForm.state}
+                        {[camper.city || profileForm.city, camper.state || profileForm.state].filter(Boolean).join(', ') || '—'}
                       </span>
                     </div>
                     <div>
                       <span className="text-slate-500 block mb-1">Session / Cohort</span>
-                      <span className="font-medium">{camper.session || cohortSessionInput}</span>
+                      <span className="font-medium">{camper.session || cohortSessionInput || '—'}</span>
                     </div>
                     <div>
                       <span className="text-slate-500 block mb-1">Bunk Assignment</span>
-                      <span className="font-medium">{bunkInput}</span>
+                      <span className="font-medium">{bunkInput || '—'}</span>
                     </div>
                   </div>
 
@@ -999,7 +994,7 @@ export function CamperDetailClient({
                   <div className="text-sm pt-2">
                     <span className="text-slate-500 block mb-1">Demographic & Review Notes</span>
                     <p className="text-slate-700 bg-slate-50 p-3 rounded border">
-                      {camper.notes || profileForm.notes}
+                      {camper.notes || profileForm.notes || 'No notes recorded.'}
                     </p>
                   </div>
                 </CardContent>
@@ -1037,56 +1032,89 @@ export function CamperDetailClient({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="p-4 bg-slate-50 border rounded-lg text-sm text-slate-700 space-y-4 max-h-[450px] overflow-y-auto">
-                  {messages.map((m) => (
-                    <div key={m.id} className="p-3 bg-white border rounded-lg shadow-sm space-y-2">
-                      <div className="flex justify-between items-center text-xs text-slate-500">
-                        <span className="font-semibold text-slate-800">{m.author}</span>
-                        <span>{m.timestamp}</span>
-                      </div>
-                      <p className="text-slate-800 text-sm whitespace-pre-wrap">{m.content}</p>
-
-                      {m.attachment && m.attachment.type === 'document' && (
-                        <div className="p-2.5 bg-slate-50 border rounded-md flex items-center justify-between gap-3 text-xs mt-2">
-                          <div className="flex items-center gap-2 truncate">
-                            <span className="text-base">📄</span>
-                            <span className="font-medium text-slate-700 truncate">{m.attachment.name}</span>
-                          </div>
-                          <a
-                            href={m.attachment.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            download={m.attachment.name}
-                            className="text-blue-600 hover:text-blue-800 font-medium underline flex-shrink-0"
-                          >
-                            Download
-                          </a>
+                  {messages.length === 0 ? (
+                    <div className="py-12 text-center text-slate-500">
+                      <p>No messages yet. Start the conversation below.</p>
+                    </div>
+                  ) : (
+                    messages.map((m) => (
+                      <div key={m.id} className="p-3 bg-white border rounded-lg shadow-sm space-y-2">
+                        <div className="flex justify-between items-center text-xs text-slate-500">
+                          <span className="font-semibold text-slate-800">{m.author}</span>
+                          <span>{m.timestamp}</span>
                         </div>
-                      )}
+                        <p className="text-slate-800 text-sm whitespace-pre-wrap">
+                          {m.content.split(/(@[a-zA-Z0-9_-]+)/g).map((part, index) =>
+                            part.startsWith('@') ? (
+                              <span
+                                key={index}
+                                className="inline-flex items-center font-semibold text-blue-600 bg-blue-50 px-1 py-0.5 rounded mx-0.5"
+                              >
+                                {part}
+                              </span>
+                            ) : (
+                              part
+                            )
+                          )}
+                        </p>
 
-                      {m.attachment && m.attachment.type === 'audio' && (
-                        <div className="p-2.5 bg-slate-50 border rounded-md space-y-1.5 text-xs mt-2">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium text-slate-700 flex items-center gap-1.5">
-                              <span>🎙️</span> {m.attachment.name}
-                            </span>
+                        {m.tagged_users && m.tagged_users.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {m.tagged_users.map((tag) => (
+                              <Badge key={tag} variant="outline" className="text-[10px] text-blue-700 bg-blue-50 border-blue-200">
+                                @{tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+
+                        {m.attachment && m.attachment.type === 'document' && (
+                          <div className="p-2.5 bg-slate-50 border rounded-md flex items-center justify-between gap-3 text-xs mt-2" data-testid="chat-document-attachment">
+                            <div className="flex items-center gap-2 truncate">
+                              <span className="text-base">📄</span>
+                              <span className="font-medium text-slate-700 truncate">{m.attachment.name}</span>
+                            </div>
                             <a
                               href={m.attachment.url}
                               target="_blank"
                               rel="noopener noreferrer"
                               download={m.attachment.name}
-                              className="text-blue-600 hover:text-blue-800 font-medium underline"
+                              className="text-blue-600 hover:text-blue-800 font-medium underline flex-shrink-0"
                             >
                               Download
                             </a>
                           </div>
-                          <audio controls className="w-full h-8 mt-1">
-                            <source src={m.attachment.url} type="audio/webm" />
-                            Your browser does not support audio playback.
-                          </audio>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        )}
+
+                        {m.attachment && m.attachment.type === 'audio' && (
+                          <div className="p-2.5 bg-slate-50 border rounded-md space-y-1.5 text-xs mt-2" data-testid="chat-audio-attachment">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-slate-700 flex items-center gap-1.5">
+                                <span>🎙️</span> {m.attachment.name}
+                                {m.attachment.durationSeconds ? (
+                                  <span className="text-slate-500 font-normal">({m.attachment.durationSeconds}s)</span>
+                                ) : null}
+                              </span>
+                              <a
+                                href={m.attachment.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download={m.attachment.name}
+                                className="text-blue-600 hover:text-blue-800 font-medium underline"
+                              >
+                                Download
+                              </a>
+                            </div>
+                            <audio controls className="w-full h-8 mt-1" data-testid="chat-audio-player">
+                              <source src={m.attachment.url} type="audio/webm" />
+                              <source src={m.attachment.url} type="audio/mpeg" />
+                              Your browser does not support audio playback.
+                            </audio>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
 
                 <div className="space-y-2 pt-2">
@@ -1115,7 +1143,7 @@ export function CamperDetailClient({
                       variant="outline"
                       size="sm"
                       disabled={isPending || isChatRecording}
-                      onClick={handleAttachDocument}
+                      onClick={() => handleAttachDocument()}
                       className="flex items-center gap-1.5"
                     >
                       <span>📎</span> Attach Document

@@ -89,6 +89,12 @@ CREATE TABLE IF NOT EXISTS public.chat_messages (
     author_id UUID NOT NULL REFERENCES public.users(id) ON DELETE SET NULL,
     content TEXT NOT NULL,
     audio_url TEXT,
+    attachment_url TEXT,
+    attachment_type VARCHAR(50),
+    attachment_name VARCHAR(255),
+    duration_seconds INT,
+    tagged_users TEXT[],
+    metadata JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

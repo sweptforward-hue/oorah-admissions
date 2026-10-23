@@ -1,0 +1,222 @@
+{
+  "suite": "Oorah Admissions Autonomous Browser & Button Clicker Suite",
+  "timestamp": "2026-10-23T16:58:06.695Z",
+  "routesChecked": [],
+  "buttonsClicked": [
+    {
+      "context": "Login Page",
+      "total": 4,
+      "clicked": [
+        {
+          "text": "Sign In with Email",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Don't have an account? Sign up with email",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Sign In with Google",
+          "status": "CLICKED"
+        },
+        {
+          "text": "AI Assistant\nRAG",
+          "status": "CLICKED"
+        }
+      ]
+    },
+    {
+      "context": "Admin Dashboard",
+      "total": 6,
+      "clicked": [
+        {
+          "text": "Sign Out",
+          "skipped": true,
+          "reason": "destructive_or_signout"
+        },
+        {
+          "text": "VAAD Review",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Under Review",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Accepted",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Search",
+          "status": "CLICKED"
+        },
+        {
+          "text": "AI Assistant\nRAG",
+          "status": "CLICKED"
+        }
+      ]
+    },
+    {
+      "context": "Camper Roster",
+      "total": 2,
+      "clicked": [
+        {
+          "text": "Sign Out",
+          "skipped": true,
+          "reason": "destructive_or_signout"
+        },
+        {
+          "text": "AI Assistant\nRAG",
+          "status": "CLICKED"
+        }
+      ]
+    },
+    {
+      "context": "Camper Intake Form",
+      "total": 3,
+      "clicked": [
+        {
+          "text": "Sign Out",
+          "skipped": true,
+          "reason": "destructive_or_signout"
+        },
+        {
+          "text": "Create Camper",
+          "status": "CLICKED"
+        },
+        {
+          "text": "AI Assistant\nRAG",
+          "status": "CLICKED"
+        }
+      ]
+    },
+    {
+      "context": "Admin Client Categories",
+      "total": 1,
+      "clicked": [
+        {
+          "text": "AI Assistant\nRAG",
+          "status": "CLICKED"
+        }
+      ]
+    },
+    {
+      "context": "Admin Users Management",
+      "total": 4,
+      "clicked": [
+        {
+          "text": "Active",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Active",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Active",
+          "status": "CLICKED"
+        },
+        {
+          "text": "AI Assistant\nRAG",
+          "status": "CLICKED"
+        }
+      ]
+    },
+    {
+      "context": "Admin Operational Years",
+      "total": 7,
+      "clicked": [
+        {
+          "text": "Sign Out",
+          "skipped": true,
+          "reason": "destructive_or_signout"
+        },
+        {
+          "text": "+ Create Year",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Edit",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Archive",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Edit",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Activate",
+          "status": "CLICKED"
+        },
+        {
+          "text": "AI Assistant\nRAG",
+          "status": "CLICKED"
+        }
+      ]
+    }
+  ],
+  "screenshotsCaptured": [
+    {
+      "filename": "01_unauthenticated_login.png",
+      "label": "Login Page",
+      "timestamp": "2026-10-23T16:58:08.659Z"
+    },
+    {
+      "filename": "02_staff_access_denied.png",
+      "label": "Staff Access Denied on Admin Route",
+      "timestamp": "2026-10-23T16:58:10.564Z"
+    },
+    {
+      "filename": "03_admin_dashboard_verified.png",
+      "label": "Admin Dashboard Live",
+      "timestamp": "2026-10-23T16:58:11.342Z"
+    },
+    {
+      "filename": "04_campers_roster_verified.png",
+      "label": "Camper Roster Directory",
+      "timestamp": "2026-10-23T16:58:13.237Z"
+    },
+    {
+      "filename": "05_camper_new_intake_verified.png",
+      "label": "New Camper Intake Form",
+      "timestamp": "2026-10-23T16:58:14.164Z"
+    },
+    {
+      "filename": "06_camper_detail_overview.png",
+      "label": "Camper Dossier Overview",
+      "timestamp": "2026-10-23T16:58:15.530Z"
+    },
+    {
+      "filename": "08_staff_roster_verified.png",
+      "label": "Staff Roster Parity",
+      "timestamp": "2026-10-23T16:58:16.078Z"
+    },
+    {
+      "filename": "09_staff_new_intake_verified.png",
+      "label": "Staff Registration Form",
+      "timestamp": "2026-10-23T16:58:16.433Z"
+    },
+    {
+      "filename": "10_admin_client_categories_verified.png",
+      "label": "Admin Client Categories Manager",
+      "timestamp": "2026-10-23T16:58:16.822Z"
+    },
+    {
+      "filename": "11_admin_users_management_verified.png",
+      "label": "Admin Users Manager with Deletion Controls",
+      "timestamp": "2026-10-23T16:58:17.683Z"
+    },
+    {
+      "filename": "12_admin_years_management_verified.png",
+      "label": "Admin Operational Years",
+      "timestamp": "2026-10-23T16:58:20.820Z"
+    }
+  ],
+  "errors": [],
+  "status": "SUCCESS",
+  "totalScreenshots": 11,
+  "totalContextsClicked": 7
+}

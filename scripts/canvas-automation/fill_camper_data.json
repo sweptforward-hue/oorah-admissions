@@ -1,0 +1,88 @@
+{
+  "action_id": "act-fill-camper-data",
+  "title": "Autonomous Action: Fill Camper Profile & Cohort Assignment",
+  "description": "Autonomously accesses camper detail profile, edits extracurricular notes and academic records, and assigns bunk allocation.",
+  "target_route": "/campers/[id]",
+  "steps": [
+    {
+      "step_number": 1,
+      "name": "Navigate to Camper Detail View",
+      "action_type": "navigate",
+      "target": "/campers/[id]",
+      "expected_outcome": "Camper dossier loaded"
+    },
+    {
+      "step_number": 2,
+      "name": "Click Edit Profile Button",
+      "action_type": "click",
+      "selector": "button:has-text('Edit Profile')",
+      "expected_outcome": "Profile modal opens"
+    },
+    {
+      "step_number": 3,
+      "name": "Update Academic Grade",
+      "action_type": "input",
+      "selector": "#edit-grade",
+      "value": "8th Grade Accelerated",
+      "expected_outcome": "Grade updated"
+    },
+    {
+      "step_number": 4,
+      "name": "Update School Information",
+      "action_type": "input",
+      "selector": "#edit-school",
+      "value": "Yeshiva Bais Moshe",
+      "expected_outcome": "School updated"
+    },
+    {
+      "step_number": 5,
+      "name": "Fill Staff Interview Notes",
+      "action_type": "input",
+      "selector": "#edit-notes",
+      "value": "High aptitude, excellent social adaptation, candidate for youth leadership honors program.",
+      "expected_outcome": "Detailed intake notes recorded"
+    },
+    {
+      "step_number": 6,
+      "name": "Click Save Changes Button",
+      "action_type": "click",
+      "selector": "button:has-text('Save Changes')",
+      "expected_outcome": "Persists profile updates and updates UI"
+    },
+    {
+      "step_number": 7,
+      "name": "Click Assign Cohort & Bunk Button",
+      "action_type": "click",
+      "selector": "button:has-text('Assign Cohort & Bunk')",
+      "expected_outcome": "Cohort and Bunk modal opens"
+    },
+    {
+      "step_number": 8,
+      "name": "Select Cohort Session",
+      "action_type": "select",
+      "selector": "#cohort-session-select",
+      "value": "Session A",
+      "expected_outcome": "Cohort selected"
+    },
+    {
+      "step_number": 9,
+      "name": "Input Bunk Assignment",
+      "action_type": "input",
+      "selector": "#bunk-input",
+      "value": "Bunk A-4",
+      "expected_outcome": "Bunk assigned"
+    },
+    {
+      "step_number": 10,
+      "name": "Click Confirm Assignment Button",
+      "action_type": "click",
+      "selector": "button:has-text('Confirm Assignment')",
+      "expected_outcome": "Persists cohort and bunk assignment"
+    }
+  ],
+  "autonomous_execution": {
+    "engine": "canvas-autonomous-runner",
+    "timeout_ms": 10000,
+    "retry_on_failure": true
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "action_id": "act-add-camper",
+  "title": "Autonomous Action: Register New Camper",
+  "description": "Autonomously opens camper registration form, fills applicant details, selects 2026 season, and submits the application.",
+  "target_route": "/campers/new",
+  "steps": [
+    {
+      "step_number": 1,
+      "name": "Navigate to Camper Registration Form",
+      "action_type": "navigate",
+      "target": "/campers/new",
+      "expected_outcome": "Camper intake registration form displayed"
+    },
+    {
+      "step_number": 2,
+      "name": "Input First Name",
+      "action_type": "input",
+      "selector": "input[name='first_name']",
+      "value": "Benjamin",
+      "expected_outcome": "First name filled"
+    },
+    {
+      "step_number": 3,
+      "name": "Input Last Name",
+      "action_type": "input",
+      "selector": "input[name='last_name']",
+      "value": "Green",
+      "expected_outcome": "Last name filled"
+    },
+    {
+      "step_number": 4,
+      "name": "Input Date of Birth",
+      "action_type": "input",
+      "selector": "input[name='date_of_birth']",
+      "value": "2013-05-14",
+      "expected_outcome": "Date of birth filled"
+    },
+    {
+      "step_number": 5,
+      "name": "Select Gender",
+      "action_type": "select",
+      "selector": "select[name='gender']",
+      "value": "Male",
+      "expected_outcome": "Gender set to Male"
+    },
+    {
+      "step_number": 6,
+      "name": "Input Grade",
+      "action_type": "input",
+      "selector": "input[name='grade']",
+      "value": "7th Grade",
+      "expected_outcome": "Grade filled"
+    },
+    {
+      "step_number": 7,
+      "name": "Input School",
+      "action_type": "input",
+      "selector": "input[name='school']",
+      "value": "Yeshiva Ohr Reuven",
+      "expected_outcome": "School filled"
+    },
+    {
+      "step_number": 8,
+      "name": "Input City",
+      "action_type": "input",
+      "selector": "input[name='city']",
+      "value": "Monsey",
+      "expected_outcome": "City filled"
+    },
+    {
+      "step_number": 9,
+      "name": "Input State",
+      "action_type": "input",
+      "selector": "input[name='state']",
+      "value": "NY",
+      "expected_outcome": "State set to NY"
+    },
+    {
+      "step_number": 10,
+      "name": "Select Session",
+      "action_type": "select",
+      "selector": "select[name='session']",
+      "value": "Session A",
+      "expected_outcome": "Session set to Session A"
+    },
+    {
+      "step_number": 11,
+      "name": "Select Operational Year",
+      "action_type": "select",
+      "selector": "select[name='year']",
+      "value": "2026",
+      "expected_outcome": "Year set to 2026"
+    },
+    {
+      "step_number": 12,
+      "name": "Click Submit Application Button",
+      "action_type": "click",
+      "selector": "button[type='submit']:has-text('Submit Application')",
+      "expected_outcome": "Camper record created and redirected to camper detail page"
+    }
+  ],
+  "autonomous_execution": {
+    "engine": "canvas-autonomous-runner",
+    "timeout_ms": 12000,
+    "retry_on_failure": true
+  }
+}

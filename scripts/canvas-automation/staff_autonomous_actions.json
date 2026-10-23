@@ -1,0 +1,95 @@
+{
+  "action_id": "act-staff-autonomous-suite",
+  "title": "Autonomous Action: Register and Manage Staff Member",
+  "description": "Autonomously navigates to /staff, registers a new counselor, assigns them to Session A, tests profile updates, and verifies admin deletion.",
+  "target_route": "/staff",
+  "steps": [
+    {
+      "step_number": 1,
+      "name": "Navigate to Staff Directory",
+      "action_type": "navigate",
+      "target": "/staff",
+      "expected_outcome": "Staff roster loaded"
+    },
+    {
+      "step_number": 2,
+      "name": "Click + New Staff Member CTA",
+      "action_type": "click",
+      "selector": "a[href='/staff/new']",
+      "expected_outcome": "Staff intake registration form displayed"
+    },
+    {
+      "step_number": 3,
+      "name": "Input First Name",
+      "action_type": "input",
+      "selector": "input[name='first_name']",
+      "value": "Eli",
+      "expected_outcome": "First name populated"
+    },
+    {
+      "step_number": 4,
+      "name": "Input Last Name",
+      "action_type": "input",
+      "selector": "input[name='last_name']",
+      "value": "Goldstein",
+      "expected_outcome": "Last name populated"
+    },
+    {
+      "step_number": 5,
+      "name": "Input Staff Email",
+      "action_type": "input",
+      "selector": "input[name='email']",
+      "value": "eli.goldstein@oorah.org",
+      "expected_outcome": "Email populated"
+    },
+    {
+      "step_number": 6,
+      "name": "Select Role Title",
+      "action_type": "select",
+      "selector": "select[name='role_title']",
+      "value": "Head Counselor",
+      "expected_outcome": "Role set to Head Counselor"
+    },
+    {
+      "step_number": 7,
+      "name": "Select Session",
+      "action_type": "select",
+      "selector": "select[name='session']",
+      "value": "Session A",
+      "expected_outcome": "Session set to Session A"
+    },
+    {
+      "step_number": 8,
+      "name": "Click Submit Registration",
+      "action_type": "click",
+      "selector": "button[type='submit']:has-text('Register Staff Member')",
+      "expected_outcome": "Staff record created and redirected to roster"
+    },
+    {
+      "step_number": 9,
+      "name": "Click on Staff Profile",
+      "action_type": "click",
+      "selector": "tr:has-text('Eli Goldstein') a",
+      "expected_outcome": "Navigates to /staff/[id] detail dossier"
+    },
+    {
+      "step_number": 10,
+      "name": "Switch to Assignment Tab",
+      "action_type": "click",
+      "selector": "button[role='tab']:has-text('Session & Bunk')",
+      "expected_outcome": "Bunk assignment view active"
+    },
+    {
+      "step_number": 11,
+      "name": "Click Delete Staff Button",
+      "action_type": "click",
+      "selector": "button:has-text('Delete Staff')",
+      "expected_outcome": "Triggers admin deletion confirmation"
+    }
+  ],
+  "autonomous_execution": {
+    "engine": "canvas-autonomous-runner",
+    "timeout_ms": 12000,
+    "retry_on_failure": true
+  }
+}

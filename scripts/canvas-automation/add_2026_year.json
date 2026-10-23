@@ -1,0 +1,49 @@
+{
+  "action_id": "act-add-2026-year",
+  "title": "Autonomous Action: Add 2026 Operational Year",
+  "description": "Autonomously navigates to Camp Years administration, inputs Summer 2026, submits creation form, and activates the season.",
+  "target_route": "/admin/years",
+  "steps": [
+    {
+      "step_number": 1,
+      "name": "Navigate to Years Administration",
+      "action_type": "navigate",
+      "target": "/admin/years",
+      "expected_outcome": "Years management table rendered with current active years"
+    },
+    {
+      "step_number": 2,
+      "name": "Input 2026 Year Name",
+      "action_type": "input",
+      "selector": "input[placeholder*='Summer 2026']",
+      "value": "Summer 2026",
+      "expected_outcome": "Input field holds value 'Summer 2026'"
+    },
+    {
+      "step_number": 3,
+      "name": "Click Create Year Button",
+      "action_type": "click",
+      "selector": "button[type='submit']:has-text('+ Create Year')",
+      "expected_outcome": "Form triggers createYear server action and registers year 2026"
+    },
+    {
+      "step_number": 4,
+      "name": "Verify Summer 2026 Created",
+      "action_type": "verify",
+      "selector": ".card:has-text('Summer 2026')",
+      "expected_outcome": "Card for Summer 2026 appears with Active status"
+    },
+    {
+      "step_number": 5,
+      "name": "Toggle Archive/Activate Status",
+      "action_type": "click",
+      "selector": ".card:has-text('Summer 2026') button:has-text('Archive')",
+      "expected_outcome": "Toggles year operational status seamlessly"
+    }
+  ],
+  "autonomous_execution": {
+    "engine": "canvas-autonomous-runner",
+    "timeout_ms": 10000,
+    "retry_on_failure": true
+  }
+}

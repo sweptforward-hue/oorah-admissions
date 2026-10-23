@@ -10,20 +10,34 @@ export async function deleteCamper(camperId: string) {
     const adminSupabase = createAdminClient()
 
     // Fetch camper name/appNum for audit log before deletion
-    const { data: camper } = await adminSupabase.from('kids').select('name, application_number, first_name, last_name').eq('id', camperId).single()
+    const { data: camper } = await adminSupabase
+      .from('kids')
+      .select('name, application_number, first_name, last_name')
+      .eq('id', camperId)
+      .maybeSingle()
+
     const camperName = camper ? (camper.name || `${camper.first_name} ${camper.last_name}`) : camperId
 
     // Cleanly delete from dependent tables if cascade isn't configured in all environments
     await Promise.allSettled([
+      adminSupabase.from('photos').delete().eq('kid_id', camperId),
       adminSupabase.from('kid_photos').delete().eq('kid_id', camperId),
+      adminSupabase.from('documents').delete().eq('kid_id', camperId),
       adminSupabase.from('kid_documents').delete().eq('kid_id', camperId),
+      adminSupabase.from('voice_notes').delete().eq('kid_id', camperId),
       adminSupabase.from('kid_voice_notes').delete().eq('kid_id', camperId),
+      adminSupabase.from('transcripts').delete().eq('kid_id', camperId),
       adminSupabase.from('kid_transcripts').delete().eq('kid_id', camperId),
       adminSupabase.from('kid_contacts').delete().eq('kid_id', camperId),
+      adminSupabase.from('contacts').delete().eq('kid_id', camperId),
       adminSupabase.from('kid_notes').delete().eq('kid_id', camperId),
+      adminSupabase.from('notes').delete().eq('kid_id', camperId),
+      adminSupabase.from('custom_field_values').delete().eq('kid_id', camperId),
       adminSupabase.from('kid_custom_fields').delete().eq('kid_id', camperId),
       adminSupabase.from('vaad_votes').delete().eq('kid_id', camperId),
       adminSupabase.from('status_history').delete().eq('kid_id', camperId),
+      adminSupabase.from('chat_messages').delete().eq('kid_id', camperId),
+      adminSupabase.from('messages').delete().eq('kid_id', camperId),
     ])
 
     const { error } = await adminSupabase.from('kids').delete().eq('id', camperId)
@@ -38,7 +52,10 @@ export async function deleteCamper(camperId: string) {
       action: 'DELETE_CAMPER',
       entity_type: 'kid',
       entity_id: camperId,
-      details: { camper_name: camperName }
+      details: {
+        camper_name: camperName,
+        application_number: camper?.application_number,
+      }
     })
 
     revalidatePath('/admin/campers')

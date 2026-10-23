@@ -6,6 +6,8 @@ import {
   PhotoItem,
   VoiceNoteItem,
   TranscriptItem,
+  ChatMessage,
+  ChatAttachment,
 } from '@/components/campers/camper-detail-client';
 import { Kid, KidStatus } from '@/types';
 
@@ -17,109 +19,84 @@ export default async function CamperDetailPage({ params }: PageProps) {
   const resolvedParams = await params;
   const { id } = resolvedParams;
 
-  const hasSupabaseConfig = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://localhost:54321'
-  );
+  const supabase = await createClient();
 
-  let camper: Kid | null = null;
-  let docsData: Array<Record<string, unknown>> | null = null;
-  let photosData: Array<Record<string, unknown>> | null = null;
-  let voiceData: Array<Record<string, unknown>> | null = null;
-  let transcriptsData: Array<Record<string, unknown>> | null = null;
-
-  if (!hasSupabaseConfig) {
-    camper = {
+  const { data: camperData, error } = await supabase
+    .from('kids')
+    .select(`
       id,
-      application_number: id === "1" ? "1042" : id === "2" ? "1043" : id === "3" ? "1044" : "1045",
-      name: id === "1" ? "John Smith" : id === "2" ? "Sarah Cohen" : id === "3" ? "David Levy" : "New Camper",
-      status: (id === "1" ? "VAAD Review" : id === "2" ? "Accepted" : id === "3" ? "Incomplete" : "New") as KidStatus,
-      voting_open: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-  } else {
-    const supabase = await createClient();
+      application_number,
+      first_name,
+      last_name,
+      name,
+      voting_open,
+      created_at,
+      updated_at,
+      statuses ( name )
+    `)
+    .eq('id', id)
+    .single();
 
-    const { data: camperData, error } = await supabase
-      .from('kids')
-      .select(`
-        id,
-        application_number,
-        first_name,
-        last_name,
-        name,
-        voting_open,
-        created_at,
-        updated_at,
-        statuses ( name )
-      `)
-      .eq('id', id)
-      .single();
-
-    if (error || !camperData) {
-      camper = {
-        id,
-        application_number: id === "1" ? "1042" : id === "2" ? "1043" : id === "3" ? "1044" : "1045",
-        name: id === "1" ? "John Smith" : id === "2" ? "Sarah Cohen" : id === "3" ? "David Levy" : "New Camper",
-        status: (id === "1" ? "VAAD Review" : id === "2" ? "Accepted" : id === "3" ? "Incomplete" : "New") as KidStatus,
-        voting_open: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-    } else {
-      const raw = camperData as Record<string, unknown> & {
-        statuses?: { name?: string } | Array<{ name?: string }>;
-        first_name?: string;
-        last_name?: string;
-        name?: string;
-        id: string;
-        application_number?: string;
-        voting_open?: boolean;
-        created_at?: string;
-        updated_at?: string;
-      };
-      const statusName = Array.isArray(raw.statuses) ? raw.statuses[0]?.name : raw.statuses?.name;
-
-      camper = {
-        id: raw.id,
-        application_number: raw.application_number || '1042',
-        name: raw.name || (raw.first_name && raw.last_name ? `${raw.first_name} ${raw.last_name}` : 'Camper Record'),
-        status: (statusName || 'New') as KidStatus,
-        voting_open: raw.voting_open ?? true,
-        created_at: raw.created_at || new Date().toISOString(),
-        updated_at: raw.updated_at || new Date().toISOString(),
-      };
-    }
-
-    const [fetchedDocsRes, fetchedPhotosRes, fetchedVoiceRes, fetchedTranscriptsRes] = await Promise.all([
-      supabase
-        .from('documents')
-        .select('*')
-        .eq('kid_id', id)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('photos')
-        .select('*')
-        .eq('kid_id', id)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('voice_notes')
-        .select('*')
-        .eq('kid_id', id)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('transcripts')
-        .select('*')
-        .eq('kid_id', id)
-        .order('created_at', { ascending: false }),
-    ]);
-
-    docsData = fetchedDocsRes.data || null;
-    photosData = fetchedPhotosRes.data || null;
-    voiceData = fetchedVoiceRes.data || null;
-    transcriptsData = fetchedTranscriptsRes.data || null;
+  if (error || !camperData) {
+    return notFound();
   }
+
+  const raw = camperData as Record<string, unknown> & {
+    statuses?: { name?: string } | Array<{ name?: string }>;
+    first_name?: string;
+    last_name?: string;
+    name?: string;
+    id: string;
+    application_number?: string;
+    voting_open?: boolean;
+    created_at?: string;
+    updated_at?: string;
+  };
+  const statusName = Array.isArray(raw.statuses) ? raw.statuses[0]?.name : raw.statuses?.name;
+
+  const camper: Kid = {
+    id: raw.id,
+    application_number: raw.application_number || '',
+    name: raw.name || (raw.first_name && raw.last_name ? `${raw.first_name} ${raw.last_name}` : 'Camper Record'),
+    status: (statusName || 'New') as KidStatus,
+    voting_open: raw.voting_open ?? true,
+    created_at: raw.created_at || new Date().toISOString(),
+    updated_at: raw.updated_at || new Date().toISOString(),
+  };
+
+  const [fetchedDocsRes, fetchedPhotosRes, fetchedVoiceRes, fetchedTranscriptsRes, fetchedChatRes] = await Promise.all([
+    supabase
+      .from('documents')
+      .select('*')
+      .eq('kid_id', id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('photos')
+      .select('*')
+      .eq('kid_id', id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('voice_notes')
+      .select('*')
+      .eq('kid_id', id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('transcripts')
+      .select('*')
+      .eq('kid_id', id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('chat_messages')
+      .select('id, content, audio_url, attachment_url, attachment_type, attachment_name, duration_seconds, tagged_users, metadata, created_at, users(name, full_name, email)')
+      .eq('kid_id', id)
+      .order('created_at', { ascending: true }),
+  ]);
+
+  const docsData = fetchedDocsRes.data || null;
+  const photosData = fetchedPhotosRes.data || null;
+  const voiceData = fetchedVoiceRes.data || null;
+  const transcriptsData = fetchedTranscriptsRes.data || null;
+  const chatData = fetchedChatRes.data || null;
 
   if (!camper) return notFound();
 
@@ -181,6 +158,46 @@ export default async function CamperDetailPage({ params }: PageProps) {
     };
   });
 
+  const initialChatMessages: ChatMessage[] = (chatData || []).map((msg: Record<string, unknown>) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userObj = Array.isArray(msg.users) ? msg.users[0] : (msg.users as any);
+    const authorName = userObj?.full_name || userObj?.name || userObj?.email?.split('@')[0] || 'Team Member';
+    
+    let attachment: ChatAttachment | undefined = undefined;
+    if (msg.attachment_url) {
+      attachment = {
+        type: msg.attachment_type === 'audio' ? 'audio' : 'document',
+        name: String(msg.attachment_name || (msg.attachment_type === 'audio' ? 'Voice Note' : 'Document')),
+        url: String(msg.attachment_url),
+        durationSeconds: msg.duration_seconds ? Number(msg.duration_seconds) : undefined,
+      };
+    } else if (msg.audio_url) {
+      attachment = {
+        type: 'audio',
+        name: String(msg.attachment_name || 'Voice Note Attachment'),
+        url: String(msg.audio_url),
+        durationSeconds: msg.duration_seconds ? Number(msg.duration_seconds) : undefined,
+      };
+    } else if (msg.metadata && typeof msg.metadata === 'object' && (msg.metadata as any).attachment) {
+      attachment = (msg.metadata as any).attachment;
+    }
+
+    const taggedUsers = Array.isArray(msg.tagged_users)
+      ? (msg.tagged_users as string[])
+      : (msg.metadata && typeof msg.metadata === 'object' && Array.isArray((msg.metadata as any).tagged_users))
+      ? (msg.metadata as any).tagged_users
+      : undefined;
+
+    return {
+      id: String(msg.id),
+      author: authorName,
+      content: String(msg.content || ''),
+      timestamp: msg.created_at ? new Date(String(msg.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+      attachment,
+      tagged_users: taggedUsers,
+    };
+  });
+
   return (
     <CamperDetailClient
       initialCamper={clientCamper}
@@ -188,6 +205,7 @@ export default async function CamperDetailPage({ params }: PageProps) {
       initialPhotos={initialPhotos}
       initialVoiceNotes={initialVoiceNotes}
       initialTranscripts={initialTranscripts}
+      initialChatMessages={initialChatMessages}
     />
   );
 }

@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
+import { CalendarDays } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { createSession, updateSessionSchedule } from '@/lib/admin/actions'
+import { getSessions, createSession, updateSessionSchedule } from '@/lib/admin/actions'
 
 interface SessionItem {
   id: string
@@ -26,6 +27,21 @@ export default function AdminSessionsPage() {
   const [endDate, setEndDate] = useState('2026-07-28')
   const [isPending, startTransition] = useTransition()
 
+  const loadSessions = async () => {
+    try {
+      const data = await getSessions()
+      if (data) {
+        setSessions(data)
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  useEffect(() => {
+    loadSessions()
+  }, [])
+
   const handleAddSession = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
@@ -37,10 +53,7 @@ export default function AdminSessionsPage() {
           start_date: startDate,
           end_date: endDate
         })
-        setSessions([
-          ...sessions,
-          { id: String(Date.now()), name: name.trim(), yearName: 'Summer 2026', startDate, endDate }
-        ])
+        await loadSessions()
         setIsAddOpen(false)
         setName('')
       } catch (err: unknown) {
@@ -75,27 +88,40 @@ export default function AdminSessionsPage() {
         <Button onClick={() => setIsAddOpen(true)}>+ Add Session</Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {sessions.map((s) => (
-          <Card key={s.id} className="p-6">
-            <CardHeader className="p-0 mb-4">
-              <CardTitle className="text-xl font-bold">{s.name}</CardTitle>
-              <span className="text-xs text-slate-500">{s.yearName}</span>
-            </CardHeader>
-            <CardContent className="p-0 text-sm space-y-2">
-              <div><strong>Dates:</strong> {s.startDate} to {s.endDate}</div>
-              <div className="pt-4 flex gap-2">
-                <Button variant="outline" size="sm" disabled={isPending} onClick={() => handleEditSchedule(s)}>
-                  Edit Schedule
-                </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/campers?session=${encodeURIComponent(s.name)}`}>View Campers</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {sessions.length === 0 ? (
+        <Card className="p-12 text-center border-dashed">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 text-slate-400 mb-3">
+            <CalendarDays className="w-6 h-6" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-800 mb-1">No Camp Sessions</h3>
+          <p className="text-sm text-slate-500 max-w-sm mx-auto mb-4">
+            No camp sessions have been configured yet. Create a session to define enrollment cohorts and date ranges.
+          </p>
+          <Button onClick={() => setIsAddOpen(true)}>+ Add Session</Button>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {sessions.map((s) => (
+            <Card key={s.id} className="p-6">
+              <CardHeader className="p-0 mb-4">
+                <CardTitle className="text-xl font-bold">{s.name}</CardTitle>
+                <span className="text-xs text-slate-500">{s.yearName}</span>
+              </CardHeader>
+              <CardContent className="p-0 text-sm space-y-2">
+                <div><strong>Dates:</strong> {s.startDate} to {s.endDate}</div>
+                <div className="pt-4 flex gap-2">
+                  <Button variant="outline" size="sm" disabled={isPending} onClick={() => handleEditSchedule(s)}>
+                    Edit Schedule
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/campers?session=${encodeURIComponent(s.name)}`}>View Campers</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {isAddOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">

@@ -16,20 +16,36 @@ export interface CustomFieldDefinition {
 
 export async function getCustomFields(): Promise<CustomFieldDefinition[]> {
   const supabase = createServerSupabaseClient()
-  const { data, error } = await supabase
-    .from('custom_field_definitions')
+  
+  // Try querying canonical custom_fields table first
+  let { data, error } = await supabase
+    .from('custom_fields')
     .select('*')
     .order('created_at', { ascending: true })
 
   if (error || !data || data.length === 0) {
-    return [
-      { id: '1', name: 't_shirt_size', label: 'T-Shirt Size', field_type: 'dropdown', required: true, options: { entity_type: 'camper', choices: ['S', 'M', 'L', 'XL'] } },
-      { id: '2', name: 'dietary_restrictions', label: 'Dietary Restrictions', field_type: 'text', required: false, options: { entity_type: 'camper' } },
-      { id: '3', name: 'driver_license_verified', label: 'Driver License Verified', field_type: 'checkbox', required: true, options: { entity_type: 'staff' } },
-    ]
+    const fallback = await supabase
+      .from('custom_field_definitions')
+      .select('*')
+      .order('created_at', { ascending: true })
+    data = fallback.data
+    error = fallback.error
   }
 
-  return data
+  if (error || !data) {
+    return []
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return data.map((item: any) => ({
+    id: String(item.id),
+    name: item.name || '',
+    label: item.description || item.label || item.name || '',
+    field_type: item.field_type || 'text',
+    required: Boolean(item.is_required ?? item.required ?? false),
+    options: item.options || {},
+    created_at: item.created_at || new Date().toISOString()
+  }))
 }
 
 export async function createCustomField(fieldData: {
@@ -67,24 +83,41 @@ export async function createCustomField(fieldData: {
 
   const supabase = createServerSupabaseClient()
 
-  const { data, error } = await supabase
-    .from('custom_field_definitions')
+  // Try custom_fields first
+  let insertResult = await supabase
+    .from('custom_fields')
     .insert({
-      name: fieldData.name.toLowerCase().replace(/\s+/g, '_'),
-      label: fieldData.label,
+      name: fieldData.name,
+      description: fieldData.label,
       field_type: fieldData.field_type,
-      required: fieldData.required,
+      is_required: fieldData.required,
+      is_active: true,
+      entity_type: fieldData.entity_type || 'camper',
       options: opts,
     })
     .select()
     .single()
 
-  if (error) {
-    throw new Error(`Failed to create custom field: ${error.message}`)
+  if (insertResult.error) {
+    insertResult = await supabase
+      .from('custom_field_definitions')
+      .insert({
+        name: fieldData.name.toLowerCase().replace(/\s+/g, '_'),
+        label: fieldData.label,
+        field_type: fieldData.field_type,
+        required: fieldData.required,
+        options: opts,
+      })
+      .select()
+      .single()
+  }
+
+  if (insertResult.error) {
+    throw new Error(`Failed to create custom field: ${insertResult.error.message}`)
   }
 
   revalidatePath('/admin/custom-fields')
-  return data
+  return insertResult.data
 }
 
 export async function updateCustomField(

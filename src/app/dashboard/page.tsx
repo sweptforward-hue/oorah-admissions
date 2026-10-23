@@ -36,6 +36,12 @@ interface AuditItem {
   created_at: string
 }
 
+interface YearItem {
+  id: string
+  year: number
+  is_active?: boolean
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const [selectedYear, setSelectedYear] = useState('2025')
@@ -46,6 +52,7 @@ export default function DashboardPage() {
   const [statuses, setStatuses] = useState<StatusItem[]>([])
   const [kids, setKids] = useState<KidItem[]>([])
   const [recentAudits, setRecentAudits] = useState<AuditItem[]>([])
+  const [years, setYears] = useState<YearItem[]>([])
 
   useEffect(() => {
     let isMounted = true
@@ -73,6 +80,12 @@ export default function DashboardPage() {
           .order('created_at', { ascending: false })
           .limit(5)
 
+        // 4. Fetch Operational Years dynamically
+        const { data: yearsData } = await supabase
+          .from('years')
+          .select('id, year, is_active')
+          .order('year', { ascending: false })
+
         if (isMounted) {
           if (statusData && statusData.length > 0) {
             setStatuses(
@@ -88,6 +101,13 @@ export default function DashboardPage() {
           }
           if (auditData) {
             setRecentAudits(auditData)
+          }
+          if (yearsData && yearsData.length > 0) {
+            setYears(yearsData)
+            const activeYear = yearsData.find((y) => y.is_active) || yearsData[0]
+            if (activeYear) {
+              setSelectedYear(String(activeYear.year))
+            }
           }
         }
       } catch (err) {
@@ -183,8 +203,18 @@ export default function DashboardPage() {
               className="text-sm border-0 font-medium focus:ring-0 cursor-pointer text-slate-800"
             >
               <option value="All">All Years</option>
-              <option value="2025">Summer 2025</option>
-              <option value="2024">Summer 2024</option>
+              {years.length > 0 ? (
+                years.map((y) => (
+                  <option key={y.id} value={String(y.year)}>
+                    Summer {y.year}
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="2025">Summer 2025</option>
+                  <option value="2024">Summer 2024</option>
+                </>
+              )}
             </select>
 
             <span className="text-slate-300">|</span>

@@ -1,0 +1,73 @@
+{
+  "action_id": "act-add-client-category",
+  "title": "Autonomous Action: Add Client Category",
+  "description": "Autonomously opens client categories manager, inputs category name, taxonomy code, color hex, and submits category creation.",
+  "target_route": "/admin/client-categories",
+  "steps": [
+    {
+      "step_number": 1,
+      "name": "Navigate to Client Categories",
+      "action_type": "navigate",
+      "target": "/admin/client-categories",
+      "expected_outcome": "Client Category administration view loaded"
+    },
+    {
+      "step_number": 2,
+      "name": "Click Add Category CTA",
+      "action_type": "click",
+      "selector": "button:has-text('+ Add Category')",
+      "expected_outcome": "Category creation modal opens"
+    },
+    {
+      "step_number": 3,
+      "name": "Input Category Name",
+      "action_type": "input",
+      "selector": "#category-name",
+      "value": "Kiruv Outreach Families",
+      "expected_outcome": "Name field populated"
+    },
+    {
+      "step_number": 4,
+      "name": "Input Taxonomy Code",
+      "action_type": "input",
+      "selector": "#category-code",
+      "value": "KIRUV-OUTREACH",
+      "expected_outcome": "Code field populated"
+    },
+    {
+      "step_number": 5,
+      "name": "Input Description",
+      "action_type": "input",
+      "selector": "#category-description",
+      "value": "Children from outreach programs and kiruv partner communities",
+      "expected_outcome": "Description populated"
+    },
+    {
+      "step_number": 6,
+      "name": "Select Badge Color",
+      "action_type": "input",
+      "selector": "#category-color",
+      "value": "#10b981",
+      "expected_outcome": "Color set to Emerald green"
+    },
+    {
+      "step_number": 7,
+      "name": "Click Save Category Button",
+      "action_type": "click",
+      "selector": "button:has-text('Save Category')",
+      "expected_outcome": "Submits createClientCategory server action and refreshes table"
+    },
+    {
+      "step_number": 8,
+      "name": "Verify Category Row Added",
+      "action_type": "verify",
+      "selector": "tr:has-text('Kiruv Outreach Families')",
+      "expected_outcome": "New client category displayed with active status"
+    }
+  ],
+  "autonomous_execution": {
+    "engine": "canvas-autonomous-runner",
+    "timeout_ms": 10000,
+    "retry_on_failure": true
+  }
+}

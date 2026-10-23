@@ -1,7 +1,11 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { render, screen, cleanup } from '@testing-library/react'
 import SessionACampersPage from '@/app/session-a/campers/page'
 import SessionBCampersPage from '@/app/session-b/campers/page'
+
+afterEach(() => {
+  cleanup()
+})
 
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>,

@@ -1,0 +1,63 @@
+{
+  "action_id": "act-change-user-rights",
+  "title": "Autonomous Action: Change User Rights & Permissions",
+  "description": "Autonomously accesses staff management administration, selects target user, elevates role to admin, and configures VAAD voting rights.",
+  "target_route": "/admin/users",
+  "steps": [
+    {
+      "step_number": 1,
+      "name": "Navigate to Staff Management",
+      "action_type": "navigate",
+      "target": "/admin/users",
+      "expected_outcome": "User directory and permissions matrix loaded"
+    },
+    {
+      "step_number": 2,
+      "name": "Select Target Staff User",
+      "action_type": "locate",
+      "selector": "tr:has-text('synthetic')",
+      "expected_outcome": "Synthetic user row located"
+    },
+    {
+      "step_number": 3,
+      "name": "Change Role to Admin",
+      "action_type": "select",
+      "selector": "tr:has-text('synthetic') select[aria-label='User Role']",
+      "value": "admin",
+      "expected_outcome": "Role changed to Administrator via updateUser server action"
+    },
+    {
+      "step_number": 4,
+      "name": "Toggle VAAD Committee Membership",
+      "action_type": "click",
+      "selector": "tr:has-text('synthetic') input[type='checkbox'][name='isVaadMember']",
+      "expected_outcome": "VAAD Membership activated"
+    },
+    {
+      "step_number": 5,
+      "name": "Grant Voting Privilege",
+      "action_type": "click",
+      "selector": "tr:has-text('synthetic') input[type='checkbox'][name='canVote']",
+      "expected_outcome": "Voting rights granted"
+    },
+    {
+      "step_number": 6,
+      "name": "Grant Discussion Contribution Privilege",
+      "action_type": "click",
+      "selector": "tr:has-text('synthetic') input[type='checkbox'][name='canContribute']",
+      "expected_outcome": "Discussion rights granted"
+    },
+    {
+      "step_number": 7,
+      "name": "Verify Rights Persistence",
+      "action_type": "verify",
+      "selector": "tr:has-text('synthetic') select[value='admin']",
+      "expected_outcome": "Updated privileges confirmed and recorded in audit log"
+    }
+  ],
+  "autonomous_execution": {
+    "engine": "canvas-autonomous-runner",
+    "timeout_ms": 10000,
+    "retry_on_failure": true
+  }
+}

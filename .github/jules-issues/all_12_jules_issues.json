@@ -1,0 +1,79 @@
+{
+  "batch_label": "julesuse Jules",
+  "total_issues": 12,
+  "repository": "sweptforward-hue/oorah-admissions",
+  "issues": [
+    {
+      "number": 1,
+      "title": "feat(staff): create public.staff table migration and RLS policies",
+      "labels": ["julesuse Jules", "database", "staff"],
+      "prompt": "Create public.staff table in PostgreSQL migration 10_staff_and_deletion.sql with RLS policies distinguishing staff from users. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 2,
+      "title": "feat(staff): implement /staff roster view with search and status badges",
+      "labels": ["julesuse Jules", "frontend", "staff"],
+      "prompt": "Build /staff roster view matching /campers UI with search, session filtering, role badges, and clean empty state. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 3,
+      "title": "feat(staff): implement /staff/new registration intake form",
+      "labels": ["julesuse Jules", "frontend", "staff"],
+      "prompt": "Build /staff/new intake form mirroring /campers/new with name, contact, role title, department, session, year, and bunk fields. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 4,
+      "title": "feat(staff): implement /staff/[id] detail dossier with tabs and assignments",
+      "labels": ["julesuse Jules", "frontend", "staff"],
+      "prompt": "Build /staff/[id] detail page with tabs for Overview, Documents/Certifications, Session & Bunk Assignment, and Notes. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 5,
+      "title": "feat(admin): implement universal deleteUser server action with audit logging",
+      "labels": ["julesuse Jules", "backend", "security"],
+      "prompt": "Implement deleteUser(userId) in src/lib/users/actions.ts with requireAdminRole() check, VAAD seat cleanup, and audit logging. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 6,
+      "title": "feat(admin): implement deleteStaffMember and deleteCamper with cascades",
+      "labels": ["julesuse Jules", "backend", "security"],
+      "prompt": "Implement deleteStaffMember and harden deleteCamper with foreign key cascade purge and immutable audit log records. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 7,
+      "title": "feat(chat): implement persistent chat message sending and storage",
+      "labels": ["julesuse Jules", "backend", "chat"],
+      "prompt": "Wire camper chat messages to public.chat_messages table in Supabase, supporting author tagging and persistent history. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 8,
+      "title": "feat(chat): implement voice note audio upload and playback in chat",
+      "labels": ["julesuse Jules", "multimedia", "chat"],
+      "prompt": "Integrate audio recording and WebM/WAV upload to Google Drive proxy in camper chat. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 9,
+      "title": "feat(canvas): build in-browser autonomous JS button clicker suite",
+      "labels": ["julesuse Jules", "automation", "canvas"],
+      "prompt": "Deploy public/automation/autonomous-button-clicker.js and execute autonomous button clicks across all pages. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 10,
+      "title": "test(e2e): end-to-end vitest coverage for staff and deletion actions",
+      "labels": ["julesuse Jules", "testing"],
+      "prompt": "Write and run comprehensive Vitest tests for staff roster, intake, universal deletion, and chat persistence. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 11,
+      "title": "audit(security): verify admin authorization checks across all mutation endpoints",
+      "labels": ["julesuse Jules", "security", "audit"],
+      "prompt": "Execute adversarial authorization audit ensuring non-admin users cannot access admin routes or trigger deletions. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 12,
+      "title": "docs(audit): generate complete visual screenshot evidence gallery",
+      "labels": ["julesuse Jules", "documentation", "audit"],
+      "prompt": "Generate full high-resolution screenshot evidence gallery across all verified views and commit to GitHub under audit_evidence/ and screenshots/."
+    }
+  ]
+}

@@ -61,7 +61,7 @@ describe('StaffPage', () => {
       expect(screen.queryByText('Loading users...')).not.toBeInTheDocument()
     })
 
-    expect(screen.getByText('Staff Management')).toBeInTheDocument()
+    expect(screen.getByText('User Accounts & Permissions')).toBeInTheDocument()
     expect(screen.getByText('Test User')).toBeInTheDocument()
     expect(screen.getByText('test@example.com')).toBeInTheDocument()
     expect(screen.getByText('Vaad User')).toBeInTheDocument()

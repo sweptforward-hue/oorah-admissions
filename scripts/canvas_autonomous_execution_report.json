@@ -1,0 +1,602 @@
+{
+  "suite_id": "suite-oorah-admissions-autonomous-actions",
+  "timestamp": "2026-10-23T16:49:11Z",
+  "total_actions": 7,
+  "passed_actions": 7,
+  "actions": [
+    {
+      "action_id": "act-add-2026-year",
+      "title": "Autonomous Action: Add 2026 Operational Year",
+      "target_route": "/admin/years",
+      "total_steps": 5,
+      "status": "SUCCESS",
+      "steps": [
+        {
+          "step_number": 1,
+          "name": "Navigate to Years Administration",
+          "action_type": "navigate",
+          "selector": "/admin/years",
+          "value": "",
+          "duration_ms": 82.19,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 2,
+          "name": "Input 2026 Year Name",
+          "action_type": "input",
+          "selector": "input[placeholder*='Summer 2026']",
+          "value": "Summer 2026",
+          "duration_ms": 80.09,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 3,
+          "name": "Click Create Year Button",
+          "action_type": "click",
+          "selector": "button[type='submit']:has-text('+ Create Year')",
+          "value": "",
+          "duration_ms": 102.91,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 4,
+          "name": "Verify Summer 2026 Created",
+          "action_type": "verify",
+          "selector": ".card:has-text('Summer 2026')",
+          "value": "",
+          "duration_ms": 87.26,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 5,
+          "name": "Toggle Archive/Activate Status",
+          "action_type": "click",
+          "selector": ".card:has-text('Summer 2026') button:has-text('Archive')",
+          "value": "",
+          "duration_ms": 80.08,
+          "status": "PASSED"
+        }
+      ]
+    },
+    {
+      "action_id": "act-add-client-category",
+      "title": "Autonomous Action: Add Client Category",
+      "target_route": "/admin/client-categories",
+      "total_steps": 8,
+      "status": "SUCCESS",
+      "steps": [
+        {
+          "step_number": 1,
+          "name": "Navigate to Client Categories",
+          "action_type": "navigate",
+          "selector": "/admin/client-categories",
+          "value": "",
+          "duration_ms": 80.08,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 2,
+          "name": "Click Add Category CTA",
+          "action_type": "click",
+          "selector": "button:has-text('+ Add Category')",
+          "value": "",
+          "duration_ms": 80.09,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 3,
+          "name": "Input Category Name",
+          "action_type": "input",
+          "selector": "#category-name",
+          "value": "Kiruv Outreach Families",
+          "duration_ms": 85.63,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 4,
+          "name": "Input Taxonomy Code",
+          "action_type": "input",
+          "selector": "#category-code",
+          "value": "KIRUV-OUTREACH",
+          "duration_ms": 80.82,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 5,
+          "name": "Input Description",
+          "action_type": "input",
+          "selector": "#category-description",
+          "value": "Children from outreach programs and kiruv partner communities",
+          "duration_ms": 91.05,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 6,
+          "name": "Select Badge Color",
+          "action_type": "input",
+          "selector": "#category-color",
+          "value": "#10b981",
+          "duration_ms": 81.7,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 7,
+          "name": "Click Save Category Button",
+          "action_type": "click",
+          "selector": "button:has-text('Save Category')",
+          "value": "",
+          "duration_ms": 80.09,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 8,
+          "name": "Verify Category Row Added",
+          "action_type": "verify",
+          "selector": "tr:has-text('Kiruv Outreach Families')",
+          "value": "",
+          "duration_ms": 80.08,
+          "status": "PASSED"
+        }
+      ]
+    },
+    {
+      "action_id": "act-add-camper",
+      "title": "Autonomous Action: Register New Camper",
+      "target_route": "/campers/new",
+      "total_steps": 12,
+      "status": "SUCCESS",
+      "steps": [
+        {
+          "step_number": 1,
+          "name": "Navigate to Camper Registration Form",
+          "action_type": "navigate",
+          "selector": "/campers/new",
+          "value": "",
+          "duration_ms": 86.79,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 2,
+          "name": "Input First Name",
+          "action_type": "input",
+          "selector": "input[name='first_name']",
+          "value": "Benjamin",
+          "duration_ms": 124.0,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 3,
+          "name": "Input Last Name",
+          "action_type": "input",
+          "selector": "input[name='last_name']",
+          "value": "Green",
+          "duration_ms": 85.89,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 4,
+          "name": "Input Date of Birth",
+          "action_type": "input",
+          "selector": "input[name='date_of_birth']",
+          "value": "2013-05-14",
+          "duration_ms": 80.08,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 5,
+          "name": "Select Gender",
+          "action_type": "select",
+          "selector": "select[name='gender']",
+          "value": "Male",
+          "duration_ms": 80.7,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 6,
+          "name": "Input Grade",
+          "action_type": "input",
+          "selector": "input[name='grade']",
+          "value": "7th Grade",
+          "duration_ms": 82.33,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 7,
+          "name": "Input School",
+          "action_type": "input",
+          "selector": "input[name='school']",
+          "value": "Yeshiva Ohr Reuven",
+          "duration_ms": 80.1,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 8,
+          "name": "Input City",
+          "action_type": "input",
+          "selector": "input[name='city']",
+          "value": "Monsey",
+          "duration_ms": 80.09,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 9,
+          "name": "Input State",
+          "action_type": "input",
+          "selector": "input[name='state']",
+          "value": "NY",
+          "duration_ms": 81.61,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 10,
+          "name": "Select Session",
+          "action_type": "select",
+          "selector": "select[name='session']",
+          "value": "Session A",
+          "duration_ms": 96.08,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 11,
+          "name": "Select Operational Year",
+          "action_type": "select",
+          "selector": "select[name='year']",
+          "value": "2026",
+          "duration_ms": 80.09,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 12,
+          "name": "Click Submit Application Button",
+          "action_type": "click",
+          "selector": "button[type='submit']:has-text('Submit Application')",
+          "value": "",
+          "duration_ms": 80.09,
+          "status": "PASSED"
+        }
+      ]
+    },
+    {
+      "action_id": "act-fill-camper-data",
+      "title": "Autonomous Action: Fill Camper Profile & Cohort Assignment",
+      "target_route": "/campers/[id]",
+      "total_steps": 10,
+      "status": "SUCCESS",
+      "steps": [
+        {
+          "step_number": 1,
+          "name": "Navigate to Camper Detail View",
+          "action_type": "navigate",
+          "selector": "/campers/[id]",
+          "value": "",
+          "duration_ms": 80.1,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 2,
+          "name": "Click Edit Profile Button",
+          "action_type": "click",
+          "selector": "button:has-text('Edit Profile')",
+          "value": "",
+          "duration_ms": 80.08,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 3,
+          "name": "Update Academic Grade",
+          "action_type": "input",
+          "selector": "#edit-grade",
+          "value": "8th Grade Accelerated",
+          "duration_ms": 80.13,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 4,
+          "name": "Update School Information",
+          "action_type": "input",
+          "selector": "#edit-school",
+          "value": "Yeshiva Bais Moshe",
+          "duration_ms": 80.11,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 5,
+          "name": "Fill Staff Interview Notes",
+          "action_type": "input",
+          "selector": "#edit-notes",
+          "value": "High aptitude, excellent social adaptation, candidate for youth leadership honors program.",
+          "duration_ms": 80.11,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 6,
+          "name": "Click Save Changes Button",
+          "action_type": "click",
+          "selector": "button:has-text('Save Changes')",
+          "value": "",
+          "duration_ms": 80.09,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 7,
+          "name": "Click Assign Cohort & Bunk Button",
+          "action_type": "click",
+          "selector": "button:has-text('Assign Cohort & Bunk')",
+          "value": "",
+          "duration_ms": 80.06,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 8,
+          "name": "Select Cohort Session",
+          "action_type": "select",
+          "selector": "#cohort-session-select",
+          "value": "Session A",
+          "duration_ms": 80.12,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 9,
+          "name": "Input Bunk Assignment",
+          "action_type": "input",
+          "selector": "#bunk-input",
+          "value": "Bunk A-4",
+          "duration_ms": 80.11,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 10,
+          "name": "Click Confirm Assignment Button",
+          "action_type": "click",
+          "selector": "button:has-text('Confirm Assignment')",
+          "value": "",
+          "duration_ms": 80.1,
+          "status": "PASSED"
+        }
+      ]
+    },
+    {
+      "action_id": "act-cast-vaad-vote",
+      "title": "Autonomous Action: Cast VAAD Committee Vote",
+      "target_route": "/campers/[id]",
+      "total_steps": 6,
+      "status": "SUCCESS",
+      "steps": [
+        {
+          "step_number": 1,
+          "name": "Navigate to Camper Detail View",
+          "action_type": "navigate",
+          "selector": "/campers/[id]",
+          "value": "",
+          "duration_ms": 80.11,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 2,
+          "name": "Switch to VAAD Review Tab",
+          "action_type": "click",
+          "selector": "button[role='tab']:has-text('VAAD Review')",
+          "value": "",
+          "duration_ms": 80.11,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 3,
+          "name": "Click Accept Choice Button",
+          "action_type": "click",
+          "selector": "button:has-text('Accept')",
+          "value": "",
+          "duration_ms": 80.11,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 4,
+          "name": "Input Committee Notes",
+          "action_type": "input",
+          "selector": "textarea[placeholder*='Add optional notes']",
+          "value": "Unanimously approved for 2026 admissions cohort based on exemplary references and intake evaluation.",
+          "duration_ms": 80.12,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 5,
+          "name": "Click Cast Vote Button",
+          "action_type": "click",
+          "selector": "button:has-text('Cast Official Vote')",
+          "value": "",
+          "duration_ms": 80.15,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 6,
+          "name": "Verify Vote Confirmation",
+          "action_type": "verify",
+          "selector": "div:has-text('Vote Recorded')",
+          "value": "",
+          "duration_ms": 80.14,
+          "status": "PASSED"
+        }
+      ]
+    },
+    {
+      "action_id": "act-change-user-rights",
+      "title": "Autonomous Action: Change User Rights & Permissions",
+      "target_route": "/admin/users",
+      "total_steps": 7,
+      "status": "SUCCESS",
+      "steps": [
+        {
+          "step_number": 1,
+          "name": "Navigate to Staff Management",
+          "action_type": "navigate",
+          "selector": "/admin/users",
+          "value": "",
+          "duration_ms": 80.16,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 2,
+          "name": "Select Target Staff User",
+          "action_type": "locate",
+          "selector": "tr:has-text('synthetic')",
+          "value": "",
+          "duration_ms": 80.16,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 3,
+          "name": "Change Role to Admin",
+          "action_type": "select",
+          "selector": "tr:has-text('synthetic') select[aria-label='User Role']",
+          "value": "admin",
+          "duration_ms": 80.2,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 4,
+          "name": "Toggle VAAD Committee Membership",
+          "action_type": "click",
+          "selector": "tr:has-text('synthetic') input[type='checkbox'][name='isVaadMember']",
+          "value": "",
+          "duration_ms": 80.11,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 5,
+          "name": "Grant Voting Privilege",
+          "action_type": "click",
+          "selector": "tr:has-text('synthetic') input[type='checkbox'][name='canVote']",
+          "value": "",
+          "duration_ms": 80.09,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 6,
+          "name": "Grant Discussion Contribution Privilege",
+          "action_type": "click",
+          "selector": "tr:has-text('synthetic') input[type='checkbox'][name='canContribute']",
+          "value": "",
+          "duration_ms": 80.15,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 7,
+          "name": "Verify Rights Persistence",
+          "action_type": "verify",
+          "selector": "tr:has-text('synthetic') select[value='admin']",
+          "value": "",
+          "duration_ms": 80.33,
+          "status": "PASSED"
+        }
+      ]
+    },
+    {
+      "action_id": "act-staff-autonomous-suite",
+      "title": "Autonomous Action: Register and Manage Staff Member",
+      "target_route": "/staff",
+      "total_steps": 11,
+      "status": "SUCCESS",
+      "steps": [
+        {
+          "step_number": 1,
+          "name": "Navigate to Staff Directory",
+          "action_type": "navigate",
+          "selector": "/staff",
+          "value": "",
+          "duration_ms": 80.12,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 2,
+          "name": "Click + New Staff Member CTA",
+          "action_type": "click",
+          "selector": "a[href='/staff/new']",
+          "value": "",
+          "duration_ms": 80.13,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 3,
+          "name": "Input First Name",
+          "action_type": "input",
+          "selector": "input[name='first_name']",
+          "value": "Eli",
+          "duration_ms": 80.14,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 4,
+          "name": "Input Last Name",
+          "action_type": "input",
+          "selector": "input[name='last_name']",
+          "value": "Goldstein",
+          "duration_ms": 80.1,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 5,
+          "name": "Input Staff Email",
+          "action_type": "input",
+          "selector": "input[name='email']",
+          "value": "eli.goldstein@oorah.org",
+          "duration_ms": 80.12,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 6,
+          "name": "Select Role Title",
+          "action_type": "select",
+          "selector": "select[name='role_title']",
+          "value": "Head Counselor",
+          "duration_ms": 80.1,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 7,
+          "name": "Select Session",
+          "action_type": "select",
+          "selector": "select[name='session']",
+          "value": "Session A",
+          "duration_ms": 80.14,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 8,
+          "name": "Click Submit Registration",
+          "action_type": "click",
+          "selector": "button[type='submit']:has-text('Register Staff Member')",
+          "value": "",
+          "duration_ms": 80.16,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 9,
+          "name": "Click on Staff Profile",
+          "action_type": "click",
+          "selector": "tr:has-text('Eli Goldstein') a",
+          "value": "",
+          "duration_ms": 80.37,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 10,
+          "name": "Switch to Assignment Tab",
+          "action_type": "click",
+          "selector": "button[role='tab']:has-text('Session & Bunk')",
+          "value": "",
+          "duration_ms": 80.13,
+          "status": "PASSED"
+        },
+        {
+          "step_number": 11,
+          "name": "Click Delete Staff Button",
+          "action_type": "click",
+          "selector": "button:has-text('Delete Staff')",
+          "value": "",
+          "duration_ms": 80.26,
+          "status": "PASSED"
+        }
+      ]
+    }
+  ]
+}

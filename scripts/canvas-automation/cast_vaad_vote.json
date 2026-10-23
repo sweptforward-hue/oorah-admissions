@@ -1,0 +1,56 @@
+{
+  "action_id": "act-cast-vaad-vote",
+  "title": "Autonomous Action: Cast VAAD Committee Vote",
+  "description": "Autonomously opens VAAD committee review tab, selects official voting decision, adds rabbinic rationale, and casts ballot.",
+  "target_route": "/campers/[id]",
+  "steps": [
+    {
+      "step_number": 1,
+      "name": "Navigate to Camper Detail View",
+      "action_type": "navigate",
+      "target": "/campers/[id]",
+      "expected_outcome": "Camper record loaded"
+    },
+    {
+      "step_number": 2,
+      "name": "Switch to VAAD Review Tab",
+      "action_type": "click",
+      "selector": "button[role='tab']:has-text('VAAD Review')",
+      "expected_outcome": "VAAD Committee Review panel displayed"
+    },
+    {
+      "step_number": 3,
+      "name": "Click Accept Choice Button",
+      "action_type": "click",
+      "selector": "button:has-text('Accept')",
+      "expected_outcome": "Ballot decision selected as 'Accept'"
+    },
+    {
+      "step_number": 4,
+      "name": "Input Committee Notes",
+      "action_type": "input",
+      "selector": "textarea[placeholder*='Add optional notes']",
+      "value": "Unanimously approved for 2026 admissions cohort based on exemplary references and intake evaluation.",
+      "expected_outcome": "Vote rationale noted"
+    },
+    {
+      "step_number": 5,
+      "name": "Click Cast Vote Button",
+      "action_type": "click",
+      "selector": "button:has-text('Cast Official Vote')",
+      "expected_outcome": "Vote recorded in atomic RPC, updating acceptance tally"
+    },
+    {
+      "step_number": 6,
+      "name": "Verify Vote Confirmation",
+      "action_type": "verify",
+      "selector": "div:has-text('Vote Recorded')",
+      "expected_outcome": "Vote reflected in official committee ledger"
+    }
+  ],
+  "autonomous_execution": {
+    "engine": "canvas-autonomous-runner",
+    "timeout_ms": 10000,
+    "retry_on_failure": true
+  }
+}

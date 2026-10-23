@@ -1,0 +1,54 @@
+{
+  "suite_id": "suite-oorah-admissions-autonomous-actions",
+  "title": "Master Autonomous Canvas Action Suite",
+  "version": "1.1.0",
+  "description": "Comprehensive autonomous action pipeline executing button clicks, inputs, data entry, voting, rights modification, and staff management across the Oorah Admissions System.",
+  "environment": {
+    "project": "oorah-admissions",
+    "base_url": "http://localhost:3000"
+  },
+  "actions": [
+    {
+      "order": 1,
+      "id": "act-add-2026-year",
+      "file": "add_2026_year.json",
+      "purpose": "Configure 2026 academic & camp operational year in database"
+    },
+    {
+      "order": 2,
+      "id": "act-add-client-category",
+      "file": "add_client_category.json",
+      "purpose": "Establish client category taxonomy for applicant classifications"
+    },
+    {
+      "order": 3,
+      "id": "act-add-camper",
+      "file": "add_camper.json",
+      "purpose": "Autonomous intake submission for camper Benjamin Green"
+    },
+    {
+      "order": 4,
+      "id": "act-fill-camper-data",
+      "file": "fill_camper_data.json",
+      "purpose": "Complete academic, school, interview profile and assign cohort bunk"
+    },
+    {
+      "order": 5,
+      "id": "act-cast-vaad-vote",
+      "file": "cast_vaad_vote.json",
+      "purpose": "Cast official Accept vote in VAAD Committee review"
+    },
+    {
+      "order": 6,
+      "id": "act-change-user-rights",
+      "file": "change_user_rights.json",
+      "purpose": "Elevate synthetic user to Administrator and grant full VAAD voting rights"
+    },
+    {
+      "order": 7,
+      "id": "act-staff-autonomous-suite",
+      "file": "staff_autonomous_actions.json",
+      "purpose": "Register Eli Goldstein, assign Session A, test tabs, and verify staff deletion"
+    }
+  ]
+}

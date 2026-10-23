@@ -15,6 +15,7 @@ export async function proxy(request: NextRequest) {
     '/admin',
     '/dashboard',
     '/campers',
+    '/staff',
     '/kids',
     '/session-a',
     '/session-b',

@@ -94,6 +94,7 @@ export function Navbar() {
   const navLinks = [
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Campers', href: '/campers' },
+    { name: 'Staff', href: '/staff' },
     { name: 'Session A', href: '/session-a/campers' },
     { name: 'Session B', href: '/session-b/campers' },
     ...(user?.role === 'admin' ? [{ name: 'Admin', href: '/admin' }] : []),

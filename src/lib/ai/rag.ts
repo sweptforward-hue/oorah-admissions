@@ -87,92 +87,7 @@ export const DEFAULT_VAAD_CHOICES: VaadChoiceContext[] = [
   { id: 'vc-4', label: 'Waitlist', action: 'waitlist', color: '#6B7280', active: true },
 ];
 
-export const DEFAULT_CAMPERS: CamperContext[] = [
-  {
-    id: 'k-1042',
-    application_number: '1042',
-    name: 'John Smith',
-    status: 'VAAD Review',
-    session: 'Session A',
-    year: 2025,
-    grade: '7th Grade',
-    school: 'Torah Academy',
-    notes: 'Strong candidate; awaiting scholarship assessment by VAAD.',
-    voting_open: true,
-  },
-  {
-    id: 'k-1043',
-    application_number: '1043',
-    name: 'Sarah Cohen',
-    status: 'Accepted',
-    session: 'Session B',
-    year: 2025,
-    grade: '6th Grade',
-    school: 'Bnos Yisroel',
-    notes: 'All paperwork verified. Acceptance letter issued.',
-    voting_open: false,
-  },
-  {
-    id: 'k-1044',
-    application_number: '1044',
-    name: 'David Miller',
-    status: 'Under Review',
-    session: 'Session A',
-    year: 2025,
-    grade: '8th Grade',
-    school: 'Yeshiva Day School',
-    notes: 'Medical clearance pending; family interview completed.',
-    voting_open: false,
-  },
-  {
-    id: 'k-1045',
-    application_number: '1045',
-    name: 'Chaim Klein',
-    status: 'VAAD Review',
-    session: 'Session A',
-    year: 2025,
-    grade: '5th Grade',
-    school: 'Darchei Torah',
-    notes: 'Sibling in camp; recommendation letters received. Voting open.',
-    voting_open: true,
-  },
-  {
-    id: 'k-1046',
-    application_number: '1046',
-    name: 'Rivka Gross',
-    status: 'Waitlisted',
-    session: 'Session B',
-    year: 2025,
-    grade: '7th Grade',
-    school: 'Bais Yaakov',
-    notes: 'Session B bunk capacity reached; priority #2 on waitlist.',
-    voting_open: false,
-  },
-  {
-    id: 'k-1047',
-    application_number: '1047',
-    name: 'Moshe Friedman',
-    status: 'Accepted',
-    session: 'Session A',
-    year: 2025,
-    grade: '9th Grade',
-    school: 'Yeshiva High',
-    notes: 'Enrolled early bird registration.',
-    voting_open: false,
-  },
-  {
-    id: 'k-1048',
-    application_number: '1048',
-    name: 'Rachel Levin',
-    status: 'VAAD Review',
-    session: 'Session B',
-    year: 2025,
-    grade: '8th Grade',
-    school: 'Shulamith School',
-    notes: 'Special dietary accommodations requested. Committee review underway.',
-    voting_open: true,
-  },
-];
+export const DEFAULT_CAMPERS: CamperContext[] = [];
 
 /**
  * Retrieve grounded context from Supabase tables:
@@ -402,17 +317,23 @@ export function buildGroundedSystemPrompt(context: RAGContext): string {
   const yearList = context.years.map((y) => `- Year ${y.year} (${y.is_active ? 'Active Season' : 'Archived'})`).join('\n');
   const vaadChoiceList = context.vaadChoices.map((v) => `- ${v.label} (Action: ${v.action || 'vote'})`).join('\n');
 
-  const camperSummaries = context.campers.map((c) =>
-    `- [App #${c.application_number}] ${c.name} | Status: ${c.status} | Session: ${c.session || 'N/A'} | Grade: ${c.grade || 'N/A'} | School: ${c.school || 'N/A'} | Voting: ${c.voting_open ? 'OPEN' : 'CLOSED'} | Notes: ${c.notes || 'None'}`
-  ).join('\n');
+  const camperSummaries = context.campers.length > 0
+    ? context.campers.map((c) =>
+        `- [App #${c.application_number}] ${c.name} | Status: ${c.status} | Session: ${c.session || 'N/A'} | Grade: ${c.grade || 'N/A'} | School: ${c.school || 'N/A'} | Voting: ${c.voting_open ? 'OPEN' : 'CLOSED'} | Notes: ${c.notes || 'None'}`
+      ).join('\n')
+    : 'No campers currently registered or found in the database.';
 
-  const statusBreakdown = Object.entries(context.stats.byStatus)
-    .map(([st, cnt]) => `  * ${st}: ${cnt}`)
-    .join('\n');
+  const statusBreakdown = Object.keys(context.stats.byStatus).length > 0
+    ? Object.entries(context.stats.byStatus)
+        .map(([st, cnt]) => `  * ${st}: ${cnt}`)
+        .join('\n')
+    : '  * No applications registered yet.';
 
-  const sessionBreakdown = Object.entries(context.stats.bySession)
-    .map(([sess, cnt]) => `  * ${sess}: ${cnt}`)
-    .join('\n');
+  const sessionBreakdown = Object.keys(context.stats.bySession).length > 0
+    ? Object.entries(context.stats.bySession)
+        .map(([sess, cnt]) => `  * ${sess}: ${cnt}`)
+        .join('\n')
+    : '  * No applications assigned to sessions yet.';
 
   return `You are the Oorah Admissions AI Assistant, an expert, courteous, and authoritative admissions intelligence assistant for the Oorah Admissions Portal.
 Your purpose is to assist admissions directors, committee members, and staff with camper applications, roster status, VAAD committee reviews, and session logistics.
@@ -495,7 +416,9 @@ export function generateSmartFallbackResponse(query: string, context: RAGContext
     const reviewCount = sessionACampers.filter((c) => c.status.toLowerCase().includes('review')).length;
     const waitlistCount = sessionACampers.filter((c) => c.status === 'Waitlisted').length;
 
-    const camperList = sessionACampers.map((c) => `* **${c.name}** (App #${c.application_number}): ${c.status}`).join('\n');
+    const camperList = sessionACampers.length > 0
+      ? sessionACampers.map((c) => `* **${c.name}** (App #${c.application_number}): ${c.status}`).join('\n')
+      : '*No registered campers found for Session A.*';
 
     return `### Session A Statistics & Overview\n\n- **Session Dates**: July 1 – July 28, 2025\n- **Total Applicants**: **${sessionACampers.length}**\n- **Accepted / Enrolled**: **${acceptedCount}**\n- **In Review / VAAD**: **${reviewCount}**\n- **Waitlisted**: **${waitlistCount}**\n\n**Current Roster Sample:**\n${camperList}\n\n*Capacity monitoring is active for Session A dorm allocations.*`;
   }
@@ -507,7 +430,9 @@ export function generateSmartFallbackResponse(query: string, context: RAGContext
     const reviewCount = sessionBCampers.filter((c) => c.status.toLowerCase().includes('review')).length;
     const waitlistCount = sessionBCampers.filter((c) => c.status === 'Waitlisted').length;
 
-    const camperList = sessionBCampers.map((c) => `* **${c.name}** (App #${c.application_number}): ${c.status}`).join('\n');
+    const camperList = sessionBCampers.length > 0
+      ? sessionBCampers.map((c) => `* **${c.name}** (App #${c.application_number}): ${c.status}`).join('\n')
+      : '*No registered campers found for Session B.*';
 
     return `### Session B Statistics & Overview\n\n- **Session Dates**: August 1 – August 28, 2025\n- **Total Applicants**: **${sessionBCampers.length}**\n- **Accepted / Enrolled**: **${acceptedCount}**\n- **In Review / VAAD**: **${reviewCount}**\n- **Waitlisted**: **${waitlistCount}**\n\n**Current Roster Sample:**\n${camperList}\n\n*Session B bunk assignments are progressing according to schedule.*`;
   }
@@ -531,9 +456,11 @@ export function generateSmartFallbackResponse(query: string, context: RAGContext
   }
 
   // 6. Default / General Admissions Summary
-  const statusSummary = Object.entries(context.stats.byStatus)
-    .map(([st, cnt]) => `* **${st}**: ${cnt}`)
-    .join('\n');
+  const statusSummary = Object.keys(context.stats.byStatus).length > 0
+    ? Object.entries(context.stats.byStatus)
+        .map(([st, cnt]) => `* **${st}**: ${cnt}`)
+        .join('\n')
+    : '*No applications recorded yet.*';
 
   return `### Oorah Admissions System Overview\n\nWelcome! Here is the current summary of the admissions portal:\n\n- **Active Season**: Year ${context.years.find((y) => y.is_active)?.year || 2025}\n- **Total Applications**: **${context.stats.totalCampers}**\n- **Session A**: **${context.stats.bySession['Session A'] || 0}** campers\n- **Session B**: **${context.stats.bySession['Session B'] || 0}** campers\n\n**Status Breakdown:**\n${statusSummary}\n\n**Suggested queries you can ask:**\n- *"Campers in VAAD review?"*\n- *"Session A stats"*\n- *"Admissions criteria"*\n- Or search for a specific camper by name or application number.`;
 }

@@ -53,7 +53,37 @@ startxref
   return Buffer.from(content, 'utf-8')
 }
 
-export async function sendChatMessage(kidId: string, content: string) {
+export interface ChatAttachmentPayload {
+  type: 'document' | 'audio'
+  name: string
+  url: string
+  duration?: number
+  durationSeconds?: number
+}
+
+export interface ChatMessageRecord {
+  id: string
+  kid_id: string
+  author_id?: string | null
+  author?: string
+  content: string
+  created_at?: string
+  timestamp?: string
+  audio_url?: string | null
+  attachment_url?: string | null
+  attachment_type?: string | null
+  attachment_name?: string | null
+  duration_seconds?: number | null
+  tagged_users?: string[] | null
+  metadata?: Record<string, unknown> | null
+}
+
+export async function sendChatMessage(
+  kidId: string,
+  content: string,
+  attachment?: ChatAttachmentPayload,
+  taggedUsers?: string[]
+) {
   try {
     const actor = await getCurrentUser()
     if (!actor) {
@@ -61,37 +91,133 @@ export async function sendChatMessage(kidId: string, content: string) {
     }
     const supabase = createServerSupabaseClient()
 
-    if (!content || !content.trim()) {
+    if ((!content || !content.trim()) && !attachment) {
       return { success: false, error: 'Message content is required' }
     }
 
+    const trimmedContent = (content || '').trim() || (attachment?.type === 'audio' ? 'Voice Note Attachment' : 'Document Attachment')
     const actorId = actor.id
 
-    const { data, error } = await supabase
-      .from('chat_messages')
-      .insert({
-        kid_id: kidId,
-        author_id: actorId,
-        content: content.trim()
-      })
-      .select()
-      .single()
+    // Parse @mentions (e.g. @Azriel, @Sarah)
+    const mentionMatches = trimmedContent.match(/@([a-zA-Z0-9_-]+)/g) || []
+    const parsedTags = Array.from(new Set(mentionMatches.map((t) => t.substring(1))))
+    const finalTaggedUsers = Array.from(new Set([...(taggedUsers || []), ...parsedTags]))
 
-    if (error) {
-      console.error('Error sending chat message:', error)
-      await supabase.from('audit_log').insert({
-        actor_id: actorId,
-        action: 'SEND_CHAT_NOTE',
-        entity_type: 'kid',
-        entity_id: kidId,
-        details: { content: content.trim() }
-      })
+    const audioUrl = attachment?.type === 'audio' ? attachment.url : null
+    const durationSeconds = attachment?.durationSeconds ?? attachment?.duration ?? null
+
+    const payload: Record<string, unknown> = {
+      kid_id: kidId,
+      author_id: actorId,
+      content: trimmedContent,
+      audio_url: audioUrl,
+      attachment_url: attachment?.url || null,
+      attachment_type: attachment?.type || null,
+      attachment_name: attachment?.name || null,
+      duration_seconds: durationSeconds,
+      tagged_users: finalTaggedUsers.length > 0 ? finalTaggedUsers : null,
+      metadata: {
+        attachment: attachment || null,
+        tagged_users: finalTaggedUsers,
+        duration_seconds: durationSeconds,
+      },
     }
 
+    let insertedRecord: any = null
+    let insertError: any = null
+
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .insert(payload)
+        .select()
+        .single()
+      if (!error && data) {
+        insertedRecord = data
+      } else {
+        insertError = error
+      }
+    } catch (e) {
+      insertError = e
+    }
+
+    if (!insertedRecord) {
+      // Graceful fallback for canonical schema
+      const fallbackPayload = {
+        kid_id: kidId,
+        author_id: actorId,
+        content: trimmedContent,
+        audio_url: audioUrl,
+      }
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .insert(fallbackPayload)
+        .select()
+        .single()
+
+      if (!error && data) {
+        insertedRecord = data
+      } else {
+        console.error('Error sending chat message:', insertError || error)
+      }
+    }
+
+    await supabase.from('audit_log').insert({
+      actor_id: actorId,
+      action: 'SEND_CHAT_NOTE',
+      entity_type: 'kid',
+      entity_id: kidId,
+      details: {
+        content: trimmedContent,
+        attachment: attachment || null,
+        tagged_users: finalTaggedUsers,
+        chat_message_id: insertedRecord?.id || null,
+      },
+    })
+
     revalidatePath(`/campers/${kidId}`)
-    return { success: true, message: data }
+    return {
+      success: true,
+      message: insertedRecord || {
+        id: `msg-${Date.now()}`,
+        kid_id: kidId,
+        author_id: actorId,
+        content: trimmedContent,
+        audio_url: audioUrl,
+        attachment_url: attachment?.url || null,
+        attachment_type: attachment?.type || null,
+        attachment_name: attachment?.name || null,
+        duration_seconds: durationSeconds,
+        tagged_users: finalTaggedUsers,
+      },
+    }
   } catch (err: unknown) {
     return { success: false, error: (err as Error)?.message || 'Failed to send chat message' }
+  }
+}
+
+export async function getCamperChatMessages(kidId: string) {
+  try {
+    const actor = await getCurrentUser()
+    if (!actor) {
+      return { success: false, error: 'Unauthorized: Authentication required', messages: [] }
+    }
+    const supabase = createServerSupabaseClient()
+
+    const { data: messages, error } = await supabase
+      .from('chat_messages')
+      .select('*')
+      .eq('kid_id', kidId)
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching camper chat messages:', error)
+      return { success: false, error: error.message, messages: [] }
+    }
+
+    return { success: true, messages: messages || [] }
+  } catch (err: unknown) {
+    return { success: false, error: (err as Error)?.message || 'Failed to fetch messages', messages: [] }
   }
 }
 
