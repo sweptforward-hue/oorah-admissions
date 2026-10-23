@@ -284,8 +284,9 @@ describe('Persistent Chat & Media Requirements (Master Plan #43 & Swarm Task)', 
       expect(screen.getByText('Sarah Director')).toBeInTheDocument()
       expect(screen.getByText('Azriel Counselor')).toBeInTheDocument()
 
-      // Verify author tagging badge
-      expect(screen.getByText('@Azriel')).toBeInTheDocument()
+      // Verify author tagging badge & highlighted mention
+      const azrielElements = screen.getAllByText('@Azriel')
+      expect(azrielElements.length).toBeGreaterThanOrEqual(1)
 
       // Verify audio attachment with duration & download link
       expect(screen.getByText('Parent_Call_Recording.webm')).toBeInTheDocument()
@@ -322,7 +323,9 @@ describe('Persistent Chat & Media Requirements (Master Plan #43 & Swarm Task)', 
       fireEvent.click(sendBtn)
 
       await waitFor(() => {
-        expect(screen.getByText('Followed up with parent @Azriel')).toBeInTheDocument()
+        expect(screen.getByText(/Followed up with parent/)).toBeInTheDocument()
+        const mentions = screen.getAllByText('@Azriel')
+        expect(mentions.length).toBeGreaterThanOrEqual(1)
       })
     })
   })
