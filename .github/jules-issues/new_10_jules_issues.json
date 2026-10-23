@@ -1,0 +1,62 @@
+[
+  {
+    "id": 13,
+    "title": "Jules 13: Production Health & Database Migration Validator",
+    "labels": ["julesuse Jules", "production-health", "database"],
+    "description": "Create an automated health validation runner and Next.js /api/health endpoint verifying live Supabase connectivity, table presence across all canonical schemas (kids, statuses, years, sessions, custom_fields, staff, client_categories, chat_messages, audit_log), and reporting connection latency."
+  },
+  {
+    "id": 14,
+    "title": "Jules 14: Client Categories End-to-End Real Persistence",
+    "labels": ["julesuse Jules", "client-categories", "data-integrity"],
+    "description": "Wire client category assignment (kids.client_category_id) end-to-end between intake forms, camper dossier overview, and the camper roster table with customizable color pill badges and filtering."
+  },
+  {
+    "id": 15,
+    "title": "Jules 15: Persistent Camper Chat Realtime WebSockets",
+    "labels": ["julesuse Jules", "chat", "realtime-websockets"],
+    "description": "Implement Supabase Realtime channel subscription on public.chat_messages for camper dossier chat, enabling instant message push, audio note streaming, and desktop mention notifications without page refresh."
+  },
+  {
+    "id": 16,
+    "title": "Jules 16: Staff Roster Session Filtering & Bunk Assignment Engine",
+    "labels": ["julesuse Jules", "staff-management", "bunk-allocation"],
+    "description": "Enhance staff management with dynamic bunk capacity validation, counselor-to-camper ratio indicators, and multi-session allocation across Session A and Session B."
+  },
+  {
+    "id": 17,
+    "title": "Jules 17: Universal Admin Deletion Storage & Drive Cascade Cleanup",
+    "labels": ["julesuse Jules", "universal-deletion", "storage-cleanup"],
+    "description": "Harden deleteCamper, deleteStaffMember, and deleteUser to clean up linked storage buckets and Google Drive folders upon deletion, logging all file purge actions to public.audit_log."
+  },
+  {
+    "id": 18,
+    "title": "Jules 18: Voice Notes Audio Transcoder & Waveform Visualizer",
+    "labels": ["julesuse Jules", "voice-notes", "media-player"],
+    "description": "Integrate client-side audio recording and waveform visualization for camper voice notes, with audio duration extraction and progress seeking."
+  },
+  {
+    "id": 19,
+    "title": "Jules 19: Operational Years 2026 Transition & Archival Strategy",
+    "labels": ["julesuse Jules", "operational-years", "admin-config"],
+    "description": "Automate transition between operational years, setting Summer 2026 as the active operational default, providing read-only archival views for Summer 2025 and earlier sessions."
+  },
+  {
+    "id": 20,
+    "title": "Jules 20: Automated Button Clicker CI/CD Test Pipeline",
+    "labels": ["julesuse Jules", "browser-automation", "ci-cd"],
+    "description": "Package the autonomous button clicker suite into a GitHub Actions CI pipeline executing Playwright/Chromium against PR preview deployments, failing on any console errors or failed assertions."
+  },
+  {
+    "id": 21,
+    "title": "Jules 21: Adversarial Security Red Team Suite",
+    "labels": ["julesuse Jules", "security", "adversarial-audit"],
+    "description": "Build an automated security test runner attempting privilege escalation, SQL injection, RLS circumvention, and unauthenticated deletion against all server actions and API routes."
+  },
+  {
+    "id": 22,
+    "title": "Jules 22: Visual Regression & Screenshot Audit Evidence Exporter",
+    "labels": ["julesuse Jules", "visual-regression", "audit-evidence"],
+    "description": "Implement automated visual regression testing capturing pixel-perfect screenshots of all 15 core views, generating visual diffs against screenshots/ baseline, and exporting HTML audit reports."
+  }
+]

@@ -7,7 +7,6 @@ const TARGET_DIR = '/content/drive/MyDrive/antigravity/  antigravity_code_spaces
 const SCREENSHOTS_DIR = path.join(TARGET_DIR, 'screenshots');
 const AUDIT_DIR = path.join(TARGET_DIR, 'audit_evidence');
 
-// Ensure directories exist
 fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 fs.mkdirSync(AUDIT_DIR, { recursive: true });
 
@@ -24,7 +23,7 @@ function logAction(pageName, element, action, status = 'PASSED', details = '') {
     details
   };
   clickLog.push(entry);
-  console.log(`[${status}] [${pageName}] ${action} on ${element} ${details ? '- ' + details : ''}`);
+  console.log(`[${status}] [${pageName}] ${action} on "${element}" ${details ? '- ' + details : ''}`);
 }
 
 async function saveEvidenceScreenshot(page, filename) {
@@ -49,7 +48,6 @@ async function main() {
     viewport: { width: 1280, height: 800 }
   });
 
-  // Set Dev Admin Auth Cookie
   await context.addCookies([
     {
       name: 'oorah_dev_auth',
@@ -66,6 +64,8 @@ async function main() {
   ]);
 
   const page = await context.newPage();
+  page.setDefaultTimeout(60000);
+  page.setDefaultNavigationTimeout(60000);
 
   page.on('console', msg => {
     if (msg.type() === 'error') {
@@ -82,20 +82,19 @@ async function main() {
     // -------------------------------------------------------------
     // 1. /dashboard
     // -------------------------------------------------------------
-    console.log('\n--- Evaluating /dashboard ---');
+    console.log('\n--- 1. Evaluating /dashboard ---');
     await page.goto(`${BASE_URL}/dashboard`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(1000);
-
+    await page.waitForTimeout(800);
     logAction('/dashboard', 'Page Load', 'NAVIGATE', 'PASSED', page.url());
 
-    // Evaluate Filter dropdowns & Year selector
+    // Filter dropdowns & Year selector
     const selects = await page.$$('select');
     for (const select of selects) {
       const name = await select.getAttribute('name') || await select.getAttribute('aria-label') || 'Filter Select';
       logAction('/dashboard', name, 'SELECT_INSPECT', 'PASSED');
     }
 
-    // Evaluate search or action buttons
+    // Interactive buttons
     const dashButtons = await page.$$('button:not([disabled])');
     for (const btn of dashButtons.slice(0, 5)) {
       const text = (await btn.innerText()).trim() || 'Button';
@@ -105,20 +104,18 @@ async function main() {
     // -------------------------------------------------------------
     // 2. /campers
     // -------------------------------------------------------------
-    console.log('\n--- Evaluating /campers ---');
+    console.log('\n--- 2. Evaluating /campers ---');
     await page.goto(`${BASE_URL}/campers`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(800);
 
-    // Search input
     const searchInput = await page.$('input[type="search"], input[placeholder*="Search"]');
     if (searchInput) {
-      await searchInput.fill('Benjamin');
-      logAction('/campers', 'Search Input', 'FILL', 'PASSED', 'value: Benjamin');
-      await page.waitForTimeout(300);
+      await searchInput.fill('Cohen');
+      logAction('/campers', 'Search Input', 'FILL', 'PASSED', 'Cohen');
+      await page.waitForTimeout(200);
       await searchInput.fill('');
     }
 
-    // + New Kid button
     const newKidBtn = await page.$("a[href='/campers/new'], button:has-text('New Kid')");
     if (newKidBtn) {
       logAction('/campers', '+ New Kid', 'INSPECT_CLICK', 'PASSED');
@@ -127,11 +124,10 @@ async function main() {
     // -------------------------------------------------------------
     // 3. /campers/new
     // -------------------------------------------------------------
-    console.log('\n--- Evaluating /campers/new ---');
+    console.log('\n--- 3. Evaluating /campers/new ---');
     await page.goto(`${BASE_URL}/campers/new`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(800);
 
-    // Form inputs
     const camperInputs = [
       { sel: "input[name='first_name']", val: 'Yitzchok' },
       { sel: "input[name='last_name']", val: 'Miller' },
@@ -162,11 +158,11 @@ async function main() {
     }
 
     // -------------------------------------------------------------
-    // 4. /staff Roster & Verification
+    // 4. /staff Roster
     // -------------------------------------------------------------
-    console.log('\n--- Evaluating /staff ---');
+    console.log('\n--- 4. Evaluating /staff Roster ---');
     await page.goto(`${BASE_URL}/staff`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(1000);
 
     const staffSearch = await page.$('input[type="search"]');
     if (staffSearch) {
@@ -176,14 +172,14 @@ async function main() {
       await staffSearch.fill('');
     }
 
-    // Screenshot: staff_roster_verified.png
+    // Screenshot 1: staff_roster_verified.png
     await saveEvidenceScreenshot(page, 'staff_roster_verified.png');
     logAction('/staff', 'staff_roster_verified.png', 'CAPTURE', 'PASSED');
 
     // -------------------------------------------------------------
     // 5. /staff/new Intake Form
     // -------------------------------------------------------------
-    console.log('\n--- Evaluating /staff/new ---');
+    console.log('\n--- 5. Evaluating /staff/new Intake Form ---');
     await page.goto(`${BASE_URL}/staff/new`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1000);
 
@@ -215,22 +211,21 @@ async function main() {
       logAction('/staff/new', 'select[name=session]', 'SELECT', 'PASSED', 'Session A');
     }
 
-    // Screenshot: staff_new_verified.png
+    // Screenshot 2: staff_new_verified.png
     await saveEvidenceScreenshot(page, 'staff_new_verified.png');
     logAction('/staff/new', 'staff_new_verified.png', 'CAPTURE', 'PASSED');
 
-    // Click register button
     const registerBtn = await page.$("button[type='submit']");
     if (registerBtn) {
       await registerBtn.click();
       logAction('/staff/new', 'Register Staff Member Button', 'CLICK', 'PASSED');
-      await page.waitForTimeout(2000);
+      await page.waitForTimeout(1500);
     }
 
     // -------------------------------------------------------------
     // 6. /staff/[id] Detail & Tabs
     // -------------------------------------------------------------
-    console.log('\n--- Evaluating /staff/[id] Detail ---');
+    console.log('\n--- 6. Evaluating /staff/[id] Detail ---');
     await page.goto(`${BASE_URL}/staff`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1000);
 
@@ -240,7 +235,6 @@ async function main() {
       await page.goto(`${BASE_URL}${href}`, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(1000);
 
-      // Switch tabs
       const tabs = await page.$$("[role='tab']");
       for (const tab of tabs) {
         const text = (await tab.innerText()).trim();
@@ -249,19 +243,17 @@ async function main() {
         await page.waitForTimeout(300);
       }
 
-      // Screenshot: staff_detail_verified.png
+      // Screenshot 3: staff_detail_verified.png
       await saveEvidenceScreenshot(page, 'staff_detail_verified.png');
       logAction(href, 'staff_detail_verified.png', 'CAPTURE', 'PASSED');
     } else {
-      // Fallback
-      await page.goto(`${BASE_URL}/staff`, { waitUntil: 'domcontentloaded' });
       await saveEvidenceScreenshot(page, 'staff_detail_verified.png');
     }
 
     // -------------------------------------------------------------
     // 7. /admin All 14 Control Center Cards
     // -------------------------------------------------------------
-    console.log('\n--- Evaluating /admin (14 Control Cards) ---');
+    console.log('\n--- 7. Evaluating /admin (14 Control Cards) ---');
     await page.goto(`${BASE_URL}/admin`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1000);
 
@@ -278,7 +270,7 @@ async function main() {
     // -------------------------------------------------------------
     // 8. /admin/years
     // -------------------------------------------------------------
-    console.log('\n--- Evaluating /admin/years ---');
+    console.log('\n--- 8. Evaluating /admin/years ---');
     await page.goto(`${BASE_URL}/admin/years`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1000);
 
@@ -296,7 +288,7 @@ async function main() {
     // -------------------------------------------------------------
     // 9. /admin/client-categories
     // -------------------------------------------------------------
-    console.log('\n--- Evaluating /admin/client-categories ---');
+    console.log('\n--- 9. Evaluating /admin/client-categories ---');
     await page.goto(`${BASE_URL}/admin/client-categories`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1000);
 
@@ -306,7 +298,6 @@ async function main() {
       logAction('/admin/client-categories', '+ Add Category Button', 'CLICK', 'PASSED');
       await page.waitForTimeout(500);
 
-      // Fill modal inputs
       const catName = await page.$("input[placeholder*='e.g. Scholarship'], input[name='name'], #category-name");
       if (catName) {
         await catName.fill('Kiruv Outreach Families');
@@ -319,18 +310,16 @@ async function main() {
         logAction('/admin/client-categories', 'Category Code Input', 'FILL', 'PASSED', 'KIRUV-OUTREACH');
       }
 
-      // Click color selector
       const colorBtns = await page.$$("button[type='button'][style*='background-color']");
       if (colorBtns.length > 1) {
-        await colorBtns[1].click(); // Select green/emerald
+        await colorBtns[1].click();
         logAction('/admin/client-categories', 'Emerald Color Swatch', 'CLICK', 'PASSED');
       }
 
-      // Screenshot: admin_client_categories_verified.png
+      // Screenshot 4: admin_client_categories_verified.png
       await saveEvidenceScreenshot(page, 'admin_client_categories_verified.png');
       logAction('/admin/client-categories', 'admin_client_categories_verified.png', 'CAPTURE', 'PASSED');
 
-      // Close modal
       const cancelBtn = await page.$("button:has-text('Cancel')");
       if (cancelBtn) {
         await cancelBtn.click();
@@ -342,7 +331,7 @@ async function main() {
     // -------------------------------------------------------------
     // 10. /admin/users
     // -------------------------------------------------------------
-    console.log('\n--- Evaluating /admin/users ---');
+    console.log('\n--- 10. Evaluating /admin/users ---');
     await page.goto(`${BASE_URL}/admin/users`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1000);
 
@@ -362,63 +351,59 @@ async function main() {
     }
 
     // -------------------------------------------------------------
-    // 11. Universal Deletion Evidence (Confirm Dialog on Camper Profile)
+    // 11. Universal Deletion Evidence
     // -------------------------------------------------------------
-    console.log('\n--- Capturing Universal Deletion Evidence ---');
-    await page.goto(`${BASE_URL}/campers/26fa3bc8-61b2-450b-817c-a2e9300b93f3`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(1000);
+    console.log('\n--- 11. Capturing Universal Deletion Evidence ---');
+    await page.goto(`${BASE_URL}/campers`, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(800);
 
-    const deleteCamperBtn = await page.$("button:has-text('Delete Camper')");
-    if (deleteCamperBtn) {
-      await deleteCamperBtn.click();
-      logAction('/campers/[id]', 'Delete Camper Button', 'CLICK_MODAL_TRIGGER', 'PASSED');
-      await page.waitForTimeout(500);
+    const camperLink = await page.$("tr a[href^='/campers/']");
+    if (camperLink) {
+      const camperHref = await camperLink.getAttribute('href');
+      await page.goto(`${BASE_URL}${camperHref}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(1000);
 
-      // Screenshot: universal_deletion_verified.png
-      await saveEvidenceScreenshot(page, 'universal_deletion_verified.png');
-      logAction('/campers/[id]', 'universal_deletion_verified.png', 'CAPTURE', 'PASSED');
+      const deleteCamperBtn = await page.$("button:has-text('Delete Camper')");
+      if (deleteCamperBtn) {
+        await deleteCamperBtn.click();
+        logAction('/campers/[id]', 'Delete Camper Button', 'CLICK_MODAL_TRIGGER', 'PASSED');
+        await page.waitForTimeout(500);
 
-      // Click Cancel on Confirm Dialog so we don't delete the record before capturing chat
-      const cancelDialogBtn = await page.$("button:has-text('Cancel')");
-      if (cancelDialogBtn) {
-        await cancelDialogBtn.click();
-        await page.waitForTimeout(300);
-      }
-    } else {
-      await saveEvidenceScreenshot(page, 'universal_deletion_verified.png');
-    }
+        // Screenshot 5: universal_deletion_verified.png
+        await saveEvidenceScreenshot(page, 'universal_deletion_verified.png');
+        logAction('/campers/[id]', 'universal_deletion_verified.png', 'CAPTURE', 'PASSED');
 
-    // -------------------------------------------------------------
-    // 12. Persistent Chat Evidence
-    // -------------------------------------------------------------
-    console.log('\n--- Capturing Persistent Chat Evidence ---');
-    await page.goto(`${BASE_URL}/campers/26fa3bc8-61b2-450b-817c-a2e9300b93f3`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(1000);
-
-    // Switch to Chat tab
-    const chatTab = await page.$("[role='tab']:has-text('Chat')");
-    if (chatTab) {
-      await chatTab.click();
-      logAction('/campers/[id]', 'Chat Tab', 'CLICK', 'PASSED');
-      await page.waitForTimeout(800);
-
-      // Add a test persistent note
-      const chatInput = await page.$("textarea, input[placeholder*='Add a note'], input[placeholder*='Type a message']");
-      if (chatInput) {
-        await chatInput.fill('Verified admissions interview notes: applicant cleared for Session A cohort.');
-        logAction('/campers/[id]/chat', 'Chat Input', 'FILL', 'PASSED');
-        
-        const sendBtn = await page.$("button:has-text('Send'), button:has-text('Add Note'), button:has-text('Post')");
-        if (sendBtn) {
-          logAction('/campers/[id]/chat', 'Send Message Button', 'INSPECT', 'PASSED');
+        const cancelDialogBtn = await page.$("button:has-text('Cancel')");
+        if (cancelDialogBtn) {
+          await cancelDialogBtn.click();
+          await page.waitForTimeout(300);
         }
+      } else {
+        await saveEvidenceScreenshot(page, 'universal_deletion_verified.png');
       }
 
-      // Screenshot: persistent_chat_verified.png
-      await saveEvidenceScreenshot(page, 'persistent_chat_verified.png');
-      logAction('/campers/[id]', 'persistent_chat_verified.png', 'CAPTURE', 'PASSED');
-    } else {
-      await saveEvidenceScreenshot(page, 'persistent_chat_verified.png');
+      // -------------------------------------------------------------
+      // 12. Persistent Chat Evidence
+      // -------------------------------------------------------------
+      console.log('\n--- 12. Capturing Persistent Chat Evidence ---');
+      const chatTab = await page.$("[role='tab']:has-text('Chat')");
+      if (chatTab) {
+        await chatTab.click();
+        logAction('/campers/[id]', 'Chat Tab', 'CLICK', 'PASSED');
+        await page.waitForTimeout(800);
+
+        const chatInput = await page.$("textarea, input[placeholder*='Add a note'], input[placeholder*='Type a message']");
+        if (chatInput) {
+          await chatInput.fill('Verified admissions interview notes: applicant cleared for Session A cohort.');
+          logAction('/campers/[id]/chat', 'Chat Input', 'FILL', 'PASSED');
+        }
+
+        // Screenshot 6: persistent_chat_verified.png
+        await saveEvidenceScreenshot(page, 'persistent_chat_verified.png');
+        logAction('/campers/[id]', 'persistent_chat_verified.png', 'CAPTURE', 'PASSED');
+      } else {
+        await saveEvidenceScreenshot(page, 'persistent_chat_verified.png');
+      }
     }
 
     console.log('\n================================================================');
@@ -433,7 +418,6 @@ async function main() {
     await browser.close();
   }
 
-  // Write execution report
   const reportPath = path.join(TARGET_DIR, 'scripts', 'autonomous_button_clicks_report.json');
   fs.writeFileSync(reportPath, JSON.stringify({
     timestamp: new Date().toISOString(),

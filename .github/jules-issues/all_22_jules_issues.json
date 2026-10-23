@@ -1,0 +1,226 @@
+{
+  "batch_label": "julesuse Jules",
+  "total_issues": 22,
+  "repository": "sweptforward-hue/oorah-admissions",
+  "issues": [
+    {
+      "number": 1,
+      "title": "feat(staff): create public.staff table migration and RLS policies",
+      "labels": [
+        "julesuse Jules",
+        "database",
+        "staff"
+      ],
+      "prompt": "Create public.staff table in PostgreSQL migration 10_staff_and_deletion.sql with RLS policies distinguishing staff from users. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 2,
+      "title": "feat(staff): implement /staff roster view with search and status badges",
+      "labels": [
+        "julesuse Jules",
+        "frontend",
+        "staff"
+      ],
+      "prompt": "Build /staff roster view matching /campers UI with search, session filtering, role badges, and clean empty state. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 3,
+      "title": "feat(staff): implement /staff/new registration intake form",
+      "labels": [
+        "julesuse Jules",
+        "frontend",
+        "staff"
+      ],
+      "prompt": "Build /staff/new intake form mirroring /campers/new with name, contact, role title, department, session, year, and bunk fields. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 4,
+      "title": "feat(staff): implement /staff/[id] detail dossier with tabs and assignments",
+      "labels": [
+        "julesuse Jules",
+        "frontend",
+        "staff"
+      ],
+      "prompt": "Build /staff/[id] detail page with tabs for Overview, Documents/Certifications, Session & Bunk Assignment, and Notes. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 5,
+      "title": "feat(admin): implement universal deleteUser server action with audit logging",
+      "labels": [
+        "julesuse Jules",
+        "backend",
+        "security"
+      ],
+      "prompt": "Implement deleteUser(userId) in src/lib/users/actions.ts with requireAdminRole() check, VAAD seat cleanup, and audit logging. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 6,
+      "title": "feat(admin): implement deleteStaffMember and deleteCamper with cascades",
+      "labels": [
+        "julesuse Jules",
+        "backend",
+        "security"
+      ],
+      "prompt": "Implement deleteStaffMember and harden deleteCamper with foreign key cascade purge and immutable audit log records. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 7,
+      "title": "feat(chat): implement persistent chat message sending and storage",
+      "labels": [
+        "julesuse Jules",
+        "backend",
+        "chat"
+      ],
+      "prompt": "Wire camper chat messages to public.chat_messages table in Supabase, supporting author tagging and persistent history. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 8,
+      "title": "feat(chat): implement voice note audio upload and playback in chat",
+      "labels": [
+        "julesuse Jules",
+        "multimedia",
+        "chat"
+      ],
+      "prompt": "Integrate audio recording and WebM/WAV upload to Google Drive proxy in camper chat. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 9,
+      "title": "feat(canvas): build in-browser autonomous JS button clicker suite",
+      "labels": [
+        "julesuse Jules",
+        "automation",
+        "canvas"
+      ],
+      "prompt": "Deploy public/automation/autonomous-button-clicker.js and execute autonomous button clicks across all pages. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 10,
+      "title": "test(e2e): end-to-end vitest coverage for staff and deletion actions",
+      "labels": [
+        "julesuse Jules",
+        "testing"
+      ],
+      "prompt": "Write and run comprehensive Vitest tests for staff roster, intake, universal deletion, and chat persistence. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 11,
+      "title": "audit(security): verify admin authorization checks across all mutation endpoints",
+      "labels": [
+        "julesuse Jules",
+        "security",
+        "audit"
+      ],
+      "prompt": "Execute adversarial authorization audit ensuring non-admin users cannot access admin routes or trigger deletions. Save screenshots to audit_evidence/."
+    },
+    {
+      "number": 12,
+      "title": "docs(audit): generate complete visual screenshot evidence gallery",
+      "labels": [
+        "julesuse Jules",
+        "documentation",
+        "audit"
+      ],
+      "prompt": "Generate full high-resolution screenshot evidence gallery across all verified views and commit to GitHub under audit_evidence/ and screenshots/."
+    },
+    {
+      "id": 13,
+      "title": "Jules 13: Production Health & Database Migration Validator",
+      "labels": [
+        "julesuse Jules",
+        "production-health",
+        "database"
+      ],
+      "description": "Create an automated health validation runner and Next.js /api/health endpoint verifying live Supabase connectivity, table presence across all canonical schemas (kids, statuses, years, sessions, custom_fields, staff, client_categories, chat_messages, audit_log), and reporting connection latency."
+    },
+    {
+      "id": 14,
+      "title": "Jules 14: Client Categories End-to-End Real Persistence",
+      "labels": [
+        "julesuse Jules",
+        "client-categories",
+        "data-integrity"
+      ],
+      "description": "Wire client category assignment (kids.client_category_id) end-to-end between intake forms, camper dossier overview, and the camper roster table with customizable color pill badges and filtering."
+    },
+    {
+      "id": 15,
+      "title": "Jules 15: Persistent Camper Chat Realtime WebSockets",
+      "labels": [
+        "julesuse Jules",
+        "chat",
+        "realtime-websockets"
+      ],
+      "description": "Implement Supabase Realtime channel subscription on public.chat_messages for camper dossier chat, enabling instant message push, audio note streaming, and desktop mention notifications without page refresh."
+    },
+    {
+      "id": 16,
+      "title": "Jules 16: Staff Roster Session Filtering & Bunk Assignment Engine",
+      "labels": [
+        "julesuse Jules",
+        "staff-management",
+        "bunk-allocation"
+      ],
+      "description": "Enhance staff management with dynamic bunk capacity validation, counselor-to-camper ratio indicators, and multi-session allocation across Session A and Session B."
+    },
+    {
+      "id": 17,
+      "title": "Jules 17: Universal Admin Deletion Storage & Drive Cascade Cleanup",
+      "labels": [
+        "julesuse Jules",
+        "universal-deletion",
+        "storage-cleanup"
+      ],
+      "description": "Harden deleteCamper, deleteStaffMember, and deleteUser to clean up linked storage buckets and Google Drive folders upon deletion, logging all file purge actions to public.audit_log."
+    },
+    {
+      "id": 18,
+      "title": "Jules 18: Voice Notes Audio Transcoder & Waveform Visualizer",
+      "labels": [
+        "julesuse Jules",
+        "voice-notes",
+        "media-player"
+      ],
+      "description": "Integrate client-side audio recording and waveform visualization for camper voice notes, with audio duration extraction and progress seeking."
+    },
+    {
+      "id": 19,
+      "title": "Jules 19: Operational Years 2026 Transition & Archival Strategy",
+      "labels": [
+        "julesuse Jules",
+        "operational-years",
+        "admin-config"
+      ],
+      "description": "Automate transition between operational years, setting Summer 2026 as the active operational default, providing read-only archival views for Summer 2025 and earlier sessions."
+    },
+    {
+      "id": 20,
+      "title": "Jules 20: Automated Button Clicker CI/CD Test Pipeline",
+      "labels": [
+        "julesuse Jules",
+        "browser-automation",
+        "ci-cd"
+      ],
+      "description": "Package the autonomous button clicker suite into a GitHub Actions CI pipeline executing Playwright/Chromium against PR preview deployments, failing on any console errors or failed assertions."
+    },
+    {
+      "id": 21,
+      "title": "Jules 21: Adversarial Security Red Team Suite",
+      "labels": [
+        "julesuse Jules",
+        "security",
+        "adversarial-audit"
+      ],
+      "description": "Build an automated security test runner attempting privilege escalation, SQL injection, RLS circumvention, and unauthenticated deletion against all server actions and API routes."
+    },
+    {
+      "id": 22,
+      "title": "Jules 22: Visual Regression & Screenshot Audit Evidence Exporter",
+      "labels": [
+        "julesuse Jules",
+        "visual-regression",
+        "audit-evidence"
+      ],
+      "description": "Implement automated visual regression testing capturing pixel-perfect screenshots of all 15 core views, generating visual diffs against screenshots/ baseline, and exporting HTML audit reports."
+    }
+  ]
+}

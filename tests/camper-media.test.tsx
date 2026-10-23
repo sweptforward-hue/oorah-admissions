@@ -1,6 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
 import { CamperDetailClient } from '@/components/campers/camper-detail-client'
+
+afterEach(() => {
+  cleanup()
+})
 
 // Mock next/navigation & next/link
 vi.mock('next/navigation', () => ({
@@ -380,12 +384,12 @@ describe('Camper Media Management (Photos, Voice Notes, Transcript)', () => {
 })
 
 describe('CamperDetailPage Server Component Media Loading', () => {
-  it('loads camper detail page with fallback media when no database is configured', async () => {
+  it('loads camper detail page with database record', async () => {
     const CamperDetailPage = (await import('@/app/campers/[id]/page')).default
     const pageElement = await CamperDetailPage({ params: Promise.resolve({ id: '1' }) })
     render(pageElement)
 
-    expect(screen.getByText('John Smith')).toBeInTheDocument()
+    expect(screen.getByText('Chaim Goldberg')).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Photos' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Documents' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Voice Notes' })).toBeInTheDocument()
