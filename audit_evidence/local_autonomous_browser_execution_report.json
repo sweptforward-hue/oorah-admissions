@@ -1,0 +1,128 @@
+{
+  "suite": "Oorah Admissions Local Autonomous Browser & Button Clicker Suite",
+  "timestamp": "2026-10-23T17:51:56.882Z",
+  "routesChecked": [],
+  "buttonsClicked": [
+    {
+      "context": "Staff Roster",
+      "total": 4,
+      "clicked": [
+        {
+          "text": "All Sessions",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Session A",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Session B",
+          "status": "CLICKED"
+        },
+        {
+          "text": "AI Assistant\nRAG",
+          "status": "CLICKED"
+        }
+      ]
+    },
+    {
+      "context": "Staff Intake Form",
+      "total": 2,
+      "clicked": [
+        {
+          "text": "Register Staff Member",
+          "status": "CLICKED"
+        },
+        {
+          "text": "AI Assistant\nRAG",
+          "status": "CLICKED"
+        }
+      ]
+    },
+    {
+      "context": "Admin Client Categories",
+      "total": 2,
+      "clicked": [
+        {
+          "text": "Add Category",
+          "status": "CLICKED"
+        },
+        {
+          "text": "AI Assistant\nRAG",
+          "status": "CLICKED"
+        }
+      ]
+    },
+    {
+      "context": "Admin Users Management",
+      "total": 1,
+      "clicked": [
+        {
+          "text": "AI Assistant\nRAG",
+          "status": "CLICKED"
+        }
+      ]
+    },
+    {
+      "context": "Admin Operational Years",
+      "total": 6,
+      "clicked": [
+        {
+          "text": "+ Create Year",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Edit",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Archive",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Edit",
+          "status": "CLICKED"
+        },
+        {
+          "text": "Activate",
+          "status": "CLICKED"
+        },
+        {
+          "text": "AI Assistant\nRAG",
+          "status": "CLICKED"
+        }
+      ]
+    }
+  ],
+  "screenshotsCaptured": [
+    {
+      "filename": "local_suite_staff_roster.png",
+      "label": "Staff Roster View",
+      "timestamp": "2026-10-23T17:51:59.320Z"
+    },
+    {
+      "filename": "local_suite_staff_new.png",
+      "label": "Staff Registration Form",
+      "timestamp": "2026-10-23T17:52:10.847Z"
+    },
+    {
+      "filename": "local_suite_admin_categories.png",
+      "label": "Admin Client Categories Manager",
+      "timestamp": "2026-10-23T17:52:15.553Z"
+    },
+    {
+      "filename": "local_suite_admin_users.png",
+      "label": "Admin Users Manager",
+      "timestamp": "2026-10-23T17:52:20.024Z"
+    },
+    {
+      "filename": "local_suite_admin_years.png",
+      "label": "Admin Operational Years",
+      "timestamp": "2026-10-23T17:52:36.268Z"
+    }
+  ],
+  "errors": [],
+  "status": "SUCCESS",
+  "totalScreenshots": 5,
+  "totalContextsClicked": 5
+}
