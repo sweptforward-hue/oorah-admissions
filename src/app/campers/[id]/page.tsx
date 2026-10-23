@@ -22,22 +22,45 @@ export default async function CamperDetailPage({ params }: PageProps) {
 
   const supabase = createAdminClient();
 
-  const { data: camperData, error } = await supabase
-    .from('kids')
-    .select(`
-      id,
-      application_number,
-      name,
-      voting_open,
-      created_at,
-      updated_at,
-      statuses ( name )
-    `)
-    .eq('id', id)
-    .single();
+  let camperData: Record<string, unknown> | null = null;
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-  if (error || !camperData) {
-    console.error('[CamperDetail Error]:', error, 'camperData:', camperData);
+  if (isUuid) {
+    const { data, error } = await supabase
+      .from('kids')
+      .select(`
+        id,
+        application_number,
+        name,
+        voting_open,
+        created_at,
+        updated_at,
+        statuses ( name )
+      `)
+      .eq('id', id)
+      .single();
+
+    if (!error && data) {
+      camperData = data as Record<string, unknown>;
+    }
+  }
+
+  if (!camperData) {
+    const stored = getStoredCampers().find((c) => c.id === id);
+    if (stored) {
+      camperData = {
+        id: stored.id,
+        application_number: stored.application_number,
+        name: stored.name,
+        voting_open: stored.voting_open ?? true,
+        created_at: stored.created_at,
+        updated_at: stored.updated_at,
+        statuses: { name: stored.status || 'New' },
+      };
+    }
+  }
+
+  if (!camperData) {
     return notFound();
   }
 

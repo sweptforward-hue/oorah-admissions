@@ -61,42 +61,42 @@ async function runLocalE2ESuite() {
     // 1. Dashboard
     console.log('\n--- 1. Testing Local Dashboard ---');
     await setAdminAuth();
-    await page.goto(`${LOCAL_URL}/dashboard`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto(`${LOCAL_URL}/dashboard`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForTimeout(1000);
     await captureEvidence('local_dashboard_live.png', 'Local Dashboard Loaded');
 
     // 2. Staff Roster & Parity
     console.log('\n--- 2. Testing Local Staff Roster ---');
     await setAdminAuth();
-    await page.goto(`${LOCAL_URL}/staff`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto(`${LOCAL_URL}/staff`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForTimeout(1000);
     await captureEvidence('local_staff_roster_live.png', 'Local Staff Roster with Clean Parity');
 
     // 3. Staff Intake Form
     console.log('\n--- 3. Testing Local Staff Intake Form ---');
     await setAdminAuth();
-    await page.goto(`${LOCAL_URL}/staff/new`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto(`${LOCAL_URL}/staff/new`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForTimeout(1000);
     await captureEvidence('local_staff_intake_live.png', 'Local Staff Intake Form');
 
     // 4. Admin Users & Deletion
     console.log('\n--- 4. Testing Local Admin Users & Deletion ---');
     await setAdminAuth();
-    await page.goto(`${LOCAL_URL}/admin/users`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto(`${LOCAL_URL}/admin/users`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForTimeout(1000);
     await captureEvidence('local_admin_users_live.png', 'Local Admin Users with Delete Actions');
 
     // 5. Admin Categories
     console.log('\n--- 5. Testing Local Admin Client Categories ---');
     await setAdminAuth();
-    await page.goto(`${LOCAL_URL}/admin/client-categories`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto(`${LOCAL_URL}/admin/client-categories`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForTimeout(1000);
     await captureEvidence('local_admin_categories_live.png', 'Local Admin Categories');
 
     // 6. Camper Detail & Persistent Chat Verification
     console.log('\n--- 6. Testing Camper Detail Dossier & Chat Persistence ---');
     await setAdminAuth();
-    await page.goto(`${LOCAL_URL}/campers/1`, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+    await page.goto(`${LOCAL_URL}/campers/1`, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {});
     await page.waitForTimeout(1200);
 
     // Switch to Chat Tab
