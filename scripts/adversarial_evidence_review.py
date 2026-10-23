@@ -103,7 +103,10 @@ def run_adversarial_audit():
     if jules_spec_file.exists():
         try:
             specs = json.loads(jules_spec_file.read_text())
-            jules_count = len(specs)
+            if isinstance(specs, dict) and "issues" in specs:
+                jules_count = len(specs["issues"])
+            elif isinstance(specs, list):
+                jules_count = len(specs)
         except Exception:
             pass
     log_check("12 Jules Subagent Task Specifications", jules_count >= 12, f"Found {jules_count} structured Jules issues")
